@@ -1,6 +1,6 @@
 use anyhow::{Context, Result, bail};
 use chrono::{TimeZone, Utc};
-use reqwest::Url;
+use reqwest::{StatusCode, Url};
 use rust_decimal::Decimal;
 use serde::Deserialize;
 use serde_json::Value;
@@ -36,7 +36,13 @@ impl DataApiClient {
             .get(url)
             .send()
             .await
-            .context("data api trades request failed")?
+            .context("data api trades request failed")?;
+
+        if response.status() == StatusCode::BAD_REQUEST && offset > 0 {
+            tracing::warn!(offset, "data api rejected page; treating as pagination end");
+            return Ok(Vec::new());
+        }
+        let response = response
             .error_for_status()
             .context("data api trades returned error status")?;
 
