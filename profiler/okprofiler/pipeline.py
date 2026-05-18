@@ -4,6 +4,7 @@ from pathlib import Path
 import polars as pl
 
 from .diagnostics import build_diagnostics, write_diagnostics
+from .factor_reporting import write_factor_outputs
 from .features import add_derived_factors, extract_clob_features
 from .report import write_reports
 from .research_matrix import run_research_matrix
@@ -22,6 +23,8 @@ class ProfilerConfig:
     report_out: Path | None
     html_out: Path | None
     diagnostics_out: Path | None
+    factor_summary_out: Path | None
+    factor_log_out: Path | None
     lookback_secs: int
     min_samples: int
     research_engines: list[str]
@@ -62,6 +65,7 @@ def run_profiler(config: ProfilerConfig) -> dict:
             strategy_config_from_rules(rules),
             encoding="utf-8",
         )
+    write_factor_outputs(rules, config.factor_summary_out, config.factor_log_out)
     return rules
 
 

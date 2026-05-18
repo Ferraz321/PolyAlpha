@@ -46,6 +46,8 @@ def profile(args) -> None:
             report_out=Path(args.report_out) if args.report_out else None,
             html_out=Path(args.html_out) if args.html_out else None,
             diagnostics_out=Path(args.diagnostics_out) if args.diagnostics_out else None,
+            factor_summary_out=Path(args.factor_summary_out) if args.factor_summary_out else None,
+            factor_log_out=Path(args.factor_log_out) if args.factor_log_out else None,
             lookback_secs=args.lookback_secs,
             min_samples=args.min_samples,
             research_engines=_parse_engines(args.research_engines),
@@ -92,6 +94,8 @@ def _add_profile_args(parser):
     parser.add_argument("--report-out", default="data/profiler/report.md")
     parser.add_argument("--html-out", default="data/profiler/report.html")
     parser.add_argument("--diagnostics-out", default="data/profiler/diagnostics.json")
+    parser.add_argument("--factor-summary-out", default="data/profiler/factor_summary.md")
+    parser.add_argument("--factor-log-out", default="data/profiler/factor_research_log.md")
     parser.add_argument("--lookback-secs", type=int, default=60)
     parser.add_argument("--min-samples", type=int, default=5)
     parser.add_argument(

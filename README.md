@@ -174,7 +174,8 @@ scripts/profile-wallet.sh 0xYourWallet data/oktrader.sqlite
 ```
 
 This writes `data/profiler/readiness.json`, `diagnostics.json`, `rules.json`,
-`factor_table.parquet`, `report.md`, `report.html`, and `strategy_config.json`.
+`factor_table.parquet`, `factor_summary.md`, `factor_research_log.md`,
+`report.md`, `report.html`, and `strategy_config.json`.
 If the wallet lacks CLOB alignment or metadata, inspect `diagnostics.json`; it
 will tell you which collection step is missing.
 
@@ -239,6 +240,7 @@ profiler/okprofiler/factor_library.py   candidate factor registry
 profiler/okprofiler/data_sources.py     Gamma metadata fetcher
 profiler/okprofiler/diagnostics.py      source/factor readiness diagnostics
 profiler/okprofiler/features/           concrete feature extraction package
+docs/factors.md                         human-maintained factor catalog
 profiler/okprofiler/miner.py            single/pair factor search and scoring
 profiler/okprofiler/research/           research-engine package entrypoints
 profiler/okprofiler/researcher.py       agent-style interpretation and next experiments

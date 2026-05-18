@@ -70,6 +70,8 @@ echo "[4/5] profile"
   --report-out "$OUT_DIR/report.md" \
   --html-out "$OUT_DIR/report.html" \
   --diagnostics-out "$OUT_DIR/diagnostics.json" \
+  --factor-summary-out "$OUT_DIR/factor_summary.md" \
+  --factor-log-out "$OUT_DIR/factor_research_log.md" \
   --min-samples "${OKTRADER_MIN_SAMPLES:-2}" \
   --research-engines "${OKTRADER_RESEARCH_ENGINES:-core,alphalens,shap,stumpy,agent}"
 
@@ -84,3 +86,5 @@ echo "  $OUT_DIR/rules.json"
 echo "  $OUT_DIR/report.md"
 echo "  $OUT_DIR/report.html"
 echo "  $OUT_DIR/strategy_config.json"
+echo "  $OUT_DIR/factor_summary.md"
+echo "  $OUT_DIR/factor_research_log.md"
