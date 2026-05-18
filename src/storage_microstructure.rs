@@ -67,4 +67,33 @@ impl Storage {
         tx.commit()?;
         Ok(())
     }
+
+    pub fn wallet_microstructure_map(
+        &self,
+    ) -> Result<std::collections::HashMap<String, WalletMicrostructureMetric>> {
+        self.init()?;
+        let mut stmt = self.raw_connection().prepare(
+            r#"
+            SELECT account, observed_fills, avg_spread, avg_ofi, favorable_ofi_rate, updated_at
+            FROM wallet_microstructure_metrics
+            "#,
+        )?;
+        let rows = stmt.query_map([], |row| {
+            let observed: i64 = row.get(1)?;
+            Ok(WalletMicrostructureMetric {
+                account: row.get(0)?,
+                observed_fills: observed as usize,
+                avg_spread: row.get(2)?,
+                avg_ofi: row.get(3)?,
+                favorable_ofi_rate: row.get(4)?,
+                updated_at: row.get(5)?,
+            })
+        })?;
+
+        let metrics = rows.collect::<rusqlite::Result<Vec<_>>>()?;
+        Ok(metrics
+            .into_iter()
+            .map(|metric| (metric.account.clone(), metric))
+            .collect())
+    }
 }

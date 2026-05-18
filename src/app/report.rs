@@ -5,6 +5,7 @@ use anyhow::{Context, Result};
 use oktrader_alpha::filter::{FunnelConfig, evaluate};
 use oktrader_alpha::metrics::{MetricsConfig, compute_account_metrics};
 use oktrader_alpha::model::FillEvent;
+use oktrader_alpha::storage_types::WalletMicrostructureMetric;
 use oktrader_alpha::tagging::{
     AccountClassification, AccountTag, SmartMoneyTier, classify_profile,
 };
@@ -20,6 +21,8 @@ pub struct AccountReport {
     pub failed_reasons: Vec<String>,
     #[serde(flatten)]
     pub classification: AccountClassification,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub microstructure: Option<WalletMicrostructureMetric>,
 }
 
 #[derive(Debug, Clone)]
@@ -66,9 +69,20 @@ pub fn build_reports(
                 metrics,
                 passed_funnel: decision.passed,
                 failed_reasons: decision.failed_reasons,
+                microstructure: None,
             })
         })
         .collect())
+}
+
+pub fn attach_microstructure(
+    mut reports: Vec<AccountReport>,
+    microstructure: &std::collections::HashMap<String, WalletMicrostructureMetric>,
+) -> Vec<AccountReport> {
+    for report in &mut reports {
+        report.microstructure = microstructure.get(&report.metrics.account).cloned();
+    }
+    reports
 }
 
 pub fn build_incremental_reports(

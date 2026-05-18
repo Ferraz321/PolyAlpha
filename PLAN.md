@@ -109,7 +109,8 @@ Partially implemented:
    - [x] Add websocket reconnect and exponential backoff handling.
    - [x] Add CLOB order-book feature extraction for BBO, spread, book depth, OFI, and last trade state.
    - [x] Add wallet-level fill-to-CLOB timing joins for spread, OFI, and favorable flow rate.
-   - [ ] Feed wallet microstructure metrics into account classification and monitor alerts.
+   - [x] Feed wallet microstructure metrics into analyzer reports and monitor/export JSON.
+   - [ ] Use wallet microstructure metrics as secondary classification and alert signals.
    - [ ] Add address-level maker behavior joins where wallet attribution is available from settlement logs.
 
 3. Incremental analysis

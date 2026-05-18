@@ -1,5 +1,6 @@
 use anyhow::Result;
 use rust_decimal::Decimal;
+use serde::{Deserialize, Serialize};
 
 use crate::model::{AccountMetrics, FillEvent};
 use crate::tagging::AccountClassification;
@@ -64,6 +65,7 @@ pub struct StoredClobEvent {
     pub received_at: String,
 }
 
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct WalletMicrostructureMetric {
     pub account: String,
     pub observed_fills: usize,

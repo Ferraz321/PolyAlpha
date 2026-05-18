@@ -144,6 +144,8 @@ This scanner uses the public Data API (`https://data-api.polymarket.com/trades`)
 
 `watch-clob` uses Polymarket's public market websocket. It archives raw book, price, and trade payloads for token IDs listed one per line in `--assets-file`, and maintains `clob_asset_features` with BBO, spread, depth, OFI, and last-trade state. `build-microstructure` joins those CLOB observations back to wallet fills and writes `wallet_microstructure_metrics`. Public CLOB market messages do not identify wallet addresses, so wallet attribution still comes from Polygon settlement logs.
 
+After `build-microstructure` runs, the `analyzer` attaches wallet microstructure metrics to `account_reports.json`, `matched_accounts.json`, and monitor output.
+
 ## CLI Workflow
 
 Show supported smart-money tiers and account types:

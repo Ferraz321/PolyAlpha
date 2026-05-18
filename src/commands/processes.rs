@@ -8,7 +8,9 @@ use oktrader_alpha::storage::Storage;
 use oktrader_alpha::storage_types::metric_parts;
 
 use crate::app::cli::{AnalyzerArgs, CollectorDataApiArgs, ExportArgs, MonitorArgs};
-use crate::app::report::{AccountReport, build_incremental_reports, filter_reports};
+use crate::app::report::{
+    AccountReport, attach_microstructure, build_incremental_reports, filter_reports,
+};
 
 pub fn init_db(db: std::path::PathBuf) -> Result<()> {
     let storage = Storage::open(&db)?;
@@ -66,7 +68,10 @@ pub async fn analyzer(args: AnalyzerArgs) -> Result<()> {
                 &report.failed_reasons,
             )
         })?;
-        let all_reports = stored_reports(&storage)?;
+        let all_reports = attach_microstructure(
+            stored_reports(&storage)?,
+            &storage.wallet_microstructure_map()?,
+        );
         let matched_reports = filter_reports(&all_reports, &filters);
         storage.replace_matched_accounts(
             &matched_reports,
