@@ -362,7 +362,7 @@ POLYGON_RPC_URL=https://polygon-mainnet.g.alchemy.com/v2/real_key
 OKTRADER_ENABLE_RPC=1
 ```
 
-Then rerun `scripts/run-vps-stack.sh`. Without RPC, the stack still runs Data API collection, analyzer, alerts, and summary.
+Then rerun `python scripts/run_vps_stack.py`. Without RPC, the stack still runs Data API collection, analyzer, alerts, and summary.
 
 See the full tier/tag distribution:
 
