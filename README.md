@@ -256,7 +256,8 @@ flowchart LR
 | Open-Meteo archive fetch entrypoint | Implemented as data adapter |
 | Weather observation factors in `factor_table` | Implemented for actual daily high |
 | Weather forecast history adapter and forecast factors in `factor_table` | Implemented |
-| Full audit-grade realized PnL from settlement/redemption events | In progress/future hardening |
+| Settlement/redemption event import and audited PnL scope | Implemented; requires decoded event input |
+| Postgres/ClickHouse production storage schemas | Implemented as deployment contracts |
 | Automatic trading/execution | Not enabled; alert/strategy validation only |
 
 The project has several Rust production roles:
@@ -587,6 +588,29 @@ factor exposure signals instead of only generic activity counts.
 `market_tokens`. `build-wallet-intelligence` uses that token map for
 outcome-level positions and uses latest CLOB BBO mid prices for mark-to-market
 unrealized PnL when available.
+
+Settlement/redemption evidence can be imported as CSV and folded into
+`wallet_pnl` as the `settlement_audited` scope:
+
+```bash
+cargo run -- import-settlements \
+  --db data/oktrader.sqlite \
+  --input data/profiler/settlement_events.csv
+
+cargo run -- build-wallet-intelligence --db data/oktrader.sqlite
+```
+
+The CSV contract is:
+
+```text
+account,market_id,outcome_id,event_type,amount,payout,settlement_price,timestamp,tx_hash,log_index
+```
+
+Check storage routing for local and production deployments:
+
+```bash
+cargo run -- storage-plan
+```
 
 Use the generated strategy rules in live alerts:
 

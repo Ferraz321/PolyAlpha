@@ -10,6 +10,8 @@ pub mod processes;
 pub mod profiler_export;
 pub mod profiler_readiness;
 pub mod research_status;
+pub mod settlement;
+pub mod storage_plan;
 pub mod strategy;
 pub mod wallet_intelligence;
 pub mod watchlist;

@@ -137,14 +137,19 @@ def _validate_factor(
     in_sample = _precision_lift(train, spec, threshold)
     out_of_sample = _precision_lift(test, spec, threshold)
     negative = _negative_control_lift(test, spec, threshold)
+    negative_set = _negative_set_lift(test, spec, threshold)
+    replication = _replication_score(test, spec, threshold)
+    slippage_bps = _slippage_bps(test)
+    capacity_usd = _capacity_usd(test, spec, threshold)
     stability = _stability(train, test, spec)
     recent_lift = _recent_lift(clean, spec, threshold)
     decay_score = max(0.0, in_sample - recent_lift)
     verdict = _verdict(
         out_of_sample,
-        negative,
+        max(negative, negative_set),
         stability,
         decay_score,
+        replication,
         min_oos_lift,
         min_stability,
     )
@@ -158,17 +163,31 @@ def _validate_factor(
         in_sample_score=in_sample,
         out_of_sample_score=out_of_sample,
         negative_control_score=negative,
+        negative_set_score=negative_set,
+        replication_score=replication,
+        slippage_bps=slippage_bps,
+        capacity_usd=capacity_usd,
         stability_score=stability,
         decay_score=decay_score,
         recent_lift=recent_lift,
-        reason=_reason(verdict, out_of_sample, negative, stability),
+        reason=_reason(verdict, out_of_sample, max(negative, negative_set), stability, replication),
     )
 
 
 def _clean_factor_rows(df: pl.DataFrame, column: str) -> pl.DataFrame:
     columns = [column, "side"]
-    if "timestamp" in df.columns:
-        columns.append("timestamp")
+    for optional in [
+        "timestamp",
+        "account",
+        "market_id",
+        "sector",
+        "price",
+        "shares",
+        "trade_notional",
+        "spread_filled",
+    ]:
+        if optional != column and optional in df.columns:
+            columns.append(optional)
     return df.select(columns).drop_nulls([column, "side"]).sort(
         "timestamp" if "timestamp" in df.columns else column
     )
@@ -209,6 +228,64 @@ def _negative_control_lift(df: pl.DataFrame, spec: FactorSpec, threshold: float)
     return max(0.0, _buy_rate(hits) - _buy_rate(df))
 
 
+def _negative_set_lift(df: pl.DataFrame, spec: FactorSpec, threshold: float) -> float:
+    if df.is_empty() or "account" not in df.columns:
+        return 0.0
+    hits = df.filter(_hit_expr(spec, threshold))
+    if hits.is_empty():
+        return 0.0
+    hit_accounts = set(hits.get_column("account").cast(pl.Utf8).unique().to_list())
+    negative = df.filter(~pl.col("account").cast(pl.Utf8).is_in(list(hit_accounts)))
+    if negative.is_empty():
+        return _negative_control_lift(df, spec, threshold)
+    return max(0.0, _buy_rate(negative) - _buy_rate(df))
+
+
+def _replication_score(df: pl.DataFrame, spec: FactorSpec, threshold: float) -> float:
+    group_column = "sector" if "sector" in df.columns else "market_id" if "market_id" in df.columns else None
+    if group_column is None or df.height < 10:
+        return 0.0
+    groups = []
+    for value in df.get_column(group_column).drop_nulls().unique().to_list():
+        group = df.filter(pl.col(group_column) == value)
+        if group.height < 5:
+            continue
+        groups.append(_precision_lift(group, spec, threshold))
+    if not groups:
+        return 0.0
+    positive = sum(1 for score in groups if score > 0.0)
+    return positive / len(groups)
+
+
+def _slippage_bps(df: pl.DataFrame) -> float | None:
+    if "spread_filled" not in df.columns:
+        return None
+    value = df.select(pl.col("spread_filled").cast(pl.Float64).median()).item()
+    if value is None:
+        return None
+    return max(0.0, float(value) * 10000.0)
+
+
+def _capacity_usd(df: pl.DataFrame, spec: FactorSpec, threshold: float) -> float | None:
+    hits = df.filter(_hit_expr(spec, threshold))
+    if hits.is_empty():
+        return None
+    if "trade_notional" in hits.columns:
+        notionals = numeric(hits, "trade_notional")
+    elif {"price", "shares"}.issubset(set(hits.columns)):
+        notionals = (
+            hits.select((pl.col("price").cast(pl.Float64) * pl.col("shares").cast(pl.Float64)).alias("_notional"))
+            .get_column("_notional")
+            .drop_nulls()
+            .to_list()
+        )
+    else:
+        return None
+    if len(notionals) == 0:
+        return None
+    return float(quantile(notionals, 0.75))
+
+
 def _hit_expr(spec: FactorSpec, threshold: float) -> pl.Expr:
     column = pl.col(spec.column).fill_null(0.0)
     if spec.direction == "high":
@@ -241,12 +318,18 @@ def _verdict(
     negative: float,
     stability: float,
     decay_score: float,
+    replication: float,
     min_oos_lift: float,
     min_stability: float,
 ) -> str:
     if decay_score >= 0.20 and out_of_sample <= 0.0:
         return "decayed"
-    if out_of_sample >= min_oos_lift and stability >= min_stability and negative <= out_of_sample:
+    if (
+        out_of_sample >= min_oos_lift
+        and stability >= min_stability
+        and negative <= out_of_sample
+        and replication >= 0.25
+    ):
         return "approved"
     if out_of_sample > 0.0 and stability > 0.0:
         return "researching"
@@ -264,6 +347,10 @@ def _result(
     in_sample_score: float = 0.0,
     out_of_sample_score: float = 0.0,
     negative_control_score: float = 0.0,
+    negative_set_score: float = 0.0,
+    replication_score: float = 0.0,
+    slippage_bps: float | None = None,
+    capacity_usd: float | None = None,
     stability_score: float = 0.0,
     decay_score: float = 0.0,
     recent_lift: float = 0.0,
@@ -283,11 +370,13 @@ def _result(
         "in_sample_score": in_sample_score,
         "out_of_sample_score": out_of_sample_score,
         "negative_control_score": negative_control_score,
+        "negative_set_score": negative_set_score,
+        "replication_score": replication_score,
         "stability_score": stability_score,
         "decay_score": decay_score,
         "recent_lift": recent_lift,
-        "slippage_bps": None,
-        "capacity_usd": None,
+        "slippage_bps": slippage_bps,
+        "capacity_usd": capacity_usd,
         "validated_at": datetime.now(timezone.utc).isoformat(),
     }
 
@@ -319,10 +408,17 @@ def _candidate_lifecycle_state(validation: dict) -> str:
     return "candidate"
 
 
-def _reason(verdict: str, out_of_sample: float, negative: float, stability: float) -> str:
+def _reason(
+    verdict: str,
+    out_of_sample: float,
+    negative: float,
+    stability: float,
+    replication: float,
+) -> str:
     return (
         f"{verdict}: oos_lift={out_of_sample:.4f}, "
-        f"negative_lift={negative:.4f}, stability={stability:.4f}"
+        f"negative_lift={negative:.4f}, stability={stability:.4f}, "
+        f"replication={replication:.4f}"
     )
 
 

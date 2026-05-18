@@ -4,7 +4,7 @@ use oktrader_alpha::model::{FillEvent, LiquidityRole, TradeSide};
 use oktrader_alpha::storage::Storage;
 use oktrader_alpha::storage_research::{SignalRecord, StrategyRecord};
 use oktrader_alpha::storage_types::{RawClobEventRecord, RawEvmLogRecord};
-use oktrader_alpha::wallet_intelligence::build_wallet_intelligence;
+use oktrader_alpha::wallet_intelligence::{SettlementEvent, build_wallet_intelligence};
 use rust_decimal_macros::dec;
 
 #[test]
@@ -192,6 +192,35 @@ fn stores_strategy_and_signal_records() {
         storage
             .signal_count_for_strategy("reverse_test")
             .expect("signal count"),
+        1
+    );
+}
+
+#[test]
+fn stores_settlement_events() {
+    let mut storage = Storage::open(":memory:").expect("storage");
+    let event = SettlementEvent {
+        event_id: "redeem-1".to_string(),
+        account: "0xabc".to_string(),
+        market_id: "m1".to_string(),
+        outcome_id: Some("yes".to_string()),
+        event_type: "redemption".to_string(),
+        amount: dec!(100),
+        payout: dec!(100),
+        settlement_price: Some(dec!(1)),
+        timestamp: "2026-01-01T00:00:00Z".to_string(),
+    };
+
+    assert_eq!(
+        storage.upsert_settlement_events(&[event]).expect("upsert"),
+        1
+    );
+    let loaded = storage.load_settlement_events().expect("load");
+
+    assert_eq!(loaded.len(), 1);
+    assert_eq!(loaded[0].payout, dec!(100));
+    assert_eq!(
+        storage.research_stats().expect("stats").settlement_events,
         1
     );
 }

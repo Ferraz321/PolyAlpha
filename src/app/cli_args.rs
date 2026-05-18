@@ -267,6 +267,20 @@ pub struct BuildMicrostructureArgs {
 }
 
 #[derive(Debug, Clone, Args)]
+pub struct ImportSettlementsArgs {
+    #[arg(long, default_value = "data/oktrader.sqlite")]
+    pub db: PathBuf,
+    #[arg(long)]
+    pub input: PathBuf,
+}
+
+#[derive(Debug, Clone, Args)]
+pub struct StoragePlanArgs {
+    #[arg(long, default_value = "config/storage_backends.json")]
+    pub config: PathBuf,
+}
+
+#[derive(Debug, Clone, Args)]
 pub struct ReportFilterArgs {
     #[arg(long = "tier", value_enum)]
     pub tiers: Vec<SmartMoneyTier>,

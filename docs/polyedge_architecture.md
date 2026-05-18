@@ -79,7 +79,10 @@ Existing tables remain valid. The platform adds lifecycle-oriented tables:
 
 - `markets`, `outcomes`: normalized market context and resolution state
 - `positions`, `wallet_pnl`: estimated wallet exposure and PnL surfaces from
-  fills today; settlement/redemption-grade audit is a future hardening step
+  fills, plus a `settlement_audited` PnL scope when redemption/settlement
+  evidence has been imported
+- `settlement_events`: decoded settlement/redemption evidence used for audited
+  wallet PnL
 - `wallet_clusters`: behavioral grouping
 - `factor_values`: normalized factor observations
 - `factor_candidates`: factor backlog and lifecycle state
@@ -87,9 +90,10 @@ Existing tables remain valid. The platform adds lifecycle-oriented tables:
 - `strategies`: strategy builder outputs
 - `signals`: live and simulated strategy emissions
 
-SQLite is still the local source of truth. Postgres can later own wallet/config
-state, and ClickHouse can own high-volume CLOB/order-book history without
-changing the research contract.
+SQLite is still the local source of truth. `config/storage_backends.json`,
+`sql/postgres_schema.sql`, and `sql/clickhouse_schema.sql` define the production
+split where Postgres owns wallet/config/lifecycle state and ClickHouse owns
+high-volume CLOB/order-book history.
 
 ## Module Ownership
 
@@ -159,7 +163,11 @@ Promotion gates:
 - `cargo run -- research-status` reports counts for wallet intelligence, factor
   lifecycle, strategy, and signal tables.
 - `cargo run -- build-wallet-intelligence` rebuilds estimated positions and
-  wallet PnL from normalized fills.
+  wallet PnL from normalized fills and imported settlement/redemption evidence.
+- `cargo run -- import-settlements` imports decoded settlement/redemption CSV
+  into `settlement_events`.
+- `cargo run -- storage-plan` prints the SQLite/Postgres/ClickHouse routing
+  contract.
 - `cargo run -- sync-metadata` persists Gamma market context into `markets`,
   `outcomes`, and `market_tokens`.
 - Wallet intelligence uses token metadata for outcome-level positions and
@@ -167,8 +175,9 @@ Promotion gates:
 - Reverse engineering factors now include directional entry-before-move
   evidence, exit-quality proxies, sector concentration, news recency, resolution
   lead time, and repeated entry motifs.
-- `profiler/okprofiler/validation.py` runs a first validation pass using
-  walk-forward splits, negative-control lift, and factor stability.
+- `profiler/okprofiler/validation.py` runs validation using walk-forward splits,
+  negative-control lift, non-wallet negative-set lift, replication checks,
+  slippage estimates, capacity estimates, and factor stability.
 - `profile_wallets.py profile` writes `factor_validations.json`.
 - `profile_wallets.py profile` writes `wallet_clusters.json` using a first-pass
   behavior clustering heuristic with wallet rhythm, sector, entry-edge, and
@@ -178,6 +187,9 @@ Promotion gates:
 - Validation persistence advances `factor_candidates` lifecycle state to
   `validating`, `approved`, `rejected`, or `decayed`.
 - `strategy_config.json` is now gated by approved live factors instead of every
-  explainable live rule.
+  explainable live rule, and includes strategy score, risk limits, position
+  sizing, version, and disabled reason.
+- Agent reports read database state and mark lifecycle actions as blocked,
+  pending, done, or ready for the next command.
 - `validate-strategy-config --db ...` persists strategy lifecycle rows.
 - `alerts --strategy-config ...` persists live trigger rows into `signals`.

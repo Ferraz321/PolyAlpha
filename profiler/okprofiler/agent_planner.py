@@ -1,9 +1,33 @@
 from pathlib import Path
 
 
-def next_commands(profile_dir: Path, db: Path, diagnostics: dict, candidates: list[dict]) -> list[dict]:
+def next_commands(
+    profile_dir: Path,
+    db: Path,
+    diagnostics: dict,
+    candidates: list[dict],
+    db_state: dict | None = None,
+) -> list[dict]:
     commands = []
     sources = diagnostics.get("sources", {})
+    db_state = db_state or {}
+    if db_state.get("settlement_events", 0) == 0:
+        commands.append(
+            {
+                "reason": "import settlement/redemption evidence before claiming audited PnL",
+                "command": [
+                    "cargo",
+                    "run",
+                    "--",
+                    "import-settlements",
+                    "--db",
+                    str(db),
+                    "--input",
+                    str(profile_dir / "settlement_events.csv"),
+                ],
+                "status": "blocked_until_file_exists",
+            }
+        )
     if not sources.get("clob_features", {}).get("ready", False):
         commands.append(
             {

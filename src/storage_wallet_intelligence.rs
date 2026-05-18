@@ -75,6 +75,7 @@ impl Storage {
         Ok(WalletIntelligenceContext {
             token_metadata: self.wallet_token_metadata()?,
             mark_prices: self.latest_mark_prices()?,
+            settlement_events: self.load_settlement_events()?,
         })
     }
 

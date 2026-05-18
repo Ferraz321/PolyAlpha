@@ -11,12 +11,26 @@ use crate::model::{FillEvent, TradeSide};
 pub struct WalletIntelligenceContext {
     pub token_metadata: HashMap<String, TokenMetadata>,
     pub mark_prices: HashMap<String, Decimal>,
+    pub settlement_events: Vec<SettlementEvent>,
 }
 
 #[derive(Debug, Clone)]
 pub struct TokenMetadata {
     pub market_id: String,
     pub outcome_id: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct SettlementEvent {
+    pub event_id: String,
+    pub account: String,
+    pub market_id: String,
+    pub outcome_id: Option<String>,
+    pub event_type: String,
+    pub amount: Decimal,
+    pub payout: Decimal,
+    pub settlement_price: Option<Decimal>,
+    pub timestamp: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -172,10 +186,73 @@ pub fn build_wallet_intelligence_with_context(
         .collect::<Vec<_>>();
 
     wallet_pnl.sort_by(|a, b| b.realized_pnl.cmp(&a.realized_pnl));
+    wallet_pnl.extend(settlement_wallet_pnl(&sorted, context, &updated_at));
+    wallet_pnl.sort_by(|a, b| {
+        a.account
+            .cmp(&b.account)
+            .then_with(|| a.scope.cmp(&b.scope))
+    });
     Ok(WalletIntelligenceSnapshot {
         positions,
         wallet_pnl,
     })
+}
+
+fn settlement_wallet_pnl(
+    fills: &[FillEvent],
+    context: &WalletIntelligenceContext,
+    updated_at: &str,
+) -> Vec<WalletPnlSnapshot> {
+    if context.settlement_events.is_empty() {
+        return Vec::new();
+    }
+    let mut wallets = HashMap::<String, WalletLedger>::new();
+    for fill in fills {
+        let token = context.token_metadata.get(&fill.market_id);
+        let market_id = token
+            .map(|metadata| metadata.market_id.clone())
+            .unwrap_or_else(|| fill.market_id.clone());
+        let wallet = wallets.entry(fill.account.clone()).or_default();
+        wallet.trade_count += 1;
+        wallet.markets.insert(market_id);
+        if fill.side == TradeSide::Buy {
+            wallet.realized_pnl -= fill.price * fill.shares;
+        }
+    }
+    for event in &context.settlement_events {
+        let wallet = wallets.entry(event.account.clone()).or_default();
+        wallet.realized_pnl += event.payout;
+        wallet.markets.insert(event.market_id.clone());
+    }
+    wallets
+        .into_iter()
+        .filter(|(account, _)| {
+            context
+                .settlement_events
+                .iter()
+                .any(|event| event.account == *account)
+        })
+        .map(|(account, wallet)| {
+            let event_count = context
+                .settlement_events
+                .iter()
+                .filter(|event| event.account == account)
+                .count();
+            WalletPnlSnapshot {
+                account,
+                scope: "settlement_audited".to_string(),
+                realized_pnl: wallet.realized_pnl,
+                unrealized_pnl: Decimal::ZERO,
+                trade_count: wallet.trade_count,
+                market_count: wallet.markets.len(),
+                audit_status: "settlement_audited".to_string(),
+                evidence_json: format!(
+                    r#"{{"source":"settlement_events","settlement_events":true,"event_count":{event_count}}}"#
+                ),
+                updated_at: updated_at.to_string(),
+            }
+        })
+        .collect()
 }
 
 fn released_cost(position: &PositionLedger, sell_shares: Decimal) -> Decimal {
@@ -233,6 +310,33 @@ mod tests {
         assert_eq!(snapshot.positions[0].outcome_id, "token-yes");
         assert_eq!(snapshot.positions[0].unrealized_pnl, dec!(15.00));
         assert_eq!(snapshot.wallet_pnl[0].unrealized_pnl, dec!(15.00));
+    }
+
+    #[test]
+    fn adds_settlement_audited_wallet_pnl() {
+        let fills = vec![fill(TradeSide::Buy, dec!(0.40), dec!(100))];
+        let mut context = WalletIntelligenceContext::default();
+        context.settlement_events.push(SettlementEvent {
+            event_id: "redeem-1".to_string(),
+            account: "0xabc".to_string(),
+            market_id: "m1".to_string(),
+            outcome_id: Some("m1".to_string()),
+            event_type: "redemption".to_string(),
+            amount: dec!(100),
+            payout: dec!(100),
+            settlement_price: Some(dec!(1)),
+            timestamp: Utc::now().to_rfc3339(),
+        });
+
+        let snapshot = build_wallet_intelligence_with_context(&fills, &context).expect("snapshot");
+        let audited = snapshot
+            .wallet_pnl
+            .iter()
+            .find(|row| row.scope == "settlement_audited")
+            .expect("audited pnl");
+
+        assert_eq!(audited.realized_pnl, dec!(60.00));
+        assert_eq!(audited.audit_status, "settlement_audited");
     }
 
     fn fill(side: TradeSide, price: Decimal, shares: Decimal) -> FillEvent {

@@ -11,10 +11,18 @@ pub struct StrategyConfig {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Strategy {
     pub id: String,
+    #[serde(default = "default_strategy_version")]
+    pub version: u64,
     pub source_wallet: String,
     pub enabled: bool,
+    #[serde(default)]
+    pub disabled_reason: Option<String>,
+    #[serde(default)]
+    pub score: f64,
     pub trigger: Trigger,
     pub risk: Risk,
+    #[serde(default)]
+    pub position_sizing: PositionSizing,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -34,6 +42,30 @@ pub struct Condition {
 pub struct Risk {
     pub mode: String,
     pub max_notional_usd: f64,
+    #[serde(default)]
+    pub max_position_usd: f64,
+    #[serde(default)]
+    pub max_daily_signals: u64,
+    #[serde(default)]
+    pub max_market_exposure_usd: f64,
+    #[serde(default)]
+    pub stop_loss_bps: f64,
+    #[serde(default)]
+    pub cooldown_secs: u64,
+}
+
+#[derive(Debug, Deserialize, Serialize, Default)]
+pub struct PositionSizing {
+    #[serde(default)]
+    pub method: String,
+    #[serde(default)]
+    pub base_notional_usd: f64,
+    #[serde(default)]
+    pub score: f64,
+    #[serde(default)]
+    pub scale: f64,
+    #[serde(default)]
+    pub enabled_for_execution: bool,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -54,9 +86,14 @@ pub fn parse_strategy_config(json: &str) -> Result<StrategyConfig> {
 
 fn validate_strategy(strategy: &Strategy) -> Result<()> {
     anyhow::ensure!(!strategy.id.is_empty(), "strategy id is empty");
+    anyhow::ensure!(strategy.version > 0, "strategy version must be positive");
     anyhow::ensure!(
         strategy.source_wallet.starts_with("0x"),
         "source wallet must be hex address"
+    );
+    anyhow::ensure!(
+        (0.0..=1.0).contains(&strategy.score),
+        "strategy score must be between 0 and 1"
     );
     anyhow::ensure!(
         !strategy.trigger.all.is_empty(),
@@ -81,7 +118,27 @@ fn validate_strategy(strategy: &Strategy) -> Result<()> {
         strategy.risk.mode == "alert_only" || strategy.risk.max_notional_usd >= 0.0,
         "invalid risk settings"
     );
+    anyhow::ensure!(
+        strategy.risk.max_notional_usd >= 0.0,
+        "negative max notional"
+    );
+    anyhow::ensure!(
+        strategy.risk.max_position_usd >= 0.0,
+        "negative max position"
+    );
+    anyhow::ensure!(
+        strategy.position_sizing.base_notional_usd >= 0.0,
+        "negative base position size"
+    );
+    anyhow::ensure!(
+        !strategy.position_sizing.enabled_for_execution || strategy.enabled,
+        "execution sizing cannot be active for a disabled strategy"
+    );
     Ok(())
+}
+
+fn default_strategy_version() -> u64 {
+    1
 }
 
 pub fn matching_strategy_ids(config: &StrategyConfig, snapshot: &FeatureSnapshot) -> Vec<String> {

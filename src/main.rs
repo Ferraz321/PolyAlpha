@@ -40,5 +40,7 @@ async fn main() -> Result<()> {
         Commands::WatchLive(args) => commands::planned::watch_live(args).await,
         Commands::WatchClob(args) => commands::clob_ws::watch_clob(args).await,
         Commands::BuildMicrostructure(args) => commands::microstructure::build_microstructure(args),
+        Commands::ImportSettlements(args) => commands::settlement::import_settlements(args),
+        Commands::StoragePlan(args) => commands::storage_plan::storage_plan(args),
     }
 }

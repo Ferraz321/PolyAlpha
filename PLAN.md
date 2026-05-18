@@ -72,7 +72,7 @@ Latest smoke test:
 - Latest local factor smoke passed in `.venv`: reverse-engineering factors produced `entry_forward_edge`, `entry_before_move_secs`, `exit_quality_proxy`, `sector_concentration`, `news_recency_hours`, and repeated motif scores.
 - Finding: wallet classified as `weather_temperature` specialist with `weather_market_ratio >= 0.867881`.
 - Automatic weather expansion: agent fetched 853 actual observation rows and 41,400 forecast-history rows, then populated actual-temperature and forecast factors.
-- Remaining evidence gaps: CLOB snapshots, optional news timeline, model disagreement, and settlement-grade PnL expansion for stronger replication claims.
+- Remaining evidence gaps: CLOB snapshots, optional news timeline, model disagreement, and decoded settlement/redemption input for broader audited PnL coverage.
 
 SQLite tables:
 
@@ -89,7 +89,8 @@ SQLite tables:
 - `market_tokens`: token to market/event metadata mapping
 - `markets` / `outcomes`: normalized market context and resolution state
 - `positions`: estimated outcome-level open exposure from normalized fills and token metadata
-- `wallet_pnl`: estimated wallet PnL from fills plus CLOB mark-to-market when available; settlement-grade audit remains a hardening item
+- `wallet_pnl`: estimated wallet PnL from fills plus CLOB mark-to-market when available; `settlement_audited` scope is produced when settlement/redemption evidence is imported
+- `settlement_events`: decoded settlement/redemption evidence for audited wallet PnL
 - `wallet_clusters`: heuristic behavioral grouping with wallet rhythm, maker/taker, sector exposure, entry-edge, and exit-quality features
 - `factor_values`: normalized factor observation surface
 - `factor_candidates`: factor backlog and lifecycle state
@@ -195,7 +196,7 @@ Partially implemented:
    - [x] Persist live strategy trigger events into `signals`.
    - [x] Add first-pass heuristic wallet clustering persisted into `wallet_clusters`.
    - [x] Add strategy reconstruction features: entry-before-move, exit quality, sector-specific PnL, and stronger lead-time evidence.
-   - [ ] Harden wallet PnL with settlement/redemption events.
+   - [x] Harden wallet PnL with settlement/redemption events.
 
 5. Python Profiler
    - Status: core reverse-engineering loop implemented; expanding factor library.
@@ -235,14 +236,15 @@ Partially implemented:
    - [x] Add first-pass factor validation output with walk-forward, negative-control lift, and stability scoring.
    - [x] Persist agent candidate factors and validation rows into SQLite lifecycle tables.
    - [x] Advance factor candidate lifecycle from validation verdicts, including decayed factors.
-   - [ ] Add true negative-set backtests across non-wallet fills for real precision/recall.
+   - [x] Add true negative-set backtests across non-wallet fills for real precision/recall.
    - [ ] Replace lightweight adapters with full optional Qlib/Alphalens/STUMPY/SHAP/Nautilus integrations when data format and dependencies are ready.
    - [ ] Add multi-model forecast adapter for `model_disagreement`.
    - [x] Add richer factor library: market sector PnL, pre-news lead time, and exit quality.
-   - [ ] Add richer validation metrics: non-wallet negative-set precision/recall and category replication.
+   - [x] Add richer validation metrics: non-wallet negative-set precision/recall, category replication, slippage, and capacity.
 
 6. Production storage option
-   - Status: planned.
-   - Keep SQLite as local default.
-   - Add Postgres for wallet/config state.
-   - Add ClickHouse for large tick/order-book and historical log analytics.
+   - Status: deployment contracts implemented; runtime adapters remain optional.
+   - [x] Keep SQLite as local default.
+   - [x] Add Postgres schema for wallet/config state.
+   - [x] Add ClickHouse schema for large tick/order-book and historical log analytics.
+   - [x] Add `storage-plan` command and `config/storage_backends.json` routing manifest.

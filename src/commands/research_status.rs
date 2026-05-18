@@ -14,11 +14,12 @@ pub fn research_status(args: DbArgs) -> Result<()> {
         db.fills, db.wallets, db.raw_evm_logs, db.raw_clob_events, db.clob_asset_features
     );
     println!(
-        "wallet_intelligence: account_metrics={}, matched_accounts={}, wallet_pnl={}, positions={}, clusters={}",
+        "wallet_intelligence: account_metrics={}, matched_accounts={}, wallet_pnl={}, positions={}, settlement_events={}, clusters={}",
         db.account_metrics,
         db.matched_accounts,
         research.wallet_pnl,
         research.positions,
+        research.settlement_events,
         research.wallet_clusters
     );
     println!(

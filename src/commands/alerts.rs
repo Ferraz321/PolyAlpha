@@ -102,6 +102,12 @@ fn strategy_trigger_message(
         return Ok(None);
     }
     for strategy_id in &matched {
+        let strategy_score = config
+            .strategies
+            .iter()
+            .find(|strategy| &strategy.id == strategy_id)
+            .map(|strategy| strategy.score)
+            .unwrap_or(1.0);
         storage.insert_signal_record(&SignalRecord {
             signal_id: format!("strategy:{strategy_id}:fill:{}", stored.id),
             strategy_id: strategy_id.clone(),
@@ -109,11 +115,12 @@ fn strategy_trigger_message(
             market_id: Some(fill.market_id.clone()),
             outcome_id: fill.condition_id.clone(),
             signal_type: "live_strategy_trigger".to_string(),
-            score: "1".to_string(),
+            score: strategy_score.to_string(),
             payload_json: json!({
                 "fill_id": stored.id,
                 "wallet": fill.account,
                 "market": fill.market_id,
+                "strategy_score": strategy_score,
                 "ofi": snapshot.ofi,
                 "spread": snapshot.spread,
                 "depth_imbalance": snapshot.depth_imbalance,

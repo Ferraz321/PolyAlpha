@@ -184,6 +184,27 @@ CREATE TABLE IF NOT EXISTS wallet_pnl (
     PRIMARY KEY(account, scope)
 );
 
+CREATE TABLE IF NOT EXISTS settlement_events (
+    event_id TEXT PRIMARY KEY,
+    account TEXT NOT NULL,
+    market_id TEXT NOT NULL,
+    outcome_id TEXT,
+    event_type TEXT NOT NULL,
+    amount TEXT NOT NULL DEFAULT '0',
+    payout TEXT NOT NULL DEFAULT '0',
+    settlement_price TEXT,
+    tx_hash TEXT,
+    log_index INTEGER,
+    block_number INTEGER,
+    timestamp TEXT NOT NULL,
+    raw_json TEXT NOT NULL DEFAULT '{}',
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_settlement_events_account ON settlement_events(account);
+CREATE INDEX IF NOT EXISTS idx_settlement_events_market ON settlement_events(market_id);
+CREATE INDEX IF NOT EXISTS idx_settlement_events_timestamp ON settlement_events(timestamp);
+
 CREATE TABLE IF NOT EXISTS wallet_clusters (
     cluster_id TEXT NOT NULL,
     account TEXT NOT NULL,

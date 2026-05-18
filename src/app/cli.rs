@@ -32,4 +32,6 @@ pub enum Commands {
     WatchLive(WatchLiveArgs),
     WatchClob(WatchClobArgs),
     BuildMicrostructure(BuildMicrostructureArgs),
+    ImportSettlements(ImportSettlementsArgs),
+    StoragePlan(StoragePlanArgs),
 }

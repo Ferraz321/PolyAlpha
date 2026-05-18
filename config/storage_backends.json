@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "default": "sqlite_local",
+  "backends": {
+    "sqlite_local": {
+      "kind": "sqlite",
+      "purpose": "local source of truth and single-node research",
+      "dsn_env": "OKTRADER_SQLITE_PATH",
+      "default_path": "data/oktrader.sqlite"
+    },
+    "postgres_state": {
+      "kind": "postgres",
+      "purpose": "wallet intelligence, factor lifecycle, strategies, signals, and agent state",
+      "dsn_env": "OKTRADER_POSTGRES_DSN",
+      "schema": "sql/postgres_schema.sql"
+    },
+    "clickhouse_ticks": {
+      "kind": "clickhouse",
+      "purpose": "high-volume CLOB events, order-book features, and historical tick analytics",
+      "dsn_env": "OKTRADER_CLICKHOUSE_DSN",
+      "schema": "sql/clickhouse_schema.sql"
+    }
+  },
+  "routing": {
+    "fills": "postgres_state",
+    "wallet_pnl": "postgres_state",
+    "positions": "postgres_state",
+    "settlement_events": "postgres_state",
+    "factor_candidates": "postgres_state",
+    "factor_validations": "postgres_state",
+    "strategies": "postgres_state",
+    "signals": "postgres_state",
+    "raw_clob_events": "clickhouse_ticks",
+    "clob_asset_features": "clickhouse_ticks"
+  }
+}

@@ -57,7 +57,9 @@ def run_agent(config: AgentConfig) -> dict:
     rules = _read_json(config.rules_path)
     diagnostics = _read_json(config.diagnostics_path)
     candidates = _candidate_factors(rules)
-    commands = next_commands(config.profile_dir, config.db, diagnostics, candidates)
+    db_state = _db_state(config.db)
+    lifecycle_actions = _lifecycle_actions(db_state, diagnostics, candidates)
+    commands = next_commands(config.profile_dir, config.db, diagnostics, candidates, db_state)
     result = {
         "version": 1,
         "profile_dir": str(config.profile_dir),
@@ -66,6 +68,8 @@ def run_agent(config: AgentConfig) -> dict:
         "tool_result": tool_result,
         "wallets": _wallet_summaries(rules),
         "candidates": candidates,
+        "db_state": db_state,
+        "lifecycle_actions": lifecycle_actions,
         "next_commands": commands,
         "sop_status": {},
         "missing_actions": diagnostics.get("missing_actions", []),
@@ -239,6 +243,14 @@ def _render_report(result: dict, diagnostics: dict) -> str:
     for stage in result.get("sop_status", {}).get("stages", []):
         missing = "; ".join(stage.get("missing", [])) or "-"
         lines.append(f"- {stage.get('id')}: {stage.get('status')} missing={missing}")
+    if result.get("db_state"):
+        lines.extend(["", "## Database State", ""])
+        for key, value in result["db_state"].items():
+            lines.append(f"- {key}: {value}")
+    if result.get("lifecycle_actions"):
+        lines.extend(["", "## Lifecycle Actions", ""])
+        for action in result["lifecycle_actions"]:
+            lines.append(f"- {action['status']}: {action['reason']}")
     lines.extend(["", "## Next Commands", ""])
     for command in result.get("next_commands", []):
         lines.append(f"- {command.get('reason')}: `{' '.join(command.get('command', []))}`")
@@ -317,3 +329,58 @@ def _write_text(path: Path, text: str) -> None:
 
 def _optional(path: Path) -> Path | None:
     return path if path.exists() else None
+
+
+def _db_state(db: Path) -> dict:
+    if not db.exists():
+        return {"db_exists": False}
+    schema = Path("sql/schema.sql")
+    tables = [
+        "fills",
+        "wallet_pnl",
+        "positions",
+        "settlement_events",
+        "wallet_clusters",
+        "factor_candidates",
+        "factor_validations",
+        "strategies",
+        "signals",
+    ]
+    state = {"db_exists": True}
+    with sqlite3.connect(db) as conn:
+        if schema.exists():
+            conn.executescript(schema.read_text(encoding="utf-8"))
+        for table in tables:
+            state[table] = conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+        state["approved_factors"] = conn.execute(
+            "SELECT COUNT(*) FROM factor_candidates WHERE lifecycle_state = 'approved'"
+        ).fetchone()[0]
+        state["blocked_factors"] = conn.execute(
+            "SELECT COUNT(*) FROM factor_candidates WHERE lifecycle_state = 'blocked'"
+        ).fetchone()[0]
+        state["live_strategies"] = conn.execute(
+            "SELECT COUNT(*) FROM strategies WHERE lifecycle_state = 'live'"
+        ).fetchone()[0]
+        state["settlement_audited_wallets"] = conn.execute(
+            "SELECT COUNT(*) FROM wallet_pnl WHERE scope = 'settlement_audited'"
+        ).fetchone()[0]
+    return state
+
+
+def _lifecycle_actions(db_state: dict, diagnostics: dict, candidates: list[dict]) -> list[dict]:
+    actions = []
+    if not db_state.get("db_exists", False):
+        return [{"status": "blocked", "reason": "database does not exist"}]
+    if db_state.get("settlement_events", 0) == 0:
+        actions.append({"status": "blocked", "reason": "settlement/redemption evidence missing"})
+    if db_state.get("wallet_clusters", 0) == 0 and db_state.get("fills", 0) > 0:
+        actions.append({"status": "pending", "reason": "run profiler to persist wallet clusters"})
+    if db_state.get("factor_validations", 0) == 0 and candidates:
+        actions.append({"status": "pending", "reason": "run validation before promoting factor candidates"})
+    if db_state.get("approved_factors", 0) > 0 and db_state.get("strategies", 0) == 0:
+        actions.append({"status": "pending", "reason": "build and validate strategy_config from approved factors"})
+    if not diagnostics.get("ready", False):
+        actions.append({"status": "blocked", "reason": "diagnostics are not ready for strategy claims"})
+    if not actions:
+        actions.append({"status": "done", "reason": "research loop has data, validation, and strategy state"})
+    return actions
