@@ -109,6 +109,8 @@ def agent(args) -> None:
             report_out=Path(args.report_out) if args.report_out else profile_dir / "research_report.md",
             candidates_out=Path(args.candidates_out) if args.candidates_out else profile_dir / "candidate_factors.json",
             next_commands_out=Path(args.next_commands_out) if args.next_commands_out else profile_dir / "next_commands.json",
+            sop_status_out=Path(args.sop_status_out) if args.sop_status_out else profile_dir / "sop_status.json",
+            sop_path=Path(args.sop_path),
             candidate_library=Path(args.candidate_library),
             db=Path(args.db),
             wallets=_parse_wallets(args.wallet, wallet_pool),
@@ -136,6 +138,8 @@ def research_user(args) -> None:
             report_out=profile_dir / "research_report.md",
             candidates_out=profile_dir / "candidate_factors.json",
             next_commands_out=profile_dir / "next_commands.json",
+            sop_status_out=profile_dir / "sop_status.json",
+            sop_path=Path(args.sop_path),
             candidate_library=Path(args.candidate_library),
             db=Path(args.db),
             wallets=[resolved["wallet"]],
@@ -178,6 +182,7 @@ def parse_args():
     research_user_parser.add_argument("--profile-dir")
     research_user_parser.add_argument("--db", default="data/oktrader.sqlite")
     research_user_parser.add_argument("--candidate-library", default="docs/candidate_factors.json")
+    research_user_parser.add_argument("--sop-path", default="config/agent_sop.json")
     research_user_parser.add_argument("--update-candidates", action="store_true")
     research_user_parser.add_argument("--launch-watch-clob", action="store_true")
     research_user_parser.add_argument("--min-samples", type=int, default=5)
@@ -203,6 +208,8 @@ def parse_args():
     agent_parser.add_argument("--report-out")
     agent_parser.add_argument("--candidates-out")
     agent_parser.add_argument("--next-commands-out")
+    agent_parser.add_argument("--sop-status-out")
+    agent_parser.add_argument("--sop-path", default="config/agent_sop.json")
     agent_parser.add_argument("--candidate-library", default="docs/candidate_factors.json")
     agent_parser.add_argument("--rerun-profile", action="store_true")
     agent_parser.add_argument("--run-tools", action="store_true")

@@ -73,6 +73,32 @@ wallet/profile request
   -> next data/factor collection cycle
 ```
 
+## Research SOP
+
+OKTRADER is not only a scanner; it is a repeatable research system. The SOP is
+kept in two forms:
+
+- Human playbook: `docs/research_sop.md`
+- Agent-readable workflow: `config/agent_sop.json`
+
+Every Agent run writes `sop_status.json` into the profile directory. That file
+marks each stage as `done`, `blocked`, or `pending`, so a wallet study can be
+resumed without guessing what is missing.
+
+The standard loop is:
+
+```text
+resolve user/wallet
+  -> acquire fills + metadata
+  -> run readiness gate
+  -> build factor_table
+  -> mine rules and classify playbook
+  -> write research_report
+  -> propose candidate_factors
+  -> run next_commands
+  -> promote proven factors into profiler/okprofiler/features
+```
+
 ## Agent Tool Graph
 
 ```mermaid

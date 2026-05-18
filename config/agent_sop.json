@@ -1,0 +1,92 @@
+{
+  "version": 1,
+  "name": "OKTRADER Wallet Strategy Research SOP",
+  "purpose": "Turn a Polymarket user or wallet into evidence-backed findings, reusable factor candidates, and the next data collection commands.",
+  "stages": [
+    {
+      "id": "identity",
+      "label": "Resolve identity and wallet pool",
+      "tools": ["resolve-user", "wallet_pool.txt"],
+      "outputs": ["resolved_user.json", "wallet_pool.txt"],
+      "checks": [
+        {"kind": "any_wallet", "label": "rules contain at least one wallet"}
+      ]
+    },
+    {
+      "id": "data_ingestion",
+      "label": "Acquire fills and market metadata",
+      "tools": ["export-profiler", "fetch-user-trades", "fetch-gamma-markets"],
+      "outputs": ["fills.csv", "markets.csv"],
+      "checks": [
+        {"kind": "source_ready", "value": "fills", "label": "fills source ready"},
+        {"kind": "source_ready", "value": "markets", "label": "markets metadata ready"}
+      ]
+    },
+    {
+      "id": "readiness_gate",
+      "label": "Check profile readiness and data gaps",
+      "tools": ["profile-readiness", "diagnostics"],
+      "outputs": ["readiness.json", "diagnostics.json"],
+      "checks": [
+        {"kind": "diagnostics_ready", "label": "diagnostics generated"},
+        {"kind": "artifact", "value": "diagnostics.json", "label": "diagnostics artifact"}
+      ]
+    },
+    {
+      "id": "factor_mining",
+      "label": "Build factor table and mine rules",
+      "tools": ["profile", "features/*", "miner.py", "research_matrix.py"],
+      "outputs": ["factor_table.parquet", "rules.json", "factor_summary.md"],
+      "checks": [
+        {"kind": "artifact", "value": "factor_table.parquet", "label": "factor table"},
+        {"kind": "artifact", "value": "rules.json", "label": "rules artifact"}
+      ]
+    },
+    {
+      "id": "market_playbook",
+      "label": "Classify market/account playbooks",
+      "tools": ["market_categories.py", "researcher.py"],
+      "outputs": ["rules.json", "report.md"],
+      "checks": [
+        {"kind": "any_wallet", "label": "wallet finding generated"}
+      ]
+    },
+    {
+      "id": "agent_research",
+      "label": "Write research report and next experiments",
+      "tools": ["agent.py", "agent_tools.py"],
+      "outputs": ["research_report.md", "candidate_factors.json", "next_commands.json"],
+      "checks": [
+        {"kind": "artifact", "value": "research_report.md", "label": "research report"},
+        {"kind": "any_candidate", "label": "candidate factors proposed"},
+        {"kind": "any_command", "label": "next commands proposed"}
+      ]
+    },
+    {
+      "id": "strategy_handoff",
+      "label": "Validate monitor strategy handoff",
+      "tools": ["validate-strategy-config", "monitor"],
+      "outputs": ["strategy_config.json"],
+      "checks": [
+        {"kind": "strategy_config", "label": "strategy config produced"}
+      ]
+    },
+    {
+      "id": "evidence_expansion",
+      "label": "Clear optional evidence gaps for stronger replication claims",
+      "tools": ["watch-clob", "fetch-news-rss", "fetch-weather-open-meteo", "forecast adapters"],
+      "outputs": ["clob_events.csv", "news.csv", "weather_observations.csv", "forecast_history.csv"],
+      "checks": [
+        {"kind": "no_missing_actions", "label": "diagnostics has no missing actions"}
+      ]
+    }
+  ],
+  "promotion_gates": [
+    "A factor must have a named owner module under profiler/okprofiler/features.",
+    "A factor must list required data sources in FACTOR_SPECS.",
+    "A factor must be non-null in factor_table.parquet for at least one studied wallet.",
+    "A factor must appear in factor_summary.md and research_report.md.",
+    "A factor must be marked offline-only or live-ready before Rust monitor usage.",
+    "A market-category factor must have a playbook under docs/market_categories."
+  ]
+}

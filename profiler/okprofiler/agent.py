@@ -4,6 +4,7 @@ from pathlib import Path
 
 from .agent_tools import AgentToolConfig, next_commands, run_agent_tools, update_candidate_library
 from .pipeline import ProfilerConfig, run_profiler
+from .sop import build_sop_status, write_sop_status
 
 
 @dataclass(frozen=True)
@@ -14,6 +15,8 @@ class AgentConfig:
     report_out: Path
     candidates_out: Path
     next_commands_out: Path
+    sop_status_out: Path
+    sop_path: Path
     candidate_library: Path
     db: Path
     wallets: list[str]
@@ -44,6 +47,14 @@ def run_agent(config: AgentConfig) -> dict:
     diagnostics = _read_json(config.diagnostics_path)
     candidates = _candidate_factors(rules)
     commands = next_commands(config.profile_dir, config.db, diagnostics, candidates)
+    sop_status = build_sop_status(
+        config.profile_dir,
+        diagnostics,
+        rules,
+        candidates,
+        commands,
+        config.sop_path,
+    )
     result = {
         "version": 1,
         "profile_dir": str(config.profile_dir),
@@ -53,10 +64,12 @@ def run_agent(config: AgentConfig) -> dict:
         "wallets": _wallet_summaries(rules),
         "candidates": candidates,
         "next_commands": commands,
+        "sop_status": sop_status,
         "missing_actions": diagnostics.get("missing_actions", []),
     }
     _write_json(config.candidates_out, {"version": 1, "candidates": candidates})
     _write_json(config.next_commands_out, {"version": 1, "commands": commands})
+    write_sop_status(sop_status, config.sop_status_out)
     if config.update_candidates:
         update_candidate_library(config.candidate_library, candidates)
     _write_text(config.report_out, _render_report(result, diagnostics))
@@ -157,6 +170,10 @@ def _render_report(result: dict, diagnostics: dict) -> str:
             f"- `{candidate['factor']}` priority={candidate['priority']} "
             f"required_data={candidate['required_data']}: {candidate['reason']}"
         )
+    lines.extend(["", "## SOP Status", ""])
+    for stage in result.get("sop_status", {}).get("stages", []):
+        missing = "; ".join(stage.get("missing", [])) or "-"
+        lines.append(f"- {stage.get('id')}: {stage.get('status')} missing={missing}")
     lines.extend(["", "## Next Commands", ""])
     for command in result.get("next_commands", []):
         lines.append(f"- {command.get('reason')}: `{' '.join(command.get('command', []))}`")
