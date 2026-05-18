@@ -73,6 +73,117 @@ wallet/profile request
   -> next data/factor collection cycle
 ```
 
+## Agent Tool Graph
+
+```mermaid
+flowchart TD
+    A[Agent CLI<br/>profile_wallets.py agent] --> B{run mode}
+    B -->|read only| C[Read Standard Artifacts]
+    B -->|--run-tools| R[Rust Tool Runner]
+    B -->|--run-tools| P[Python Tool Runner]
+
+    R --> R1[cargo run -- profile-readiness]
+    R1 --> O1[readiness.json]
+    R --> R2[cargo run -- export-profiler]
+    R2 --> O2[fills.csv]
+    R2 --> O3[clob_events.csv]
+    R --> R3[cargo run -- validate-strategy-config]
+    R3 --> O4[strategy_config validation]
+    R --> R4[cargo run -- watch-clob --once optional]
+    R4 --> O5[raw_clob_events / clob_asset_features]
+
+    P --> P1[fetch-user-trades]
+    P1 --> O2
+    P --> P2[fetch-gamma-markets]
+    P2 --> O6[markets.csv]
+    P --> P3[profile / run_profiler]
+    P3 --> O7[factor_table.parquet]
+    P3 --> O8[rules.json]
+    P3 --> O9[diagnostics.json]
+    P3 --> O10[report.md / report.html]
+    P3 --> O11[strategy_config.json]
+    P --> P4[assets-from-fills]
+    P4 --> O12[clob_assets.txt]
+    P --> P5[fetch-weather-open-meteo]
+    P5 --> O13[weather_observations.csv]
+
+    C --> O8
+    C --> O9
+    C --> O7
+
+    O8 --> Q[Research Planner]
+    O9 --> Q
+    O7 --> Q
+    O10 --> Q
+    O13 --> Q
+
+    Q --> A1[research_report.md]
+    Q --> A2[candidate_factors.json]
+    Q --> A3[next_commands.json]
+    Q --> A4[docs/candidate_factors.json]
+
+    A3 --> N1[Next Rust command]
+    A3 --> N2[Next Python command]
+    A2 --> N3[Next factor implementation]
+```
+
+```mermaid
+flowchart LR
+    subgraph RustExecution["Rust Execution Layer"]
+        C1[collector-data-api]
+        C2[watch-live / backfill-polygon]
+        C3[watch-clob]
+        C4[analyzer / monitor / alerts]
+        C5[export-profiler / profile-readiness]
+        C6[validate-strategy-config]
+    end
+
+    subgraph Storage["SQLite + File Artifacts"]
+        S1[(data/oktrader.sqlite)]
+        S2[fills.csv]
+        S3[clob_events.csv]
+        S4[markets.csv]
+        S5[factor_table.parquet]
+        S6[rules.json]
+        S7[diagnostics.json]
+        S8[strategy_config.json]
+    end
+
+    subgraph PythonResearch["Python Research Layer"]
+        P1[fetch-user-trades]
+        P2[fetch-gamma-markets]
+        P3[features/* factor library]
+        P4[miner.py]
+        P5[market_categories.py]
+        P6[research_matrix.py]
+        P7[agent.py / agent_tools.py]
+    end
+
+    C1 --> S1
+    C2 --> S1
+    C3 --> S1
+    C4 --> S1
+    C5 --> S2
+    C5 --> S3
+    C6 --> S8
+
+    P1 --> S2
+    P2 --> S4
+    S2 --> P3
+    S3 --> P3
+    S4 --> P3
+    P3 --> S5
+    S5 --> P4
+    P4 --> S6
+    S6 --> P5
+    S5 --> P6
+    S6 --> P7
+    S7 --> P7
+    P7 --> R1[research_report.md]
+    P7 --> R2[candidate_factors.json]
+    P7 --> R3[next_commands.json]
+```
+
 ## Implementation Status
 
 | Area | Status |
