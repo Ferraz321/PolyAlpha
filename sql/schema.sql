@@ -60,3 +60,13 @@ CREATE TABLE IF NOT EXISTS raw_evm_logs (
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(transaction_hash, log_index)
 );
+
+CREATE TABLE IF NOT EXISTS market_tokens (
+    token_id TEXT PRIMARY KEY,
+    condition_id TEXT,
+    market_slug TEXT,
+    event_slug TEXT,
+    sector TEXT,
+    outcome TEXT,
+    updated_at TEXT NOT NULL
+);

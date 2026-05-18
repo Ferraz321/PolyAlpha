@@ -17,6 +17,7 @@ pub enum Commands {
     Analyzer(AnalyzerArgs),
     Monitor(MonitorArgs),
     Export(ExportArgs),
+    SyncMetadata(SyncMetadataArgs),
     AnalyzeCsv(AnalyzeCsvArgs),
     ScanDataApi(ScanDataApiArgs),
     ListTaxonomy,
@@ -80,6 +81,18 @@ pub struct ExportArgs {
     pub db: PathBuf,
     #[arg(long, default_value = "data/matched_accounts.json")]
     pub out: PathBuf,
+}
+
+#[derive(Debug, Clone, Args)]
+pub struct SyncMetadataArgs {
+    #[arg(long, default_value = "data/oktrader.sqlite")]
+    pub db: PathBuf,
+    #[arg(long, default_value = "https://gamma-api.polymarket.com/")]
+    pub gamma_base_url: String,
+    #[arg(long, default_value_t = 500)]
+    pub limit: usize,
+    #[arg(long, default_value_t = 10000)]
+    pub max_offset: usize,
 }
 
 #[derive(Debug, Clone, Args)]

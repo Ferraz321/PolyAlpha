@@ -24,6 +24,10 @@ pub struct EvmLog {
 }
 
 impl EvmLog {
+    pub fn block_number_u64(&self) -> anyhow::Result<u64> {
+        hex_u64(&self.block_number)
+    }
+
     pub fn raw_record(&self) -> anyhow::Result<RawEvmLogRecord> {
         Ok(RawEvmLogRecord {
             contract_address: self.address.to_ascii_lowercase(),

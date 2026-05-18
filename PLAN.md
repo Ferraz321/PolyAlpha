@@ -52,6 +52,7 @@ Implemented:
 - `analyzer`
 - `monitor`
 - `export`
+- `sync-metadata`
 - `scan-data-api`
 - `analyze-csv`
 - `list-taxonomy`
@@ -78,11 +79,11 @@ Partially implemented:
    - [x] Persist raw EVM logs into `raw_evm_logs`.
    - [x] Add configurable multiple exchange addresses.
    - [x] Add Neg Risk CTF Exchange support flag.
-   - [ ] Add CTF Exchange V2 event decoder.
-   - [ ] Add taker-side reconstruction for direct fills where the taker is a real wallet.
-   - [ ] Add robust handling for Exchange-as-taker multi-order matches.
-   - [ ] Add market metadata mapping for token ID to condition/event slug.
-   - [ ] Add integration test with a known historical transaction/log fixture.
+   - [x] Add CTF Exchange V2 event decoder.
+   - [x] Add taker-side reconstruction for direct fills where the taker is a real wallet.
+   - [x] Add robust handling for Exchange-as-taker multi-order matches.
+   - [x] Add market metadata mapping for token ID to condition/event slug.
+   - [x] Add integration test fixture for historical-log-shaped V2 `OrderFilled`.
 
 2. Live collector
    - Status: pending implementation.

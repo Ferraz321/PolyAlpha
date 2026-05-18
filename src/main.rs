@@ -1,7 +1,9 @@
 mod backfill;
+mod backfill_decode;
 mod cli;
 mod evm_rpc;
 mod legacy_csv;
+mod metadata;
 mod planned;
 mod processes;
 mod report;
@@ -24,6 +26,7 @@ async fn main() -> Result<()> {
         Commands::Analyzer(args) => processes::analyzer(args).await,
         Commands::Monitor(args) => processes::monitor(args).await,
         Commands::Export(args) => processes::export_matched(args),
+        Commands::SyncMetadata(args) => metadata::sync_metadata(args).await,
         Commands::AnalyzeCsv(args) => legacy_csv::analyze_csv(args),
         Commands::ScanDataApi(args) => legacy_csv::scan_data_api(args).await,
         Commands::ListTaxonomy => {
