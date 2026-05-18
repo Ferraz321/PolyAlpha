@@ -170,10 +170,14 @@ pip install -r profiler/requirements.txt
 python profiler/profile_wallets.py \
   --fills data/profiler/fills.csv \
   --clob data/profiler/clob_events.csv \
+  --news data/profiler/news.csv \
   --out data/profiler/rules.json
 ```
 
-The profiler does an as-of join from wallet fills to previous CLOB events, extracts spread/OFI features, and emits human-readable threshold rules.
+The profiler is a separate Python research package under `profiler/okprofiler/`.
+It does an as-of join from wallet fills to previous CLOB events, can optionally
+join an external news timeline, extracts spread/OFI features, and emits
+human-readable per-wallet threshold rules.
 
 ## Core Engine
 
@@ -192,7 +196,9 @@ The implementation focuses on the deterministic quant core:
 src/app/          CLI args, report filtering, taxonomy text
 src/commands/     command implementations: collector, analyzer, backfill, websocket, metadata, CSV compatibility
 src/chain/        EVM JSON-RPC adapter
-src/*.rs          reusable core library modules: model, metrics, storage, tagging, ingestion
+src/analysis/     wallet metrics, filters, tagging, profile configs, CLOB/microstructure features
+src/*.rs          reusable boundaries: model, storage, ingestion
+profiler/         Python reverse-engineering research package
 sql/schema.sql    SQLite schema
 tests/fixtures/   historical-log-shaped decoder fixtures
 ```

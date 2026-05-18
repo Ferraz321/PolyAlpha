@@ -1,9 +1,14 @@
+#[path = "analysis/clob_features.rs"]
 pub mod clob_features;
+#[path = "analysis/filter.rs"]
 pub mod filter;
 pub mod ingestion;
+#[path = "analysis/metrics.rs"]
 pub mod metrics;
+#[path = "analysis/microstructure.rs"]
 pub mod microstructure;
 pub mod model;
+#[path = "analysis/profile_config.rs"]
 pub mod profile_config;
 pub mod storage;
 pub mod storage_alerts;
@@ -14,4 +19,5 @@ pub mod storage_profiler;
 pub mod storage_types;
 pub mod storage_wallets;
 pub mod storage_watchlist;
+#[path = "analysis/tagging.rs"]
 pub mod tagging;

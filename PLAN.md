@@ -18,6 +18,7 @@ The project keeps all roles in one binary for now. If data volume or operations 
 - Keep Rust source files under 300 lines where practical.
 - Put shared logic in modules, not in CLI command handlers.
 - Keep command orchestration under `src/commands`, CLI/report UX under `src/app`, and chain adapters under `src/chain`.
+- Keep strategy research logic under `src/analysis` for Rust and `profiler/okprofiler` for Python.
 - SQLite is the local source of truth; JSON/CSV are exports or compatibility paths.
 - `PLAN.md` must be updated whenever a milestone changes.
 - VPS scripts under `scripts/` are the default overnight run path.
@@ -34,6 +35,8 @@ Implemented:
 - multi-type matched pool: stable alpha, information edge, stat-arb/market-maker, swing trader, and watchlist tiers
 - configurable account type profiles under `config/account_types/*.json`
 - manual watchlist import for known smart-money wallets
+- Rust analysis modules grouped under `src/analysis`
+- Python profiler package split into feature extraction, as-of pipeline, and rule inference
 - public Data API collector
 - SQLite storage
 - analyzer process
@@ -149,9 +152,10 @@ Partially implemented:
    - Status: partial implementation.
    - [x] Export known-wallet fills and raw CLOB events for profiler input.
    - [x] Add Python Polars as-of join from fills to previous CLOB events.
+   - [x] Split profiler into package modules: CLI, features, pipeline, rules.
    - [x] Extract spread and OFI features for reverse engineering.
    - [x] Add KDE/quantile threshold output to `rules.json`.
-   - [ ] Add external news timeline ingestion.
+   - [x] Add optional external news timeline as-of ingestion.
    - [ ] Feed profiler rules back into Rust alert profiles.
 
 6. Production storage option
