@@ -1,4 +1,5 @@
 use anyhow::{Context, Result, bail};
+use oktrader_alpha::storage_types::RawEvmLogRecord;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -11,7 +12,6 @@ pub struct EvmRpc {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct EvmLog {
-    #[allow(dead_code)]
     pub address: String,
     pub topics: Vec<String>,
     pub data: String,
@@ -20,8 +20,20 @@ pub struct EvmLog {
     #[serde(rename = "transactionHash")]
     pub transaction_hash: String,
     #[serde(rename = "logIndex")]
-    #[allow(dead_code)]
     pub log_index: String,
+}
+
+impl EvmLog {
+    pub fn raw_record(&self) -> anyhow::Result<RawEvmLogRecord> {
+        Ok(RawEvmLogRecord {
+            contract_address: self.address.to_ascii_lowercase(),
+            block_number: hex_u64(&self.block_number)?,
+            transaction_hash: self.transaction_hash.clone(),
+            log_index: hex_u64(&self.log_index)?,
+            topic0: self.topics.first().cloned(),
+            data: self.data.clone(),
+        })
+    }
 }
 
 #[derive(Debug, Clone, Serialize)]

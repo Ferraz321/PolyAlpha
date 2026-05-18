@@ -7,7 +7,7 @@ use rusqlite::{Connection, OptionalExtension, params};
 use rust_decimal::Decimal;
 
 use crate::model::{FillEvent, LiquidityRole, TradeSide};
-use crate::storage_types::{DbStats, MetricParts, stable_fill_key};
+use crate::storage_types::{DbStats, MetricParts, RawEvmLogRecord, stable_fill_key};
 
 pub struct Storage {
     conn: Connection,
@@ -220,6 +220,7 @@ impl Storage {
             wallets: count(&self.conn, "wallets")?,
             account_metrics: count(&self.conn, "account_metrics")?,
             matched_accounts: count(&self.conn, "matched_accounts")?,
+            raw_evm_logs: count(&self.conn, "raw_evm_logs")?,
         })
     }
 
@@ -258,6 +259,34 @@ impl Storage {
             )
             .optional()
             .context("failed to read scanner state")
+    }
+
+    pub fn insert_raw_evm_logs(&mut self, logs: &[RawEvmLogRecord]) -> Result<usize> {
+        self.init()?;
+        let tx = self.conn.transaction()?;
+        let mut inserted = 0usize;
+
+        for log in logs {
+            inserted += tx.execute(
+                r#"
+                INSERT OR IGNORE INTO raw_evm_logs (
+                    contract_address, block_number, transaction_hash, log_index, topic0, data
+                )
+                VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+                "#,
+                params![
+                    log.contract_address,
+                    log.block_number,
+                    log.transaction_hash,
+                    log.log_index,
+                    log.topic0,
+                    log.data,
+                ],
+            )?;
+        }
+
+        tx.commit()?;
+        Ok(inserted)
     }
 }
 

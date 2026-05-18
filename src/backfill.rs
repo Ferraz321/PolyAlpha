@@ -13,32 +13,40 @@ use crate::evm_rpc::{EvmLog, EvmRpc, hex_u64};
 
 const ORDER_FILLED_SIG: &str =
     "OrderFilled(bytes32,address,address,uint256,uint256,uint256,uint256,uint256)";
+const NEG_RISK_EXCHANGE: &str = "0xe2222d279d744050d28e00520010520000310F59";
 
 pub async fn backfill_polygon(args: BackfillPolygonArgs) -> Result<()> {
     let mut storage = Storage::open(&args.db)?;
     storage.init()?;
-    let rpc = EvmRpc::new(args.rpc_url);
+    let rpc = EvmRpc::new(args.rpc_url.clone());
     let end_block = resolve_to_block(&rpc, &args.to_block).await?;
     let topic0 = event_topic(ORDER_FILLED_SIG);
+    let exchanges = exchange_addresses(&args);
     let mut block = args.from_block;
     let mut block_times = HashMap::new();
 
     while block <= end_block {
         let to_block = end_block.min(block + args.batch_blocks.saturating_sub(1));
-        let logs = rpc
-            .logs(&args.ctf_exchange, &topic0, block, to_block)
-            .await
-            .with_context(|| format!("failed logs {block}-{to_block}"))?;
-        let fills = decode_logs(&rpc, logs, &mut block_times).await?;
+        let mut all_logs = Vec::new();
+        for exchange in &exchanges {
+            let logs = rpc
+                .logs(exchange, &topic0, block, to_block)
+                .await
+                .with_context(|| format!("failed logs {exchange} {block}-{to_block}"))?;
+            all_logs.extend(logs);
+        }
+        let raw_logs = all_logs
+            .iter()
+            .filter_map(|log| log.raw_record().ok())
+            .collect::<Vec<_>>();
+        let raw_inserted = storage.insert_raw_evm_logs(&raw_logs)?;
+        let log_count = all_logs.len();
+        let fills = decode_logs(&rpc, all_logs, &mut block_times).await?;
         let summary = storage.insert_fills(&fills)?;
         storage.set_state("backfill_polygon.last_block", &to_block.to_string())?;
         println!(
-            "backfill: blocks={}-{}, logs={}, inserted_fills={}, new_wallets={}",
-            block,
-            to_block,
-            fills.len(),
-            summary.inserted_fills,
-            summary.new_wallets
+            "backfill: blocks={}-{}, logs={}, raw_inserted={}, inserted_fills={}, new_wallets={}",
+            block, to_block, log_count, raw_inserted, summary.inserted_fills, summary.new_wallets
         );
 
         if args.once {
@@ -48,6 +56,20 @@ pub async fn backfill_polygon(args: BackfillPolygonArgs) -> Result<()> {
     }
 
     Ok(())
+}
+
+fn exchange_addresses(args: &BackfillPolygonArgs) -> Vec<String> {
+    let mut exchanges = if args.exchanges.is_empty() {
+        vec![args.ctf_exchange.clone()]
+    } else {
+        args.exchanges.clone()
+    };
+    if args.include_neg_risk {
+        exchanges.push(NEG_RISK_EXCHANGE.to_string());
+    }
+    exchanges.sort();
+    exchanges.dedup();
+    exchanges
 }
 
 async fn resolve_to_block(rpc: &EvmRpc, to_block: &str) -> Result<u64> {

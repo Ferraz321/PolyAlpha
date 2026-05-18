@@ -130,6 +130,10 @@ pub struct BackfillPolygonArgs {
     pub rpc_url: String,
     #[arg(long, default_value = "0xE111180000d2663C0091e4f400237545B87B996B")]
     pub ctf_exchange: String,
+    #[arg(long = "exchange")]
+    pub exchanges: Vec<String>,
+    #[arg(long)]
+    pub include_neg_risk: bool,
     #[arg(long)]
     pub from_block: u64,
     #[arg(long, default_value = "latest")]

@@ -75,8 +75,9 @@ Partially implemented:
    - [x] Decode maker-side standard `OrderFilled` logs into normalized fills.
    - [x] Persist decoded fills into SQLite with the same dedupe key.
    - [x] Store backfill checkpoint in `scanner_state`.
-   - [ ] Persist raw EVM logs into `raw_evm_logs`.
-   - [ ] Add Neg Risk CTF Exchange support.
+   - [x] Persist raw EVM logs into `raw_evm_logs`.
+   - [x] Add configurable multiple exchange addresses.
+   - [x] Add Neg Risk CTF Exchange support flag.
    - [ ] Add CTF Exchange V2 event decoder.
    - [ ] Add taker-side reconstruction for direct fills where the taker is a real wallet.
    - [ ] Add robust handling for Exchange-as-taker multi-order matches.

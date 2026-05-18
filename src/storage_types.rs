@@ -18,6 +18,16 @@ pub struct DbStats {
     pub wallets: usize,
     pub account_metrics: usize,
     pub matched_accounts: usize,
+    pub raw_evm_logs: usize,
+}
+
+pub struct RawEvmLogRecord {
+    pub contract_address: String,
+    pub block_number: u64,
+    pub transaction_hash: String,
+    pub log_index: u64,
+    pub topic0: Option<String>,
+    pub data: String,
 }
 
 pub fn metric_parts(
