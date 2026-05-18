@@ -160,6 +160,10 @@ Promotion gates:
   lifecycle, strategy, and signal tables.
 - `cargo run -- build-wallet-intelligence` rebuilds estimated positions and
   wallet PnL from normalized fills.
+- `cargo run -- sync-metadata` persists Gamma market context into `markets`,
+  `outcomes`, and `market_tokens`.
+- Wallet intelligence uses token metadata for outcome-level positions and
+  latest CLOB BBO mid prices for mark-to-market unrealized PnL when available.
 - `profiler/okprofiler/validation.py` runs a first validation pass using
   walk-forward splits, negative-control lift, and factor stability.
 - `profile_wallets.py profile` writes `factor_validations.json`.

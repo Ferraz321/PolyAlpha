@@ -87,8 +87,8 @@ SQLite tables:
 - `dirty_wallets`: incremental analysis queue
 - `market_tokens`: token to market/event metadata mapping
 - `markets` / `outcomes`: normalized market context and resolution state
-- `positions`: estimated open exposure from normalized fills
-- `wallet_pnl`: estimated wallet PnL from fills; settlement-grade audit remains a hardening item
+- `positions`: estimated outcome-level open exposure from normalized fills and token metadata
+- `wallet_pnl`: estimated wallet PnL from fills plus CLOB mark-to-market when available; settlement-grade audit remains a hardening item
 - `wallet_clusters`: future behavioral grouping surface
 - `factor_values`: normalized factor observation surface
 - `factor_candidates`: factor backlog and lifecycle state
@@ -188,6 +188,8 @@ Partially implemented:
    - [x] Move account type judgment rules into configurable profile files.
    - [x] Add strategy reconstruction features: market breadth, time-of-day, same-market reentry, weather specialization, and weather bucket semantics.
    - [x] Add estimated wallet positions and wallet PnL rebuilt from fills.
+   - [x] Persist Gamma markets/outcomes alongside token metadata.
+   - [x] Resolve positions to outcome-level token IDs and mark open exposure from latest CLOB BBO mid.
    - [x] Persist validated strategy definitions into `strategies`.
    - [x] Persist live strategy trigger events into `signals`.
    - [x] Add first-pass heuristic wallet clustering persisted into `wallet_clusters`.

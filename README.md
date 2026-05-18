@@ -578,6 +578,11 @@ are persisted into `wallet_clusters`, and validation verdicts advance
 `factor_candidates` through the candidate/validating/approved/rejected/decayed
 lifecycle.
 
+`sync-metadata` persists Gamma market context into `markets`, `outcomes`, and
+`market_tokens`. `build-wallet-intelligence` uses that token map for
+outcome-level positions and uses latest CLOB BBO mid prices for mark-to-market
+unrealized PnL when available.
+
 Use the generated strategy rules in live alerts:
 
 ```bash
