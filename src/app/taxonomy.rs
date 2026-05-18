@@ -15,6 +15,11 @@ primary_tag:
   small_sample_noise        not enough evidence yet
   high_volume_noise         high volume without realized edge
   unprofitable_trader       negative realized PnL
-  unclassified              does not match a defined profile yet"#
+  unclassified              does not match a defined profile yet
+
+default matched pool:
+  includes stable alpha, information edge, stat-arb/market-maker, swing trader,
+  plus core/candidate/watchlist smart-money tiers. It does not require the
+  single strict passed_funnel flag."#
     );
 }

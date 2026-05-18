@@ -51,6 +51,21 @@ impl ReportFilter {
     fn is_empty(&self) -> bool {
         self.tiers.is_empty() && self.tags.is_empty() && self.wallet_pool.is_none()
     }
+
+    fn default_match(report: &AccountReport) -> bool {
+        matches!(
+            report.classification.primary_tag,
+            AccountTag::StableAlphaWallet
+                | AccountTag::InformationEdgeWallet
+                | AccountTag::StatArbMarketMakerBot
+                | AccountTag::SwingTrader
+        ) || matches!(
+            report.classification.smart_money_tier,
+            SmartMoneyTier::CoreSmartMoney
+                | SmartMoneyTier::CandidateSmartMoney
+                | SmartMoneyTier::Watchlist
+        )
+    }
 }
 
 pub fn build_reports(
@@ -104,7 +119,7 @@ pub fn filter_reports<'a>(
 ) -> Vec<&'a AccountReport> {
     reports
         .iter()
-        .filter(|report| !filters.is_empty() || report.passed_funnel)
+        .filter(|report| !filters.is_empty() || ReportFilter::default_match(report))
         .filter(|report| {
             filters.tiers.is_empty()
                 || filters
