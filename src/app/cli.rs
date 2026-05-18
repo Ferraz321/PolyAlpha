@@ -17,6 +17,8 @@ pub enum Commands {
     Analyzer(AnalyzerArgs),
     Monitor(MonitorArgs),
     Alerts(AlertArgs),
+    ImportWatchlist(ImportWatchlistArgs),
+    ExportProfiler(ExportProfilerArgs),
     Summary(DbArgs),
     Export(ExportArgs),
     SyncMetadata(SyncMetadataArgs),
@@ -92,7 +94,33 @@ pub struct AlertArgs {
     #[arg(long)]
     pub all_wallets: bool,
     #[arg(long)]
+    pub watchlist: bool,
+    #[arg(long)]
+    pub webhook_url: Option<String>,
+    #[arg(long)]
     pub once: bool,
+}
+
+#[derive(Debug, Clone, Args)]
+pub struct ImportWatchlistArgs {
+    #[arg(long, default_value = "data/oktrader.sqlite")]
+    pub db: PathBuf,
+    #[arg(long)]
+    pub input: PathBuf,
+    #[arg(long, default_value = "manual")]
+    pub source: String,
+}
+
+#[derive(Debug, Clone, Args)]
+pub struct ExportProfilerArgs {
+    #[arg(long, default_value = "data/oktrader.sqlite")]
+    pub db: PathBuf,
+    #[arg(long)]
+    pub wallet_pool: PathBuf,
+    #[arg(long, default_value = "data/profiler/fills.csv")]
+    pub out_fills: PathBuf,
+    #[arg(long, default_value = "data/profiler/clob_events.csv")]
+    pub out_clob: PathBuf,
 }
 
 #[derive(Debug, Clone, Args)]

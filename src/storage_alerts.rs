@@ -28,13 +28,13 @@ impl Storage {
         &self,
         after_id: i64,
         limit: usize,
-        matched_only: bool,
+        mode: AlertMode,
     ) -> Result<Vec<StoredFill>> {
         self.init()?;
-        let matched_clause = if matched_only {
-            "AND ma.account IS NOT NULL"
-        } else {
-            ""
+        let where_clause = match mode {
+            AlertMode::All => "",
+            AlertMode::Matched => "AND ma.account IS NOT NULL",
+            AlertMode::Watchlist => "AND ww.account IS NOT NULL",
         };
         let sql = format!(
             r#"
@@ -43,7 +43,8 @@ impl Storage {
                    ma.report_json
             FROM fills f
             LEFT JOIN matched_accounts ma ON ma.account = f.account
-            WHERE f.id > ?1 {matched_clause}
+            LEFT JOIN wallet_watchlist ww ON ww.account = lower(f.account)
+            WHERE f.id > ?1 {where_clause}
             ORDER BY f.id ASC
             LIMIT ?2
             "#
@@ -53,6 +54,13 @@ impl Storage {
         rows.collect::<rusqlite::Result<Vec<_>>>()
             .context("failed to load fill alerts")
     }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum AlertMode {
+    All,
+    Matched,
+    Watchlist,
 }
 
 fn stored_fill_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<StoredFill> {

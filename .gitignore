@@ -1,3 +1,10 @@
 /target
 data/*
 !data/.gitkeep
+logs/*
+!logs/.gitkeep
+run/*
+!run/.gitkeep
+.env
+__pycache__/
+*.pyc

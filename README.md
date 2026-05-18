@@ -81,6 +81,62 @@ By default `alerts` only prints fills from wallets currently in `matched_account
 cargo run -- alerts --db data/oktrader.sqlite --all-wallets
 ```
 
+Import known smart-money wallets:
+
+```bash
+cargo run -- import-watchlist \
+  --db data/oktrader.sqlite \
+  --input data/watchlist_wallets.txt \
+  --source manual
+```
+
+`data/watchlist_wallets.txt` format:
+
+```text
+0xabc...,insider_candidate
+0xdef...,market_maker_candidate
+```
+
+Watch only known watchlist fills:
+
+```bash
+cargo run -- alerts --db data/oktrader.sqlite --watchlist
+```
+
+Send alert messages to a webhook:
+
+```bash
+cargo run -- alerts --db data/oktrader.sqlite --watchlist --webhook-url "$WEBHOOK_URL"
+```
+
+## VPS Overnight Run
+
+For a real overnight run, use the release binary and background scripts:
+
+```bash
+cp .env.example .env
+scripts/build-release.sh
+scripts/run-vps-stack.sh
+scripts/status.sh
+```
+
+Logs are written to `logs/*.log`, and process ids are written to `run/*.pid`.
+
+Stop everything:
+
+```bash
+scripts/stop-vps-stack.sh
+```
+
+If you have a real Polygon RPC URL, edit `.env`:
+
+```text
+POLYGON_RPC_URL=https://polygon-mainnet.g.alchemy.com/v2/real_key
+OKTRADER_ENABLE_RPC=1
+```
+
+Then rerun `scripts/run-vps-stack.sh`. Without RPC, the stack still runs Data API collection, analyzer, alerts, and summary.
+
 See the full tier/tag distribution:
 
 ```bash
@@ -94,6 +150,30 @@ config/account_types/*.json
 ```
 
 Each JSON file defines one wallet profile such as stable alpha, information edge, market-making/stat-arb, or swing trading. To add a new smart-money type, add another file with an `id`, `family`, `tier`, optional known `tag`, and metric threshold `rules`.
+
+## Python Profiler
+
+Export known wallets and raw CLOB events for offline reverse engineering:
+
+```bash
+cargo run -- export-profiler \
+  --db data/oktrader.sqlite \
+  --wallet-pool data/watchlist_wallets.txt
+```
+
+Run the Python profiler:
+
+```bash
+python3 -m venv .venv
+. .venv/bin/activate
+pip install -r profiler/requirements.txt
+python profiler/profile_wallets.py \
+  --fills data/profiler/fills.csv \
+  --clob data/profiler/clob_events.csv \
+  --out data/profiler/rules.json
+```
+
+The profiler does an as-of join from wallet fills to previous CLOB events, extracts spread/OFI features, and emits human-readable threshold rules.
 
 ## Core Engine
 

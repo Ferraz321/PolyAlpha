@@ -1,7 +1,8 @@
 use std::time::Duration;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use oktrader_alpha::storage::Storage;
+use oktrader_alpha::storage_alerts::AlertMode;
 use serde_json::Value;
 
 use crate::app::cli::AlertArgs;
@@ -9,7 +10,14 @@ use crate::app::cli::AlertArgs;
 const ALERT_CURSOR: &str = "alerts.last_fill_id";
 
 pub async fn alerts(args: AlertArgs) -> Result<()> {
-    let matched_only = !args.all_wallets;
+    let mode = if args.all_wallets {
+        AlertMode::All
+    } else if args.watchlist {
+        AlertMode::Watchlist
+    } else {
+        AlertMode::Matched
+    };
+    let http = reqwest::Client::new();
 
     loop {
         let storage = Storage::open(&args.db)?;
@@ -20,9 +28,13 @@ pub async fn alerts(args: AlertArgs) -> Result<()> {
             println!("alerts: initialized cursor at fill_id={cursor}");
         }
 
-        let fills = storage.fills_after(cursor, args.limit, matched_only)?;
+        let fills = storage.fills_after(cursor, args.limit, mode)?;
         for stored in &fills {
-            print_alert(stored)?;
+            let message = alert_message(&storage, stored)?;
+            println!("{message}");
+            if let Some(url) = args.webhook_url.as_deref() {
+                send_webhook(&http, url, &message).await?;
+            }
             cursor = stored.id;
         }
         if !fills.is_empty() {
@@ -47,8 +59,12 @@ fn alert_cursor(storage: &Storage) -> Result<i64> {
         .unwrap_or(0))
 }
 
-fn print_alert(stored: &oktrader_alpha::storage_alerts::StoredFill) -> Result<()> {
+fn alert_message(
+    storage: &Storage,
+    stored: &oktrader_alpha::storage_alerts::StoredFill,
+) -> Result<String> {
     let fill = &stored.fill;
+    let label = storage.watchlist_label(&fill.account)?;
     let profile = stored
         .matched_report_json
         .as_deref()
@@ -60,9 +76,10 @@ fn print_alert(stored: &oktrader_alpha::storage_alerts::StoredFill) -> Result<()
                 .and_then(Value::as_str)
                 .map(ToOwned::to_owned)
         })
+        .or(label)
         .unwrap_or_else(|| "unmatched".to_string());
     let notional = fill.price * fill.shares;
-    println!(
+    Ok(format!(
         "fill_alert id={} profile={} wallet={} side={} role={} market={} price={} shares={} notional={} tx={}",
         stored.id,
         profile,
@@ -74,6 +91,16 @@ fn print_alert(stored: &oktrader_alpha::storage_alerts::StoredFill) -> Result<()
         fill.shares,
         notional,
         fill.tx_hash.as_deref().unwrap_or("-")
-    );
+    ))
+}
+
+async fn send_webhook(http: &reqwest::Client, url: &str, text: &str) -> Result<()> {
+    http.post(url)
+        .json(&serde_json::json!({ "text": text }))
+        .send()
+        .await
+        .context("failed to send webhook")?
+        .error_for_status()
+        .context("webhook returned error")?;
     Ok(())
 }

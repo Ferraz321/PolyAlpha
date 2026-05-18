@@ -19,6 +19,8 @@ async fn main() -> Result<()> {
         Commands::Analyzer(args) => commands::processes::analyzer(args).await,
         Commands::Monitor(args) => commands::processes::monitor(args).await,
         Commands::Alerts(args) => commands::alerts::alerts(args).await,
+        Commands::ImportWatchlist(args) => commands::watchlist::import_watchlist(args),
+        Commands::ExportProfiler(args) => commands::profiler_export::export_profiler(args),
         Commands::Summary(args) => commands::processes::summary(args.db),
         Commands::Export(args) => commands::processes::export_matched(args),
         Commands::SyncMetadata(args) => commands::metadata::sync_metadata(args).await,

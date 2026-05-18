@@ -49,6 +49,14 @@ CREATE TABLE IF NOT EXISTS matched_accounts (
     updated_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS wallet_watchlist (
+    account TEXT PRIMARY KEY,
+    label TEXT,
+    source TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS scanner_state (
     name TEXT PRIMARY KEY,
     value TEXT NOT NULL,

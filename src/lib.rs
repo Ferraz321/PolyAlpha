@@ -10,6 +10,8 @@ pub mod storage_alerts;
 pub mod storage_logs;
 pub mod storage_metrics;
 pub mod storage_microstructure;
+pub mod storage_profiler;
 pub mod storage_types;
 pub mod storage_wallets;
+pub mod storage_watchlist;
 pub mod tagging;

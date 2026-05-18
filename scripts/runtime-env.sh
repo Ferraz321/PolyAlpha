@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+if [[ -f .env ]]; then
+  set -a
+  source .env
+  set +a
+fi
+
+export OKTRADER_DB="${OKTRADER_DB:-data/oktrader.sqlite}"
+export OKTRADER_ENABLE_RPC="${OKTRADER_ENABLE_RPC:-0}"
+export POLYGON_RPC_URL="${POLYGON_RPC_URL:-}"
+export COLLECTOR_INTERVAL_SECS="${COLLECTOR_INTERVAL_SECS:-60}"
+export ANALYZER_INTERVAL_SECS="${ANALYZER_INTERVAL_SECS:-120}"
+export ALERT_INTERVAL_SECS="${ALERT_INTERVAL_SECS:-5}"
+export SUMMARY_INTERVAL_SECS="${SUMMARY_INTERVAL_SECS:-300}"

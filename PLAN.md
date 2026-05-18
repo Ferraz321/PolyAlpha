@@ -20,6 +20,7 @@ The project keeps all roles in one binary for now. If data volume or operations 
 - Keep command orchestration under `src/commands`, CLI/report UX under `src/app`, and chain adapters under `src/chain`.
 - SQLite is the local source of truth; JSON/CSV are exports or compatibility paths.
 - `PLAN.md` must be updated whenever a milestone changes.
+- VPS scripts under `scripts/` are the default overnight run path.
 
 ## Current Status
 
@@ -32,6 +33,7 @@ Implemented:
 - account taxonomy and smart-money tiers
 - multi-type matched pool: stable alpha, information edge, stat-arb/market-maker, swing trader, and watchlist tiers
 - configurable account type profiles under `config/account_types/*.json`
+- manual watchlist import for known smart-money wallets
 - public Data API collector
 - SQLite storage
 - analyzer process
@@ -64,6 +66,8 @@ Implemented:
 - `analyzer`
 - `monitor`
 - `alerts`
+- `import-watchlist`
+- `export-profiler`
 - `summary`
 - `export`
 - `sync-metadata`
@@ -131,14 +135,26 @@ Partially implemented:
 4. Monitoring and strategy research
    - Status: pending implementation.
    - [x] Emit new-fill alerts for matched wallets, with optional all-wallet debug mode.
+   - [x] Emit watchlist-only alerts for manually supplied smart-money addresses.
+   - [x] Add webhook delivery for alert messages.
    - [x] Store alert cursor in `scanner_state`.
+   - [x] Add release/VPS background run scripts with logs, pid files, status, and stop commands.
    - [x] Add first wallet-level microstructure joins: spread at fill, OFI at fill, favorable OFI rate.
    - [x] Default matched pool tracks multiple smart-money account types, not only the strict stable-alpha funnel.
    - [x] Add summary command for full tier/tag distribution across all analyzed wallets.
    - [x] Move account type judgment rules into configurable profile files.
    - [ ] Add strategy reconstruction features: lead time, market breadth, sector concentration, entry-before-move, exit quality.
 
-5. Production storage option
+5. Python Profiler
+   - Status: partial implementation.
+   - [x] Export known-wallet fills and raw CLOB events for profiler input.
+   - [x] Add Python Polars as-of join from fills to previous CLOB events.
+   - [x] Extract spread and OFI features for reverse engineering.
+   - [x] Add KDE/quantile threshold output to `rules.json`.
+   - [ ] Add external news timeline ingestion.
+   - [ ] Feed profiler rules back into Rust alert profiles.
+
+6. Production storage option
    - Status: planned.
    - Keep SQLite as local default.
    - Add Postgres for wallet/config state.
