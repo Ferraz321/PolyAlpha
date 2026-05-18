@@ -1,16 +1,33 @@
 # Feature Library
 
-This directory is the registry area for reverse-engineering factors.
+This directory is the executable factor library for the Python profiler. Keep
+one coherent factor family per file; avoid growing `derived.py` into a large
+miscellaneous module.
 
-Current implemented factors live in `okprofiler/factor_library.py` and are
-materialized into `factor_table.parquet` by the pipeline. Add new factor ideas
-here first as short research notes, then promote them into `factor_library.py`
-when the input columns are available.
+## Structure
 
-Useful families:
+```text
+basic.py       generic fill/CLOB-derived factors such as notional and abs momentum
+behavior.py    wallet behavior factors such as re-entry count and buy ratio
+clob.py        raw CLOB event feature extraction
+timing.py      clock, news, and resolution-window factors
+weather.py     weather-temperature market semantic factors
+registry.py    executable factor registry used by the miner and diagnostics
+derived.py     orchestration only; calls each family module in order
+```
 
-- order-flow: OFI, signed trade bursts, depth imbalance
-- price action: short momentum, absolute shocks, entry-before-move
-- execution quality: distance to BBO, spread, lag to CLOB snapshot
-- event timing: time to resolution, pre-news lead time, market phase
-- behavior: ticket-size regime, repeated market breadth, exit quality
+## Promotion Flow
+
+1. Add or update one family module, for example `weather.py`.
+2. Wire the family into `derived.py` if it is a new module.
+3. Register each output column in `registry.py`.
+4. Document the factor in `docs/factors.md`.
+5. If it belongs to a market-specific process, update the matching playbook in
+   `docs/market_categories/`.
+
+Useful future families:
+
+- `forecast.py`: weather forecast joins and forecast-error factors.
+- `pnl.py`: market-category realized PnL and expectancy factors.
+- `sector.py`: event/sector concentration factors.
+- `execution.py`: exit quality, BBO distance, maker/taker behavior.
