@@ -75,6 +75,22 @@ def fetch_user_trades(
     return len(rows)
 
 
+def assets_from_fills(fills: Path, out: Path, limit: int | None = None) -> int:
+    seen = []
+    with fills.open(newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        for row in reader:
+            asset = row.get("market_id") or row.get("asset")
+            if not asset or asset in seen:
+                continue
+            seen.append(asset)
+            if limit is not None and len(seen) >= limit:
+                break
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text("\n".join(seen) + ("\n" if seen else ""), encoding="utf-8")
+    return len(seen)
+
+
 def _get_json(url: str):
     request = Request(
         url,

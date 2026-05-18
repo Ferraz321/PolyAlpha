@@ -176,6 +176,7 @@ Partially implemented:
    - [x] Add one-wallet end-to-end profiling script from address to report/config.
    - [x] Add Data API wallet trade fetch fallback when local DB has no fills.
    - [x] Add maintained factor catalog plus per-run factor summary and research log.
+   - [x] Generate CLOB asset pools from wallet fills and add wallet CLOB recording script.
    - [ ] Add true negative-set backtests across non-wallet fills for real precision/recall.
    - [ ] Replace lightweight adapters with full optional Qlib/Alphalens/STUMPY/SHAP/Nautilus integrations when data format and dependencies are ready.
    - [ ] Add richer factor library: time-of-day, market sector, pre-news lead time, exit quality.

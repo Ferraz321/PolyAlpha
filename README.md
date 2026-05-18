@@ -219,6 +219,10 @@ python profiler/profile_wallets.py fetch-user-trades \
   --wallet 0xYourWallet \
   --out data/profiler/fills.csv
 
+python profiler/profile_wallets.py assets-from-fills \
+  --fills data/profiler/fills.csv \
+  --out data/profiler/clob_assets.txt
+
 python profiler/profile_wallets.py profile \
   --fills data/profiler/fills.csv \
   --clob data/profiler/clob_events.csv \
@@ -266,6 +270,16 @@ pip install -r profiler/requirements-optional.txt
 reverse-engineered. It reports which raw sources are missing, which factors have
 zero non-null rows, and the next collection action such as running `watch-clob`
 or fetching Gamma markets.
+
+To start collecting CLOB for a wallet's traded assets:
+
+```bash
+scripts/watch-wallet-clob.sh 0xYourWallet data/oktrader.sqlite
+```
+
+This first profiles the wallet, writes `clob_assets.txt`, then starts
+`watch-clob`. Historical CLOB that was never recorded cannot be reconstructed
+from this websocket; this records live evidence from now onward.
 
 Validate the generated strategy config before using it in monitoring:
 

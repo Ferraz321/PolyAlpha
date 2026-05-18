@@ -75,6 +75,11 @@ echo "[4/5] profile"
   --min-samples "${OKTRADER_MIN_SAMPLES:-2}" \
   --research-engines "${OKTRADER_RESEARCH_ENGINES:-core,alphalens,shap,stumpy,agent}"
 
+"$PYTHON_BIN" profiler/profile_wallets.py assets-from-fills \
+  --fills "$OUT_DIR/fills.csv" \
+  --out "$OUT_DIR/clob_assets.txt" \
+  --limit "${OKTRADER_CLOB_ASSET_LIMIT:-500}"
+
 echo "[5/5] validate strategy config"
 cargo run -- validate-strategy-config --input "$OUT_DIR/strategy_config.json"
 
@@ -88,3 +93,4 @@ echo "  $OUT_DIR/report.html"
 echo "  $OUT_DIR/strategy_config.json"
 echo "  $OUT_DIR/factor_summary.md"
 echo "  $OUT_DIR/factor_research_log.md"
+echo "  $OUT_DIR/clob_assets.txt"
