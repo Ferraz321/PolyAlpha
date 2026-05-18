@@ -123,3 +123,163 @@ CREATE TABLE IF NOT EXISTS market_tokens (
     outcome TEXT,
     updated_at TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS markets (
+    market_id TEXT PRIMARY KEY,
+    condition_id TEXT,
+    market_slug TEXT,
+    event_slug TEXT,
+    sector TEXT,
+    question TEXT,
+    resolution_time TEXT,
+    status TEXT NOT NULL DEFAULT 'unknown',
+    raw_json TEXT,
+    updated_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_markets_event_slug ON markets(event_slug);
+CREATE INDEX IF NOT EXISTS idx_markets_sector ON markets(sector);
+CREATE INDEX IF NOT EXISTS idx_markets_resolution_time ON markets(resolution_time);
+
+CREATE TABLE IF NOT EXISTS outcomes (
+    outcome_id TEXT PRIMARY KEY,
+    market_id TEXT NOT NULL,
+    token_id TEXT,
+    label TEXT,
+    resolved_value TEXT,
+    resolution_status TEXT NOT NULL DEFAULT 'unknown',
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY(market_id) REFERENCES markets(market_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_outcomes_market ON outcomes(market_id);
+CREATE INDEX IF NOT EXISTS idx_outcomes_token ON outcomes(token_id);
+
+CREATE TABLE IF NOT EXISTS positions (
+    account TEXT NOT NULL,
+    market_id TEXT NOT NULL,
+    outcome_id TEXT,
+    shares TEXT NOT NULL,
+    avg_price TEXT NOT NULL,
+    cost_basis TEXT NOT NULL,
+    realized_pnl TEXT NOT NULL DEFAULT '0',
+    unrealized_pnl TEXT NOT NULL DEFAULT '0',
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY(account, market_id, outcome_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_positions_account ON positions(account);
+CREATE INDEX IF NOT EXISTS idx_positions_market ON positions(market_id);
+
+CREATE TABLE IF NOT EXISTS wallet_pnl (
+    account TEXT NOT NULL,
+    scope TEXT NOT NULL,
+    realized_pnl TEXT NOT NULL,
+    unrealized_pnl TEXT NOT NULL DEFAULT '0',
+    trade_count INTEGER NOT NULL,
+    market_count INTEGER NOT NULL,
+    audit_status TEXT NOT NULL DEFAULT 'estimated',
+    evidence_json TEXT NOT NULL DEFAULT '{}',
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY(account, scope)
+);
+
+CREATE TABLE IF NOT EXISTS wallet_clusters (
+    cluster_id TEXT NOT NULL,
+    account TEXT NOT NULL,
+    method TEXT NOT NULL,
+    label TEXT,
+    score TEXT,
+    features_json TEXT NOT NULL DEFAULT '{}',
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY(cluster_id, account)
+);
+
+CREATE INDEX IF NOT EXISTS idx_wallet_clusters_account ON wallet_clusters(account);
+CREATE INDEX IF NOT EXISTS idx_wallet_clusters_method ON wallet_clusters(method);
+
+CREATE TABLE IF NOT EXISTS factor_values (
+    factor_id TEXT NOT NULL,
+    entity_type TEXT NOT NULL,
+    entity_id TEXT NOT NULL,
+    market_id TEXT,
+    timestamp TEXT NOT NULL,
+    value TEXT,
+    source TEXT NOT NULL,
+    version TEXT NOT NULL DEFAULT '1',
+    metadata_json TEXT NOT NULL DEFAULT '{}',
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY(factor_id, entity_type, entity_id, timestamp, version)
+);
+
+CREATE INDEX IF NOT EXISTS idx_factor_values_factor ON factor_values(factor_id);
+CREATE INDEX IF NOT EXISTS idx_factor_values_entity ON factor_values(entity_type, entity_id);
+CREATE INDEX IF NOT EXISTS idx_factor_values_market ON factor_values(market_id);
+
+CREATE TABLE IF NOT EXISTS factor_candidates (
+    factor_id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    lifecycle_state TEXT NOT NULL DEFAULT 'candidate',
+    priority INTEGER NOT NULL DEFAULT 3,
+    required_data TEXT NOT NULL DEFAULT 'factor_table',
+    owner_module TEXT,
+    hypothesis TEXT,
+    evidence_json TEXT NOT NULL DEFAULT '{}',
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_factor_candidates_state ON factor_candidates(lifecycle_state);
+CREATE INDEX IF NOT EXISTS idx_factor_candidates_priority ON factor_candidates(priority);
+
+CREATE TABLE IF NOT EXISTS factor_validations (
+    validation_id TEXT PRIMARY KEY,
+    factor_id TEXT NOT NULL,
+    method TEXT NOT NULL,
+    sample_start TEXT,
+    sample_end TEXT,
+    in_sample_score TEXT,
+    out_of_sample_score TEXT,
+    negative_control_score TEXT,
+    stability_score TEXT,
+    slippage_bps TEXT,
+    capacity_usd TEXT,
+    verdict TEXT NOT NULL DEFAULT 'pending',
+    report_json TEXT NOT NULL DEFAULT '{}',
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(factor_id) REFERENCES factor_candidates(factor_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_factor_validations_factor ON factor_validations(factor_id);
+CREATE INDEX IF NOT EXISTS idx_factor_validations_verdict ON factor_validations(verdict);
+
+CREATE TABLE IF NOT EXISTS strategies (
+    strategy_id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    lifecycle_state TEXT NOT NULL DEFAULT 'draft',
+    config_json TEXT NOT NULL,
+    source_factors_json TEXT NOT NULL DEFAULT '[]',
+    risk_json TEXT NOT NULL DEFAULT '{}',
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_strategies_state ON strategies(lifecycle_state);
+
+CREATE TABLE IF NOT EXISTS signals (
+    signal_id TEXT PRIMARY KEY,
+    strategy_id TEXT NOT NULL,
+    account TEXT,
+    market_id TEXT,
+    outcome_id TEXT,
+    signal_type TEXT NOT NULL,
+    score TEXT NOT NULL,
+    payload_json TEXT NOT NULL DEFAULT '{}',
+    emitted_at TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'new',
+    FOREIGN KEY(strategy_id) REFERENCES strategies(strategy_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_signals_strategy ON signals(strategy_id);
+CREATE INDEX IF NOT EXISTS idx_signals_market ON signals(market_id);
+CREATE INDEX IF NOT EXISTS idx_signals_emitted ON signals(emitted_at);

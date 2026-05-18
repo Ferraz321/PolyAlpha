@@ -1,13 +1,20 @@
 import json
 
 
-def strategy_config_from_rules(rules: dict) -> str:
+def strategy_config_from_rules(
+    rules: dict,
+    approved_features: set[str] | None = None,
+) -> str:
     strategies = []
     for wallet in rules.get("wallets", []):
         if wallet.get("status") == "small_sample":
             continue
         conditions = _live_conditions(wallet.get("mining", {}).get("best_live_rule", {}))
         if not conditions:
+            continue
+        if approved_features is not None and not all(
+            condition["feature"] in approved_features for condition in conditions
+        ):
             continue
         strategies.append(
             {

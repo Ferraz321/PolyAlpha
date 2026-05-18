@@ -1,6 +1,8 @@
 from dataclasses import dataclass
+from datetime import datetime, timezone
 import json
 from pathlib import Path
+import sqlite3
 
 from .agent_planner import next_commands
 from .agent_tools import AgentToolConfig, run_agent_tools, update_candidate_library
@@ -70,6 +72,7 @@ def run_agent(config: AgentConfig) -> dict:
     }
     _write_json(config.candidates_out, {"version": 1, "candidates": candidates})
     _write_json(config.next_commands_out, {"version": 1, "commands": commands})
+    result["factor_candidates_persisted"] = _persist_factor_candidates(config.db, candidates)
     if config.update_candidates:
         update_candidate_library(config.candidate_library, candidates)
     _write_text(config.report_out, _render_report(result, diagnostics))
@@ -106,6 +109,8 @@ def _rerun_profile(config: AgentConfig) -> None:
             lookback_secs=60,
             min_samples=config.min_samples,
             research_engines=config.research_engines,
+            validation_out=config.profile_dir / "factor_validations.json",
+            validation_db=config.db,
         )
     )
 
@@ -157,6 +162,52 @@ def _candidate_factors(rules: dict) -> list[dict]:
         }
         for item in sorted(candidates.values(), key=lambda row: (row["priority"], row["factor"]))
     ]
+
+
+def _persist_factor_candidates(db: Path, candidates: list[dict]) -> int:
+    if not candidates:
+        return 0
+    db.parent.mkdir(parents=True, exist_ok=True)
+    schema = Path("sql/schema.sql")
+    now = datetime.now(timezone.utc).isoformat()
+    with sqlite3.connect(db) as conn:
+        if schema.exists():
+            conn.executescript(schema.read_text(encoding="utf-8"))
+        for candidate in candidates:
+            evidence = {
+                "wallets": candidate.get("wallets", []),
+                "market_categories": candidate.get("market_categories", []),
+                "reason": candidate.get("reason"),
+            }
+            conn.execute(
+                """
+                INSERT INTO factor_candidates (
+                    factor_id, name, lifecycle_state, priority, required_data,
+                    owner_module, hypothesis, evidence_json, updated_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(factor_id) DO UPDATE SET
+                    name = excluded.name,
+                    lifecycle_state = excluded.lifecycle_state,
+                    priority = excluded.priority,
+                    required_data = excluded.required_data,
+                    hypothesis = excluded.hypothesis,
+                    evidence_json = excluded.evidence_json,
+                    updated_at = excluded.updated_at
+                """,
+                (
+                    candidate["factor"],
+                    candidate["factor"],
+                    candidate.get("status", "candidate"),
+                    int(candidate.get("priority", 3)),
+                    candidate.get("required_data", "factor_table"),
+                    None,
+                    candidate.get("reason"),
+                    json.dumps(evidence, sort_keys=True),
+                    now,
+                ),
+            )
+    return len(candidates)
 
 
 def _render_report(result: dict, diagnostics: dict) -> str:

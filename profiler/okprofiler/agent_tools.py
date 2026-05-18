@@ -106,6 +106,8 @@ def _run_profile(config: AgentToolConfig) -> dict:
             lookback_secs=60,
             min_samples=config.min_samples,
             research_engines=config.research_engines,
+            validation_out=config.profile_dir / "factor_validations.json",
+            validation_db=config.db,
         )
     )
     (config.profile_dir / "rules.json").write_text(json.dumps(rules, indent=2), encoding="utf-8")

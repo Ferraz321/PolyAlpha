@@ -23,6 +23,10 @@ async fn main() -> Result<()> {
         Commands::ExportProfiler(args) => commands::profiler_export::export_profiler(args),
         Commands::ProfileReadiness(args) => commands::profiler_readiness::profile_readiness(args),
         Commands::ValidateStrategyConfig(args) => commands::strategy::validate_config(args),
+        Commands::ResearchStatus(args) => commands::research_status::research_status(args),
+        Commands::BuildWalletIntelligence(args) => {
+            commands::wallet_intelligence::build_wallet_intelligence_command(args)
+        }
         Commands::Summary(args) => commands::processes::summary(args.db),
         Commands::Export(args) => commands::processes::export_matched(args),
         Commands::SyncMetadata(args) => commands::metadata::sync_metadata(args).await,

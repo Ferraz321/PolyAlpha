@@ -10,6 +10,12 @@ from .report import write_reports
 from .research_matrix import run_research_matrix
 from .rules import infer_wallet_rules
 from .strategy import strategy_config_from_rules
+from .validation import (
+    approved_live_features,
+    persist_validations,
+    validate_factor_table,
+    write_validations,
+)
 
 
 @dataclass(frozen=True)
@@ -30,6 +36,8 @@ class ProfilerConfig:
     lookback_secs: int
     min_samples: int
     research_engines: list[str]
+    validation_out: Path | None = None
+    validation_db: Path | None = None
 
 
 def run_profiler(config: ProfilerConfig) -> dict:
@@ -64,12 +72,21 @@ def run_profiler(config: ProfilerConfig) -> dict:
     rules = infer_wallet_rules(factor_table, config.min_samples, disabled_factors)
     rules["diagnostics"] = diagnostics
     rules["research_matrix"] = run_research_matrix(factor_table, config.research_engines)
+    validations = validate_factor_table(factor_table)
+    rules["factor_validations"] = validations
+    if config.validation_out is not None:
+        write_validations(validations, config.validation_out)
+    if config.validation_db is not None:
+        rules["factor_validations_persisted"] = persist_validations(
+            config.validation_db,
+            validations,
+        )
     if config.report_out is not None or config.html_out is not None:
         write_reports(rules, config.report_out, config.html_out)
     if config.strategy_out is not None:
         config.strategy_out.parent.mkdir(parents=True, exist_ok=True)
         config.strategy_out.write_text(
-            strategy_config_from_rules(rules),
+            strategy_config_from_rules(rules, approved_live_features(validations)),
             encoding="utf-8",
         )
     write_factor_outputs(rules, config.factor_summary_out, config.factor_log_out)

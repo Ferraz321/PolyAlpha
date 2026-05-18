@@ -3,6 +3,7 @@ use oktrader_alpha::microstructure::{JoinConfig, build_wallet_microstructure};
 use oktrader_alpha::model::{FillEvent, LiquidityRole, TradeSide};
 use oktrader_alpha::storage::Storage;
 use oktrader_alpha::storage_types::{RawClobEventRecord, RawEvmLogRecord};
+use oktrader_alpha::wallet_intelligence::build_wallet_intelligence;
 use rust_decimal_macros::dec;
 
 #[test]
@@ -120,6 +121,39 @@ fn insert_fills_marks_wallet_dirty() {
         .clear_dirty_wallets(&["0xabc".to_string()])
         .expect("clear");
     assert!(storage.dirty_wallets(10).expect("dirty").is_empty());
+}
+
+#[test]
+fn fill_identity_keeps_same_second_partial_fills() {
+    let mut storage = Storage::open(":memory:").expect("storage");
+    let first = custom_fill("0xabc", "123", TradeSide::Buy, dec!(0.5), dec!(10));
+    let mut second = custom_fill("0xabc", "123", TradeSide::Buy, dec!(0.51), dec!(15));
+    second.order_hash = Some("0xorder-2".to_string());
+
+    let summary = storage
+        .insert_fills(&[first, second])
+        .expect("insert fills");
+
+    assert_eq!(summary.inserted_fills, 2);
+    assert_eq!(storage.stats().expect("stats").fills, 2);
+}
+
+#[test]
+fn stores_wallet_intelligence_snapshots() {
+    let mut storage = Storage::open(":memory:").expect("storage");
+    let fills = vec![
+        custom_fill("0xabc", "m1", TradeSide::Buy, dec!(0.40), dec!(100)),
+        custom_fill("0xabc", "m1", TradeSide::Sell, dec!(0.70), dec!(40)),
+    ];
+    let snapshot = build_wallet_intelligence(&fills).expect("snapshot");
+
+    storage
+        .replace_wallet_intelligence(&snapshot.positions, &snapshot.wallet_pnl)
+        .expect("replace intelligence");
+
+    let stats = storage.research_stats().expect("stats");
+    assert_eq!(stats.positions, 1);
+    assert_eq!(stats.wallet_pnl, 1);
 }
 
 fn fill(account: &str) -> FillEvent {

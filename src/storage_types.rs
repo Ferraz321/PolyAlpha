@@ -92,13 +92,17 @@ pub fn metric_parts(
 
 pub fn stable_fill_key(fill: &FillEvent) -> String {
     format!(
-        "{}:{}:{}:{}:{}:{}",
+        "{}:{}:{}:{}:{}:{}:{}:{}:{}:{}",
         fill.tx_hash.as_deref().unwrap_or(""),
+        fill.order_hash.as_deref().unwrap_or(""),
         fill.account,
         fill.condition_id.as_deref().unwrap_or(""),
         fill.market_id,
         fill.side,
-        fill.timestamp.timestamp()
+        fill.role,
+        fill.price,
+        fill.shares,
+        fill.timestamp.to_rfc3339()
     )
 }
 

@@ -99,6 +99,8 @@ def profile(args) -> None:
             lookback_secs=args.lookback_secs,
             min_samples=args.min_samples,
             research_engines=_parse_engines(args.research_engines),
+            validation_out=Path(args.validation_out) if args.validation_out else None,
+            validation_db=Path(args.validation_db) if args.validation_db else None,
         )
     )
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
@@ -267,6 +269,8 @@ def _add_profile_args(parser):
     parser.add_argument("--report-out", default="data/profiler/report.md")
     parser.add_argument("--html-out", default="data/profiler/report.html")
     parser.add_argument("--diagnostics-out", default="data/profiler/diagnostics.json")
+    parser.add_argument("--validation-out", default="data/profiler/factor_validations.json")
+    parser.add_argument("--validation-db")
     parser.add_argument("--factor-summary-out", default="data/profiler/factor_summary.md")
     parser.add_argument("--factor-log-out", default="data/profiler/factor_research_log.md")
     parser.add_argument("--lookback-secs", type=int, default=60)

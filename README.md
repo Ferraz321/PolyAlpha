@@ -12,6 +12,33 @@ OKTRADER uses a dual-engine architecture:
 - SQLite, CSV, Parquet, JSON, and Markdown are the handoff artifacts between
   the two engines.
 
+## PolyEdge Platform Direction
+
+The project is evolving from a scanner/profiler into an Alpha Research Agent
+platform:
+
+```text
+Data Layer
+  -> Wallet Intelligence
+  -> Strategy Reverse Engineering
+  -> Factor Research
+  -> Validation
+  -> Strategy Signals
+  -> Agent Orchestration
+```
+
+The durable product loop is: find smart wallets, explain why they make money,
+turn repeatable behavior into factors, validate those factors against negative
+controls and walk-forward samples, then promote approved factors into live
+strategy signals. See `docs/polyedge_architecture.md`.
+
+Check the current research-platform surface:
+
+```bash
+cargo run -- research-status --db data/oktrader.sqlite
+cargo run -- build-wallet-intelligence --db data/oktrader.sqlite
+```
+
 ## Architecture
 
 ```text

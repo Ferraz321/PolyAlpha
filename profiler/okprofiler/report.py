@@ -23,6 +23,7 @@ def render_markdown(rules: dict) -> str:
         "",
         f"- rows: {rules.get('rows', 0)}",
         f"- wallets: {len(wallets)}",
+        f"- approved_live_factors: {_approved_live_factor_count(rules)}",
         "",
         "## Top Reverse-Engineering Candidates",
         "",
@@ -94,4 +95,12 @@ def _market_categories(wallet: dict) -> str:
     return "; ".join(
         f"{category['label']} ({category['confidence']:.2%})"
         for category in categories
+    )
+
+
+def _approved_live_factor_count(rules: dict) -> int:
+    return sum(
+        1
+        for validation in rules.get("factor_validations", [])
+        if validation.get("verdict") == "approved" and validation.get("live_feature")
     )

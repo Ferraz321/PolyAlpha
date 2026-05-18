@@ -20,6 +20,8 @@ pub enum Commands {
     ExportProfiler(ExportProfilerArgs),
     ProfileReadiness(ProfileReadinessArgs),
     ValidateStrategyConfig(ValidateStrategyConfigArgs),
+    ResearchStatus(DbArgs),
+    BuildWalletIntelligence(DbArgs),
     Summary(DbArgs),
     Export(ExportArgs),
     SyncMetadata(SyncMetadataArgs),
