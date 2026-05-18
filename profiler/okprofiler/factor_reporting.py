@@ -35,6 +35,21 @@ def render_factor_summary(rules: dict) -> str:
     for wallet in rules.get("wallets", []):
         best = wallet.get("mining", {}).get("best_rule", {})
         lines.append(f"- `{wallet.get('account')}`: {best.get('name', 'none')} -> `{wallet.get('candidate_rule')}`")
+    lines.extend(["", "## Market Category Playbooks", ""])
+    has_category = False
+    for wallet in rules.get("wallets", []):
+        for category in wallet.get("market_categories", []):
+            has_category = True
+            lines.append(
+                f"- `{wallet.get('account')}`: {category['label']} "
+                f"confidence={category['confidence']:.2%}; {category['summary']}"
+            )
+            lines.append(
+                "  - next_candidate_factors: "
+                + ", ".join(category.get("next_candidate_factors", [])[:8])
+            )
+    if not has_category:
+        lines.append("- no market-specific playbook matched")
     if diagnostics.get("missing_actions"):
         lines.extend(["", "## Missing Actions", ""])
         for action in diagnostics["missing_actions"]:
@@ -60,6 +75,11 @@ def render_factor_log_entry(rules: dict) -> str:
             f"- wallet `{wallet.get('account')}` best_factor={best.get('name', 'none')} "
             f"rule=`{wallet.get('candidate_rule')}` samples={wallet.get('samples', 0)}"
         )
+        for category in wallet.get("market_categories", []):
+            lines.append(
+                f"- market_category `{category['id']}` confidence={category['confidence']:.2%} "
+                f"active={', '.join(category.get('active_factors', []))}"
+            )
     for action in diagnostics.get("missing_actions", []):
         lines.append(f"- missing_action: {action}")
     return "\n".join(lines) + "\n"

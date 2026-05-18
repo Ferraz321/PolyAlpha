@@ -42,6 +42,11 @@ def _parse_row(row: dict) -> dict:
         "temperature_high_f": high,
         "temperature_mid_f": None if low is None or high is None else (low + high) / 2.0,
         "temperature_bucket_width_f": None if low is None or high is None else high - low,
+        "is_low_temp_bucket": _flag(low is not None and high is not None and (low + high) / 2.0 <= 40),
+        "is_high_temp_bucket": _flag(low is not None and high is not None and (low + high) / 2.0 >= 75),
+        "is_extreme_temperature_bucket": _flag(
+            low is not None and high is not None and ((low + high) / 2.0 <= 32 or (low + high) / 2.0 >= 90)
+        ),
     }
 
 
@@ -54,6 +59,9 @@ def _empty_weather(height: int) -> pl.DataFrame:
             "temperature_high_f": [None] * height,
             "temperature_mid_f": [None] * height,
             "temperature_bucket_width_f": [None] * height,
+            "is_low_temp_bucket": [None] * height,
+            "is_high_temp_bucket": [None] * height,
+            "is_extreme_temperature_bucket": [None] * height,
         }
     )
 
@@ -61,7 +69,7 @@ def _empty_weather(height: int) -> pl.DataFrame:
 def _add_account_weather_factors(df: pl.DataFrame) -> pl.DataFrame:
     if "account" not in df.columns:
         return df
-    return df.with_columns(
+    out = df.with_columns(
         [
             pl.col("is_weather_market").mean().over("account").alias("weather_market_ratio"),
             pl.when(pl.col("weather_city").is_not_null())
@@ -70,3 +78,32 @@ def _add_account_weather_factors(df: pl.DataFrame) -> pl.DataFrame:
             .alias("weather_city_concentration"),
         ]
     )
+    if "market_id" not in out.columns:
+        return out
+    breadth = (
+        out.filter(pl.col("is_weather_market") == 1.0)
+        .group_by("account")
+        .agg(
+            [
+                pl.col("market_id").n_unique().alias("weather_market_breadth"),
+                pl.col("weather_city").drop_nulls().n_unique().alias("weather_city_count"),
+            ]
+        )
+    )
+    if breadth.is_empty():
+        return out.with_columns(
+            [
+                pl.lit(0).alias("weather_market_breadth"),
+                pl.lit(0).alias("weather_city_count"),
+            ]
+        )
+    return out.join(breadth, on="account", how="left").with_columns(
+        [
+            pl.col("weather_market_breadth").fill_null(0),
+            pl.col("weather_city_count").fill_null(0),
+        ]
+    )
+
+
+def _flag(value: bool) -> float | None:
+    return 1.0 if value else 0.0

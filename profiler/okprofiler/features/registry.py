@@ -28,8 +28,18 @@ FACTOR_SPECS = [
     FactorSpec("is_weather_market", "weather market specialization", "high", 0.50, None, ("fills",)),
     FactorSpec("weather_market_ratio", "weather trader specialization", "high", 0.50, None, ("fills",)),
     FactorSpec("weather_city_concentration", "weather city concentration", "high", 0.75, None, ("fills",)),
+    FactorSpec("weather_market_breadth", "weather market breadth", "high", 0.50, None, ("fills",)),
+    FactorSpec("weather_city_count", "weather city breadth", "high", 0.50, None, ("fills",)),
     FactorSpec("temperature_mid_f", "temperature bucket midpoint", "high", 0.50, None, ("fills",)),
     FactorSpec("temperature_bucket_width_f", "temperature bucket width", "low", 0.50, None, ("fills",)),
+    FactorSpec("is_low_temp_bucket", "low-temperature bucket", "high", 0.50, None, ("fills",)),
+    FactorSpec("is_high_temp_bucket", "high-temperature bucket", "high", 0.50, None, ("fills",)),
+    FactorSpec("is_extreme_temperature_bucket", "extreme-temperature bucket", "high", 0.50, None, ("fills",)),
+    FactorSpec("entry_hour_utc", "entry hour UTC", "low", 0.50, None, ("fills",)),
+    FactorSpec("is_last_24h", "last 24h entry", "high", 0.50, None, ("markets",)),
+    FactorSpec("is_last_6h", "last 6h entry", "high", 0.50, None, ("markets",)),
+    FactorSpec("same_market_reentry_count", "same-market reentry count", "high", 0.75, None, ("fills",)),
+    FactorSpec("buy_ratio", "wallet buy-side ratio", "high", 0.50, None, ("fills",)),
 ]
 
 

@@ -29,6 +29,9 @@ def _archetype(
     spread,
     depth,
 ) -> str:
+    weather_ratio = quantile(numeric(wallet, "weather_market_ratio"), 0.50)
+    if weather_ratio >= 0.5:
+        return "weather-temperature specialist candidate"
     if distinct_markets <= 3 and spike_zscore(ofi) > 2.0:
         return "information-edge candidate"
     if wallet.height >= 1000 and quantile(spread, 0.50) <= 0.02:
@@ -42,6 +45,14 @@ def _archetype(
 
 def _next_experiments(wallet: pl.DataFrame, best: dict, distinct_markets: int) -> list[str]:
     experiments = []
+    if quantile(numeric(wallet, "weather_market_ratio"), 0.50) >= 0.5:
+        experiments.extend(
+            [
+                "join NOAA/Open-Meteo forecasts and compute forecast_error_to_bucket",
+                "split weather trades by city to measure city-specific edge",
+                "compare entry time against forecast update windows and market resolution",
+            ]
+        )
     if "time_to_resolution_secs" not in [c.get("column") for c in best.get("conditions", [])]:
         experiments.append("add time-to-resolution buckets and compare early vs late entries")
     if distinct_markets <= 5:

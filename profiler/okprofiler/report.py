@@ -81,6 +81,17 @@ def _wallet_section(wallet: dict) -> list[str]:
         f"- recall_proxy: {backtest.get('recall_proxy', 0):.2%}",
         f"- factor_stability: {backtest.get('factor_stability', 0):.2%}",
         f"- research_note: {wallet.get('agent_research_note', '')}",
+        f"- market_categories: {_market_categories(wallet)}",
         f"- next_experiments: {', '.join(wallet.get('researcher', {}).get('next_experiments', []))}",
         "",
     ]
+
+
+def _market_categories(wallet: dict) -> str:
+    categories = wallet.get("market_categories", [])
+    if not categories:
+        return "none"
+    return "; ".join(
+        f"{category['label']} ({category['confidence']:.2%})"
+        for category in categories
+    )

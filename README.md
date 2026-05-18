@@ -263,6 +263,11 @@ Per-run evidence is written to `factor_summary.md`, `factor_research_log.md`,
 and `rules.json`. A factor should only be promoted when it has non-null rows,
 an interpretable rule, and a clear note on whether Rust can evaluate it live.
 
+Market-specific playbooks live under `docs/market_categories/`. The first
+production playbook is `docs/market_categories/weather.md`; profiler runs
+automatically attach it when a wallet's `weather_market_ratio` indicates a
+weather-temperature specialist.
+
 `rules.json` keeps both `best_rule` for offline explanation and
 `best_live_rule` for monitor-compatible alerts. This matters because some
 strong research factors, such as distance to BBO, may not yet exist in Rust's

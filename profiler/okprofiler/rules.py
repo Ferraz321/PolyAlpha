@@ -1,5 +1,6 @@
 import polars as pl
 
+from .market_categories import infer_market_categories
 from .miner import mine_wallet
 from .researcher import research_note
 from .statistics import distribution, numeric
@@ -15,11 +16,21 @@ PROFILE_COLUMNS = [
     "feature_lag_secs",
     "trade_notional",
     "abs_price_momentum",
+    "entry_hour_utc",
+    "is_last_24h",
+    "is_last_6h",
+    "same_market_reentry_count",
+    "buy_ratio",
     "is_weather_market",
     "weather_market_ratio",
     "weather_city_concentration",
+    "weather_market_breadth",
+    "weather_city_count",
     "temperature_mid_f",
     "temperature_bucket_width_f",
+    "is_low_temp_bucket",
+    "is_high_temp_bucket",
+    "is_extreme_temperature_bucket",
 ]
 
 
@@ -43,7 +54,7 @@ def _wallet_rule(account: str, wallet: pl.DataFrame, disabled_factors: set[str])
     researcher = research_note(wallet, mining)
     buy = wallet.filter(pl.col("side").str.to_lowercase() == "buy")
     sell = wallet.filter(pl.col("side").str.to_lowercase() == "sell")
-    return {
+    result = {
         "account": account,
         "samples": wallet.height,
         "buy_samples": buy.height,
@@ -56,6 +67,8 @@ def _wallet_rule(account: str, wallet: pl.DataFrame, disabled_factors: set[str])
         "agent_research_note": researcher["summary"],
         "researcher": researcher,
     }
+    result["market_categories"] = infer_market_categories(result)
+    return result
 
 
 def _distributions(wallet: pl.DataFrame) -> dict:
