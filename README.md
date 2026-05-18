@@ -191,6 +191,25 @@ python profiler/profile_wallets.py \
   --research-engines core,alphalens,shap,stumpy,agent
 ```
 
+You can also use explicit subcommands:
+
+```bash
+python profiler/profile_wallets.py fetch-gamma-markets \
+  --out data/profiler/markets.csv \
+  --limit 500 \
+  --max-offset 5000
+
+python profiler/profile_wallets.py fetch-news-rss \
+  --url "https://example.com/feed.xml" \
+  --out data/profiler/news.csv
+
+python profiler/profile_wallets.py profile \
+  --fills data/profiler/fills.csv \
+  --clob data/profiler/clob_events.csv \
+  --markets data/profiler/markets.csv \
+  --diagnostics-out data/profiler/diagnostics.json
+```
+
 The profiler is a separate Python research package under `profiler/okprofiler/`.
 It does an as-of join from wallet fills to previous CLOB events, can optionally
 join an external news timeline or a market metadata CSV with `resolution_time`,
@@ -202,7 +221,11 @@ Factor mining is split into small modules:
 
 ```text
 profiler/okprofiler/factor_library.py   candidate factor registry
+profiler/okprofiler/data_sources.py     Gamma metadata fetcher
+profiler/okprofiler/diagnostics.py      source/factor readiness diagnostics
+profiler/okprofiler/features/           concrete feature extraction package
 profiler/okprofiler/miner.py            single/pair factor search and scoring
+profiler/okprofiler/research/           research-engine package entrypoints
 profiler/okprofiler/researcher.py       agent-style interpretation and next experiments
 profiler/okprofiler/strategy.py         live-compatible strategy export
 profiler/okprofiler/research_matrix.py  professional research-engine matrix
@@ -221,6 +244,11 @@ manifest, and agent suggestions. Heavy packages can be installed separately:
 ```bash
 pip install -r profiler/requirements-optional.txt
 ```
+
+`diagnostics.json` is the first file to inspect when a wallet cannot be
+reverse-engineered. It reports which raw sources are missing, which factors have
+zero non-null rows, and the next collection action such as running `watch-clob`
+or fetching Gamma markets.
 
 Validate the generated strategy config before using it in monitoring:
 

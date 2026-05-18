@@ -3,8 +3,8 @@ from pathlib import Path
 
 import polars as pl
 
-from .factor_library import add_derived_factors
-from .features import extract_clob_features
+from .diagnostics import build_diagnostics, write_diagnostics
+from .features import add_derived_factors, extract_clob_features
 from .report import write_reports
 from .research_matrix import run_research_matrix
 from .rules import infer_wallet_rules
@@ -21,16 +21,17 @@ class ProfilerConfig:
     strategy_out: Path | None
     report_out: Path | None
     html_out: Path | None
+    diagnostics_out: Path | None
     lookback_secs: int
     min_samples: int
     research_engines: list[str]
 
 
 def run_profiler(config: ProfilerConfig) -> dict:
-    fills = pl.read_csv(config.fills_path, try_parse_dates=True)
+    fills = _read_fills(config.fills_path)
     if fills.is_empty():
         raise SystemExit("no fills to profile")
-    clob = pl.read_csv(config.clob_path, try_parse_dates=True)
+    clob = _read_optional_csv(config.clob_path, {"payload": pl.Utf8, "received_at": pl.Datetime})
     features = extract_clob_features(clob)
     joined = join_market_state(fills, features, config.lookback_secs)
     joined = attach_news(joined, config.news_path)
@@ -39,7 +40,18 @@ def run_profiler(config: ProfilerConfig) -> dict:
     if config.factor_out is not None:
         config.factor_out.parent.mkdir(parents=True, exist_ok=True)
         factor_table.write_parquet(config.factor_out)
+    diagnostics = build_diagnostics(
+        fills=fills,
+        clob=clob,
+        clob_features=features,
+        factor_table=factor_table,
+        news_path=config.news_path,
+        markets_path=config.markets_path,
+    )
+    if config.diagnostics_out is not None:
+        write_diagnostics(diagnostics, config.diagnostics_out)
     rules = infer_wallet_rules(factor_table, config.min_samples)
+    rules["diagnostics"] = diagnostics
     rules["research_matrix"] = run_research_matrix(factor_table, config.research_engines)
     if config.report_out is not None or config.html_out is not None:
         write_reports(rules, config.report_out, config.html_out)
@@ -79,6 +91,38 @@ def join_market_state(
     )
 
 
+def _read_optional_csv(path: Path, schema: dict) -> pl.DataFrame:
+    if not path.exists():
+        return pl.DataFrame(schema=schema)
+    return pl.read_csv(path, try_parse_dates=True)
+
+
+def _read_fills(path: Path) -> pl.DataFrame:
+    return pl.read_csv(
+        path,
+        try_parse_dates=True,
+        schema_overrides={
+            "account": pl.Utf8,
+            "market_id": pl.Utf8,
+            "side": pl.Utf8,
+        },
+    )
+
+
+def _read_markets(path: Path) -> pl.DataFrame:
+    return pl.read_csv(
+        path,
+        try_parse_dates=True,
+        schema_overrides={
+            "asset_id": pl.Utf8,
+            "condition_id": pl.Utf8,
+            "market_slug": pl.Utf8,
+            "event_slug": pl.Utf8,
+            "sector": pl.Utf8,
+        },
+    )
+
+
 def attach_news(joined: pl.DataFrame, news_path: Path | None) -> pl.DataFrame:
     if news_path is None or not news_path.exists():
         return joined.with_columns(pl.lit(None).cast(pl.Utf8).alias("last_news_slug"))
@@ -94,11 +138,16 @@ def attach_news(joined: pl.DataFrame, news_path: Path | None) -> pl.DataFrame:
 def attach_market_metadata(joined: pl.DataFrame, markets_path: Path | None) -> pl.DataFrame:
     if markets_path is None or not markets_path.exists():
         return joined.with_columns(pl.lit(None).cast(pl.Datetime).alias("resolution_time"))
-    markets = pl.read_csv(markets_path, try_parse_dates=True)
+    markets = _read_markets(markets_path)
     if "asset_id" not in markets.columns or "resolution_time" not in markets.columns:
         return joined.with_columns(pl.lit(None).cast(pl.Datetime).alias("resolution_time"))
+    columns = [
+        column
+        for column in ["asset_id", "resolution_time", "sector", "event_slug", "market_slug"]
+        if column in markets.columns
+    ]
     return joined.join(
-        markets.select("asset_id", "resolution_time"),
+        markets.select(columns),
         left_on="market_id",
         right_on="asset_id",
         how="left",
