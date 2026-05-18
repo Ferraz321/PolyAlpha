@@ -195,6 +195,10 @@ pub struct WatchClobArgs {
     pub chunk_size: usize,
     #[arg(long, default_value_t = 10)]
     pub ping_secs: u64,
+    #[arg(long, default_value_t = 2)]
+    pub reconnect_min_secs: u64,
+    #[arg(long, default_value_t = 60)]
+    pub reconnect_max_secs: u64,
     #[arg(long)]
     pub once: bool,
 }

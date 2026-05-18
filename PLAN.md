@@ -103,7 +103,7 @@ Partially implemented:
    - [x] Add Polymarket CLOB market websocket subscription by asset token pool.
    - [x] Add market websocket `PING` heartbeat.
    - [x] Persist raw CLOB book/price/trade payloads into `raw_clob_events`.
-   - [ ] Add websocket reconnect and exponential backoff handling.
+   - [x] Add websocket reconnect and exponential backoff handling.
    - [ ] Add CLOB order-book feature extraction for OFI, maker behavior, and BBO placement.
 
 3. Incremental analysis

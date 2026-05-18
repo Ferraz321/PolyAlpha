@@ -16,24 +16,51 @@ pub async fn watch_clob(args: WatchClobArgs) -> Result<()> {
     if args.chunk_size == 0 {
         bail!("--chunk-size must be greater than zero");
     }
+    if args.reconnect_min_secs == 0 || args.reconnect_max_secs < args.reconnect_min_secs {
+        bail!("reconnect max must be >= reconnect min, and both must be positive");
+    }
 
     let storage = Storage::open(&args.db)?;
     storage.init()?;
     let assets = load_assets(&args.assets_file)?;
+    let mut backoff_secs = args.reconnect_min_secs;
+
+    loop {
+        match run_connection(&args, &storage, &assets).await {
+            Ok(ClobRun::Finished) => break,
+            Ok(ClobRun::Disconnected) => {
+                println!("watch-clob: disconnected, reconnecting in {backoff_secs}s");
+            }
+            Err(error) => {
+                tracing::warn!(%error, "watch-clob connection failed");
+                println!("watch-clob: error, reconnecting in {backoff_secs}s");
+            }
+        }
+
+        if args.once {
+            break;
+        }
+        tokio::time::sleep(Duration::from_secs(backoff_secs)).await;
+        backoff_secs = (backoff_secs * 2).min(args.reconnect_max_secs);
+    }
+
+    Ok(())
+}
+
+enum ClobRun {
+    Finished,
+    Disconnected,
+}
+
+async fn run_connection(
+    args: &WatchClobArgs,
+    storage: &Storage,
+    assets: &[String],
+) -> Result<ClobRun> {
     let (mut socket, _) = connect_async(&args.ws_url)
         .await
         .with_context(|| format!("failed to connect {}", args.ws_url))?;
-
-    for chunk in assets.chunks(args.chunk_size) {
-        let message = json!({
-            "assets_ids": chunk,
-            "type": "market",
-            "custom_feature_enabled": true
-        });
-        socket
-            .send(Message::Text(message.to_string().into()))
-            .await?;
-    }
+    subscribe_assets(&mut socket, assets, args.chunk_size).await?;
 
     let mut ping = tokio::time::interval(Duration::from_secs(args.ping_secs));
     let mut inserted = 0usize;
@@ -53,13 +80,33 @@ pub async fn watch_clob(args: WatchClobArgs) -> Result<()> {
                     }
                     println!("watch-clob: inserted_raw_events={inserted}");
                     if args.once {
-                        break;
+                        return Ok(ClobRun::Finished);
                     }
                 }
             }
         }
     }
 
+    Ok(ClobRun::Disconnected)
+}
+
+async fn subscribe_assets(
+    socket: &mut tokio_tungstenite::WebSocketStream<
+        tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>,
+    >,
+    assets: &[String],
+    chunk_size: usize,
+) -> Result<()> {
+    for chunk in assets.chunks(chunk_size) {
+        let message = json!({
+            "assets_ids": chunk,
+            "type": "market",
+            "custom_feature_enabled": true
+        });
+        socket
+            .send(Message::Text(message.to_string().into()))
+            .await?;
+    }
     Ok(())
 }
 

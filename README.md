@@ -46,7 +46,9 @@ CLOB microstructure scanner for a token pool:
 ```bash
 cargo run -- watch-clob \
   --db data/oktrader.sqlite \
-  --assets-file data/clob_assets.txt
+  --assets-file data/clob_assets.txt \
+  --reconnect-min-secs 2 \
+  --reconnect-max-secs 60
 ```
 
 One-shot local smoke test:
