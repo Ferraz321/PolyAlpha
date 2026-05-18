@@ -71,6 +71,7 @@ Implemented:
 - `alerts`
 - `import-watchlist`
 - `export-profiler`
+- `profile-readiness`
 - `validate-strategy-config`
 - `summary`
 - `export`
@@ -151,6 +152,7 @@ Partially implemented:
 
 5. Python Profiler
    - Status: partial implementation.
+   - [x] Add reverse-engineering readiness gate for known wallets.
    - [x] Export known-wallet fills and raw CLOB events for profiler input.
    - [x] Add Python Polars as-of join from fills to previous CLOB events.
    - [x] Split profiler into package modules: CLI, features, pipeline, rules.
@@ -161,6 +163,7 @@ Partially implemented:
    - [x] Export `strategy_config.json` for Rust monitor ingestion.
    - [x] Add Rust strategy config validator.
    - [ ] Feed profiler strategy triggers into live Rust alert evaluation.
+   - [ ] Add profiler success score: reproducibility, coverage, precision, and factor stability.
 
 6. Production storage option
    - Status: planned.

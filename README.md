@@ -155,6 +155,18 @@ Each JSON file defines one wallet profile such as stable alpha, information edge
 
 Export known wallets and raw CLOB events for offline reverse engineering:
 
+Before profiling, run the readiness gate:
+
+```bash
+cargo run -- profile-readiness \
+  --db data/oktrader.sqlite \
+  --wallet-pool data/watchlist_wallets.txt
+```
+
+The readiness gate checks trades, distinct markets, closed markets, and CLOB
+as-of alignment. A wallet is not considered reverse-engineerable until this
+gate passes.
+
 ```bash
 cargo run -- export-profiler \
   --db data/oktrader.sqlite \

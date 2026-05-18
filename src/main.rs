@@ -21,6 +21,7 @@ async fn main() -> Result<()> {
         Commands::Alerts(args) => commands::alerts::alerts(args).await,
         Commands::ImportWatchlist(args) => commands::watchlist::import_watchlist(args),
         Commands::ExportProfiler(args) => commands::profiler_export::export_profiler(args),
+        Commands::ProfileReadiness(args) => commands::profiler_readiness::profile_readiness(args),
         Commands::ValidateStrategyConfig(args) => commands::strategy::validate_config(args),
         Commands::Summary(args) => commands::processes::summary(args.db),
         Commands::Export(args) => commands::processes::export_matched(args),
