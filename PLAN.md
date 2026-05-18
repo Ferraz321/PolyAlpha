@@ -63,6 +63,7 @@ Implemented:
 - `collector-data-api`
 - `analyzer`
 - `monitor`
+- `alerts`
 - `summary`
 - `export`
 - `sync-metadata`
@@ -129,8 +130,8 @@ Partially implemented:
 
 4. Monitoring and strategy research
    - Status: pending implementation.
-   - Emit smart-money trade alerts.
-   - Store wallet watch events.
+   - [x] Emit new-fill alerts for matched wallets, with optional all-wallet debug mode.
+   - [x] Store alert cursor in `scanner_state`.
    - [x] Add first wallet-level microstructure joins: spread at fill, OFI at fill, favorable OFI rate.
    - [x] Default matched pool tracks multiple smart-money account types, not only the strict stable-alpha funnel.
    - [x] Add summary command for full tier/tag distribution across all analyzed wallets.

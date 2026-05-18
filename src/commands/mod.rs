@@ -1,3 +1,4 @@
+pub mod alerts;
 pub mod backfill;
 pub mod backfill_decode;
 pub mod clob_ws;

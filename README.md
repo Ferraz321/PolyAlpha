@@ -69,6 +69,18 @@ cargo run -- analyzer --db data/oktrader.sqlite --once --tag small-sample-noise
 cargo run -- monitor --db data/oktrader.sqlite --once
 ```
 
+Watch new fills as alerts:
+
+```bash
+cargo run -- alerts --db data/oktrader.sqlite
+```
+
+By default `alerts` only prints fills from wallets currently in `matched_accounts`. To debug all new fills:
+
+```bash
+cargo run -- alerts --db data/oktrader.sqlite --all-wallets
+```
+
 See the full tier/tag distribution:
 
 ```bash

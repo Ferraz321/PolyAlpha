@@ -16,6 +16,7 @@ pub enum Commands {
     CollectorDataApi(CollectorDataApiArgs),
     Analyzer(AnalyzerArgs),
     Monitor(MonitorArgs),
+    Alerts(AlertArgs),
     Summary(DbArgs),
     Export(ExportArgs),
     SyncMetadata(SyncMetadataArgs),
@@ -76,6 +77,20 @@ pub struct MonitorArgs {
     pub db: PathBuf,
     #[arg(long, default_value_t = 10)]
     pub interval_secs: u64,
+    #[arg(long)]
+    pub once: bool,
+}
+
+#[derive(Debug, Clone, Args)]
+pub struct AlertArgs {
+    #[arg(long, default_value = "data/oktrader.sqlite")]
+    pub db: PathBuf,
+    #[arg(long, default_value_t = 5)]
+    pub interval_secs: u64,
+    #[arg(long, default_value_t = 50)]
+    pub limit: usize,
+    #[arg(long)]
+    pub all_wallets: bool,
     #[arg(long)]
     pub once: bool,
 }

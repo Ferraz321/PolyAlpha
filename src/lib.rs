@@ -6,6 +6,7 @@ pub mod microstructure;
 pub mod model;
 pub mod profile_config;
 pub mod storage;
+pub mod storage_alerts;
 pub mod storage_logs;
 pub mod storage_metrics;
 pub mod storage_microstructure;

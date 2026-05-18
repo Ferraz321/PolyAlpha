@@ -18,6 +18,7 @@ async fn main() -> Result<()> {
         Commands::CollectorDataApi(args) => commands::processes::collector_data_api(args).await,
         Commands::Analyzer(args) => commands::processes::analyzer(args).await,
         Commands::Monitor(args) => commands::processes::monitor(args).await,
+        Commands::Alerts(args) => commands::alerts::alerts(args).await,
         Commands::Summary(args) => commands::processes::summary(args.db),
         Commands::Export(args) => commands::processes::export_matched(args),
         Commands::SyncMetadata(args) => commands::metadata::sync_metadata(args).await,
