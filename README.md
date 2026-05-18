@@ -578,6 +578,11 @@ are persisted into `wallet_clusters`, and validation verdicts advance
 `factor_candidates` through the candidate/validating/approved/rejected/decayed
 lifecycle.
 
+Reverse-engineering factors now cover directional entry-before-move evidence,
+fill-level exit quality, sector concentration, news recency, resolution lead
+time, and repeated entry-hour motifs. Wallet clustering uses those features as
+factor exposure signals instead of only generic activity counts.
+
 `sync-metadata` persists Gamma market context into `markets`, `outcomes`, and
 `market_tokens`. `build-wallet-intelligence` uses that token map for
 outcome-level positions and uses latest CLOB BBO mid prices for mark-to-market

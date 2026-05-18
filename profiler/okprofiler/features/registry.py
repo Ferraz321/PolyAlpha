@@ -49,6 +49,21 @@ FACTOR_SPECS = [
     FactorSpec("is_last_6h", "last 6h entry", "high", 0.50, None, ("markets",)),
     FactorSpec("same_market_reentry_count", "same-market reentry count", "high", 0.75, None, ("fills",)),
     FactorSpec("buy_ratio", "wallet buy-side ratio", "high", 0.50, None, ("fills",)),
+    FactorSpec("forward_price_move", "next market price move", "high", 0.50, None, ("fills",)),
+    FactorSpec("entry_forward_edge", "directional entry edge", "high", 0.75, None, ("fills",)),
+    FactorSpec("entry_before_move_secs", "entry before favorable move", "low", 0.50, None, ("fills",)),
+    FactorSpec("lead_time_evidence", "entry lead-time evidence", "high", 0.75, None, ("fills",)),
+    FactorSpec("entry_price_advantage", "entry price advantage", "high", 0.75, None, ("fills",)),
+    FactorSpec("exit_quality_proxy", "exit quality proxy", "high", 0.75, None, ("fills",)),
+    FactorSpec("sector_concentration", "sector concentration", "high", 0.75, None, ("markets",)),
+    FactorSpec("sector_trade_count", "sector trade count", "high", 0.75, None, ("markets",)),
+    FactorSpec("sector_pnl_proxy", "sector PnL proxy", "high", 0.75, None, ("markets",)),
+    FactorSpec("resolution_lead_time_hours", "resolution lead time hours", "high", 0.50, None, ("markets",)),
+    FactorSpec("news_recency_hours", "news recency hours", "low", 0.25, None, ("news",)),
+    FactorSpec("news_reaction_window", "news reaction window", "high", 0.50, None, ("news",)),
+    FactorSpec("repeat_hour_motif_score", "repeat hour motif score", "high", 0.75, None, ("fills",)),
+    FactorSpec("repeat_entry_motif_count", "repeat entry motif count", "high", 0.75, None, ("fills",)),
+    FactorSpec("repeat_market_add_rate", "repeat market add rate", "high", 0.75, None, ("fills",)),
 ]
 
 

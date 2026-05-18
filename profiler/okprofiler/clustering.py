@@ -80,6 +80,10 @@ def _wallet_features(wallet: pl.DataFrame) -> dict:
     avg_spread = _mean_or_zero(wallet, "spread_filled")
     avg_ofi = _mean_or_zero(wallet, "ofi_filled")
     reentry = _mean_or_zero(wallet, "same_market_reentry_count")
+    sector_concentration = _mean_or_zero(wallet, "sector_concentration")
+    entry_edge = _mean_or_zero(wallet, "entry_forward_edge")
+    exit_quality = _mean_or_zero(wallet, "exit_quality_proxy")
+    repeat_motif = _mean_or_zero(wallet, "repeat_hour_motif_score")
     market_count = wallet.get_column("market_id").n_unique() if "market_id" in wallet.columns else 0
     return {
         "trade_count": trade_count,
@@ -91,6 +95,10 @@ def _wallet_features(wallet: pl.DataFrame) -> dict:
         "avg_spread": avg_spread,
         "avg_ofi": avg_ofi,
         "same_market_reentry": reentry,
+        "sector_concentration": sector_concentration,
+        "entry_edge": entry_edge,
+        "exit_quality": exit_quality,
+        "repeat_motif": repeat_motif,
     }
 
 
@@ -99,6 +107,12 @@ def _cluster_label(features: dict) -> str:
         return "weather_specialist"
     if features["maker_ratio"] >= 0.60 and features["trade_count"] >= 100:
         return "market_making_or_arb"
+    if features["sector_concentration"] >= 0.60 and features["entry_edge"] > 0.0:
+        return "sector_information_edge"
+    if features["exit_quality"] > 0.0 and features["same_market_reentry"] >= 2.0:
+        return "staged_entry_exit_trader"
+    if features["repeat_motif"] >= 0.35 and features["trade_count"] >= 20:
+        return "scheduled_motif_trader"
     if features["same_market_reentry"] >= 2.0:
         return "repeat_reentry_trader"
     if features["avg_notional"] >= 5000:
@@ -114,6 +128,8 @@ def _confidence(features: dict) -> float:
     evidence += min(features["market_count"] / 20.0, 1.0) * 0.25
     evidence += max(features["weather_ratio"], features["maker_ratio"]) * 0.25
     evidence += min(abs(features["avg_ofi"]), 1.0) * 0.15
+    evidence += min(features["sector_concentration"], 1.0) * 0.10
+    evidence += min(abs(features["entry_edge"]) * 10.0, 1.0) * 0.10
     return round(min(evidence, 1.0), 4)
 
 

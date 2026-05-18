@@ -69,6 +69,7 @@ Latest smoke test:
 - Pulled Gamma market rows: 200.
 - Generated: `fills.csv`, `markets.csv`, `factor_table.parquet`, `rules.json`, `research_report.md`, `candidate_factors.json`, `next_commands.json`, `sop_status.json`, and `strategy_config.json`.
 - Newer PolyEdge runs also generate `factor_validations.json` and `wallet_clusters.json` when the profiler has enough factor-table input.
+- Latest local factor smoke passed in `.venv`: reverse-engineering factors produced `entry_forward_edge`, `entry_before_move_secs`, `exit_quality_proxy`, `sector_concentration`, `news_recency_hours`, and repeated motif scores.
 - Finding: wallet classified as `weather_temperature` specialist with `weather_market_ratio >= 0.867881`.
 - Automatic weather expansion: agent fetched 853 actual observation rows and 41,400 forecast-history rows, then populated actual-temperature and forecast factors.
 - Remaining evidence gaps: CLOB snapshots, optional news timeline, model disagreement, and settlement-grade PnL expansion for stronger replication claims.
@@ -89,7 +90,7 @@ SQLite tables:
 - `markets` / `outcomes`: normalized market context and resolution state
 - `positions`: estimated outcome-level open exposure from normalized fills and token metadata
 - `wallet_pnl`: estimated wallet PnL from fills plus CLOB mark-to-market when available; settlement-grade audit remains a hardening item
-- `wallet_clusters`: future behavioral grouping surface
+- `wallet_clusters`: heuristic behavioral grouping with wallet rhythm, maker/taker, sector exposure, entry-edge, and exit-quality features
 - `factor_values`: normalized factor observation surface
 - `factor_candidates`: factor backlog and lifecycle state
 - `factor_validations`: walk-forward / negative-control validation results
@@ -193,7 +194,7 @@ Partially implemented:
    - [x] Persist validated strategy definitions into `strategies`.
    - [x] Persist live strategy trigger events into `signals`.
    - [x] Add first-pass heuristic wallet clustering persisted into `wallet_clusters`.
-   - [ ] Add strategy reconstruction features: entry-before-move, exit quality, sector-specific PnL, and stronger lead-time evidence.
+   - [x] Add strategy reconstruction features: entry-before-move, exit quality, sector-specific PnL, and stronger lead-time evidence.
    - [ ] Harden wallet PnL with settlement/redemption events.
 
 5. Python Profiler
@@ -237,7 +238,8 @@ Partially implemented:
    - [ ] Add true negative-set backtests across non-wallet fills for real precision/recall.
    - [ ] Replace lightweight adapters with full optional Qlib/Alphalens/STUMPY/SHAP/Nautilus integrations when data format and dependencies are ready.
    - [ ] Add multi-model forecast adapter for `model_disagreement`.
-   - [ ] Add richer factor library: market sector PnL, pre-news lead time, exit quality, and negative-control precision/recall.
+   - [x] Add richer factor library: market sector PnL, pre-news lead time, and exit quality.
+   - [ ] Add richer validation metrics: non-wallet negative-set precision/recall and category replication.
 
 6. Production storage option
    - Status: planned.

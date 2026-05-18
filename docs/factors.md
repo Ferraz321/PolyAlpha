@@ -24,6 +24,21 @@ a research idea into production.
 | `is_last_6h` | markets | Whether fill is inside the final 6 hours before resolution. | No | active |
 | `same_market_reentry_count` | fills | Number of fills by the wallet in the same market. | No | active |
 | `buy_ratio` | fills | Wallet-level buy-side fill ratio. | No | active |
+| `forward_price_move` | fills | Next observed market fill price move after this fill. | No | active |
+| `entry_forward_edge` | fills | Direction-adjusted next-fill move after wallet entry. | No | active |
+| `entry_before_move_secs` | fills | Seconds from entry to next favorable observed market move. | No | active |
+| `lead_time_evidence` | fills | Directional edge normalized by time to the next observed market move. | No | active |
+| `entry_price_advantage` | fills | Buy entry price versus same-market mean price. | No | active |
+| `exit_quality_proxy` | fills | Sell price versus wallet's average buy price in the same market. | No | active |
+| `sector_concentration` | markets | Share of wallet activity concentrated in the same sector. | No | active |
+| `sector_trade_count` | markets | Number of wallet fills in the same sector. | No | active |
+| `sector_pnl_proxy` | markets | Signed notional proxy aggregated by wallet and sector. | No | active |
+| `resolution_lead_time_hours` | markets | Hours from fill to market resolution/end. | No | active |
+| `news_recency_hours` | news | Hours between latest news item and wallet fill. | No | experimental |
+| `news_reaction_window` | news | Whether fill occurred within six hours after latest news. | No | experimental |
+| `repeat_hour_motif_score` | fills | Share of wallet activity recurring in the same UTC entry hour. | No | active |
+| `repeat_entry_motif_count` | fills | Count of repeated account/market/side/hour motifs. | No | active |
+| `repeat_market_add_rate` | fills | Same-market re-entry count normalized by wallet activity. | No | active |
 | `is_weather_market` | fills | Whether event slug matches weather temperature market grammar. | No | active |
 | `weather_market_ratio` | fills | Share of wallet fills in weather markets. | No | active |
 | `weather_city_concentration` | fills | Share of wallet fills concentrated in the same weather city. | No | active |
@@ -48,13 +63,10 @@ a research idea into production.
 
 | Candidate | Required Data | Why It Matters |
 | --- | --- | --- |
-| `sector_concentration` | markets | Detect information edge limited to domains. |
 | `model_disagreement` | external weather | Compare multiple forecast models for mispricing. |
 | `market_breadth_rate` | fills | Separate broad stat-arb from narrow sniping. |
-| `entry_before_move_secs` | CLOB/future price | Measures whether wallet enters before price moves. |
-| `exit_quality` | fills/CLOB | Measures whether unwind exits near favorable BBO. |
 | `time_of_day_bucket` | fills | Detect scheduled or timezone-driven execution. |
-| `repeat_market_add_rate` | fills | Detect averaging-in versus one-shot betting. |
+| `bbo_exit_quality` | CLOB BBO | Measures whether unwind exits near favorable BBO, beyond the fill-only proxy. |
 
 ## Promotion Rule
 

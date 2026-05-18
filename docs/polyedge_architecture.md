@@ -164,11 +164,15 @@ Promotion gates:
   `outcomes`, and `market_tokens`.
 - Wallet intelligence uses token metadata for outcome-level positions and
   latest CLOB BBO mid prices for mark-to-market unrealized PnL when available.
+- Reverse engineering factors now include directional entry-before-move
+  evidence, exit-quality proxies, sector concentration, news recency, resolution
+  lead time, and repeated entry motifs.
 - `profiler/okprofiler/validation.py` runs a first validation pass using
   walk-forward splits, negative-control lift, and factor stability.
 - `profile_wallets.py profile` writes `factor_validations.json`.
 - `profile_wallets.py profile` writes `wallet_clusters.json` using a first-pass
-  behavior clustering heuristic.
+  behavior clustering heuristic with wallet rhythm, sector, entry-edge, and
+  exit-quality features.
 - Agent runs persist validation rows into `factor_validations`.
 - Agent runs persist behavior clusters into `wallet_clusters`.
 - Validation persistence advances `factor_candidates` lifecycle state to
