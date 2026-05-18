@@ -24,6 +24,20 @@ pub fn export_profiler(args: ExportProfilerArgs) -> Result<()> {
 
 fn export_fills(storage: &Storage, wallets: &HashSet<String>, out: &std::path::Path) -> Result<()> {
     let mut writer = csv::Writer::from_path(out)?;
+    writer.write_record([
+        "account",
+        "market_id",
+        "condition_id",
+        "event_slug",
+        "sector",
+        "side",
+        "role",
+        "price",
+        "shares",
+        "timestamp",
+        "tx_hash",
+        "order_hash",
+    ])?;
     for fill in storage.load_fills()? {
         if wallets.contains(&fill.account.to_ascii_lowercase()) {
             writer.serialize(fill)?;
@@ -35,6 +49,7 @@ fn export_fills(storage: &Storage, wallets: &HashSet<String>, out: &std::path::P
 
 fn export_clob(storage: &Storage, out: &std::path::Path) -> Result<()> {
     let mut writer = csv::Writer::from_path(out)?;
+    writer.write_record(["asset_id", "received_at", "event_type", "payload"])?;
     for row in storage.load_profiler_clob_rows()? {
         writer.serialize(row)?;
     }
