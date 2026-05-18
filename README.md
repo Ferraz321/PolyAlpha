@@ -420,6 +420,12 @@ python profiler/profile_wallets.py fetch-user-trades \
   --wallet 0xYourWallet \
   --out data/profiler/fills.csv
 
+python profiler/profile_wallets.py resolve-user @beefslayer
+
+python profiler/profile_wallets.py research-user @beefslayer \
+  --db data/oktrader.sqlite \
+  --update-candidates
+
 python profiler/profile_wallets.py assets-from-fills \
   --fills data/profiler/fills.csv \
   --out data/profiler/clob_assets.txt
@@ -557,6 +563,23 @@ python profiler/profile_wallets.py fetch-weather-open-meteo \
   --locations-csv config/weather_locations.csv \
   --out data/profiler_beefslayer/weather_observations.csv
 ```
+
+Fast username workflow:
+
+```bash
+scripts/research-user.sh @beefslayer data/oktrader.sqlite
+```
+
+This resolves the Polymarket profile to a proxy wallet, runs the Rust + Python
+agent tool loop, and writes the usual profile outputs under
+`data/profiler_<username>/`.
+
+Market semantic parsing is deterministic first. For long-tail titles that do
+not match a stable parser, set `OKTRADER_LLM_MARKET_PARSER` to a command that
+accepts a JSON payload on stdin and returns normalized JSON fields such as
+`weather_city`, `weather_event_date`, `temperature_low_f`,
+`temperature_high_f`, and `temperature_bucket_type`. This keeps fragile parsing
+outside the factor library while still producing numeric factors.
 
 ## Core Engine
 

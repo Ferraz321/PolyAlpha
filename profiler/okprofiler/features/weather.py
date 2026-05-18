@@ -3,6 +3,8 @@ from datetime import datetime
 
 import polars as pl
 
+from .semantic import parse_market_semantics
+
 
 WEATHER_RE = re.compile(
     r"highest-temperature-in-(?P<city>[a-z-]+)-on-(?P<month>[a-z]+)-(?P<day>\d{1,2})-(?P<year>\d{4})"
@@ -55,10 +57,17 @@ def _parse_row(row: dict) -> dict:
     city = city or (title_city.group("city").strip() if title_city else None)
     is_weather = weather is not None or "temperature" in text or "weather" in text
     low, high, bucket_type = _parse_temperature_bucket(title_text, slug) if is_weather else (None, None, None)
+    llm = _llm_fill(row, is_weather, city, weather, low, high, bucket_type)
+    is_weather = bool(llm.get("is_weather_market", is_weather))
+    city = llm.get("weather_city", city)
+    event_date = llm.get("weather_event_date") or _event_date(weather)
+    low = _coerce_int(llm.get("temperature_low_f", low))
+    high = _coerce_int(llm.get("temperature_high_f", high))
+    bucket_type = llm.get("temperature_bucket_type", bucket_type)
     return {
         "is_weather_market": 1.0 if is_weather else 0.0,
         "weather_city": city,
-        "weather_event_date": _event_date(weather),
+        "weather_event_date": event_date,
         "temperature_low_f": low,
         "temperature_high_f": high,
         "temperature_bucket_type": bucket_type,
@@ -174,3 +183,25 @@ def _bucket_anchor(low: int | None, high: int | None) -> float | None:
     if high is not None:
         return float(high)
     return None
+
+
+def _llm_fill(
+    row: dict,
+    is_weather: bool,
+    city: str | None,
+    weather_match,
+    low: int | None,
+    high: int | None,
+    bucket_type: str | None,
+) -> dict:
+    if not is_weather and city and weather_match and (low is not None or high is not None) and bucket_type:
+        return {}
+    missing_core = not city or weather_match is None or (low is None and high is None) or not bucket_type
+    return parse_market_semantics(row) if missing_core else {}
+
+
+def _coerce_int(value) -> int | None:
+    try:
+        return None if value is None else int(float(value))
+    except Exception:
+        return None

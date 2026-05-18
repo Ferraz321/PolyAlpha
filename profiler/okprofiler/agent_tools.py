@@ -1,4 +1,5 @@
 import csv
+import json
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -58,7 +59,7 @@ def run_agent_tools(config: AgentToolConfig) -> dict:
         )
         runs.append(ToolRun("fetch-gamma-markets", ["python", "fetch-gamma-markets"], "ok", stdout=f"rows={rows}"))
     if config.run_profile:
-        run_profiler(
+        rules = run_profiler(
             ProfilerConfig(
                 fills_path=config.profile_dir / "fills.csv",
                 clob_path=config.profile_dir / "clob_events.csv",
@@ -77,6 +78,7 @@ def run_agent_tools(config: AgentToolConfig) -> dict:
                 research_engines=config.research_engines,
             )
         )
+        (config.profile_dir / "rules.json").write_text(json.dumps(rules, indent=2), encoding="utf-8")
         runs.append(ToolRun("python-profile", ["python", "profile"], "ok"))
     asset_rows = assets_from_fills(
         fills=config.profile_dir / "fills.csv",
@@ -168,14 +170,10 @@ def next_commands(profile_dir: Path, db: Path, diagnostics: dict, candidates: li
 def update_candidate_library(path: Path, candidates: list[dict]) -> None:
     existing = {}
     if path.exists():
-        import json
-
         for item in json.loads(path.read_text(encoding="utf-8")).get("candidates", []):
             existing[item["factor"]] = item
     for item in candidates:
         existing[item["factor"]] = {**existing.get(item["factor"], {}), **item}
-    import json
-
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
         json.dumps({"version": 1, "candidates": list(existing.values())}, indent=2),

@@ -1,11 +1,15 @@
 import csv
 import json
+import re
 import xml.etree.ElementTree as ET
 from email.utils import parsedate_to_datetime
 from pathlib import Path
 from datetime import datetime, timezone
 from urllib.parse import urlencode, urljoin
 from urllib.request import Request, urlopen
+
+
+ADDRESS_RE = re.compile(r"0x[a-fA-F0-9]{40}")
 
 
 def fetch_gamma_markets(
@@ -75,6 +79,27 @@ def fetch_user_trades(
     return len(rows)
 
 
+def resolve_polymarket_user(identifier: str) -> dict:
+    handle = _normalize_handle(identifier)
+    url = f"https://polymarket.com/@{handle}"
+    request = Request(url, headers={"User-Agent": "Mozilla/5.0 OKTRADER-profiler/0.1"})
+    with urlopen(request, timeout=30) as response:
+        html = response.read().decode("utf-8", "ignore")
+    proxy_counts: dict[str, int] = {}
+    for address in re.findall(r'"proxyWallet":"(0x[a-fA-F0-9]{40})"', html):
+        proxy_counts[address.lower()] = proxy_counts.get(address.lower(), 0) + 1
+    candidates = proxy_counts or {address.lower(): 1 for address in ADDRESS_RE.findall(html)}
+    ranked = sorted(candidates.items(), key=lambda item: item[1], reverse=True)
+    wallet = ranked[0][0] if ranked else None
+    return {
+        "handle": handle,
+        "url": url,
+        "wallet": wallet,
+        "confidence": "high" if proxy_counts and wallet else "low" if wallet else "none",
+        "candidates": [{"wallet": address, "count": count} for address, count in ranked[:20]],
+    }
+
+
 def assets_from_fills(fills: Path, out: Path, limit: int | None = None) -> int:
     seen = []
     with fills.open(newline="", encoding="utf-8") as handle:
@@ -89,6 +114,15 @@ def assets_from_fills(fills: Path, out: Path, limit: int | None = None) -> int:
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text("\n".join(seen) + ("\n" if seen else ""), encoding="utf-8")
     return len(seen)
+
+
+def _normalize_handle(identifier: str) -> str:
+    raw = identifier.strip()
+    raw = raw.rsplit("/", 1)[-1] if raw.startswith("http") else raw
+    raw = raw.removeprefix("@")
+    raw = raw.removeprefix("profile/%40")
+    raw = raw.removeprefix("%40")
+    return raw
 
 
 def _get_json(url: str):

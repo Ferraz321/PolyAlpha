@@ -3,7 +3,13 @@ import json
 from pathlib import Path
 
 from .agent import AgentConfig, run_agent
-from .data_sources import assets_from_fills, fetch_gamma_markets, fetch_news_rss, fetch_user_trades
+from .data_sources import (
+    assets_from_fills,
+    fetch_gamma_markets,
+    fetch_news_rss,
+    fetch_user_trades,
+    resolve_polymarket_user,
+)
 from .pipeline import ProfilerConfig, run_profiler
 from .weather_sources import fetch_open_meteo_archive
 
@@ -31,6 +37,16 @@ def main() -> None:
             max_offset=args.max_offset,
         )
         print(json.dumps({"trade_rows": rows, "out": args.out}, indent=2))
+        return
+    if args.command == "resolve-user":
+        result = resolve_polymarket_user(args.user)
+        if args.out:
+            Path(args.out).parent.mkdir(parents=True, exist_ok=True)
+            Path(args.out).write_text(json.dumps(result, indent=2), encoding="utf-8")
+        print(json.dumps(result, indent=2))
+        return
+    if args.command == "research-user":
+        research_user(args)
         return
     if args.command == "assets-from-fills":
         rows = assets_from_fills(
@@ -107,6 +123,35 @@ def agent(args) -> None:
     print(json.dumps(result, indent=2))
 
 
+def research_user(args) -> None:
+    resolved = resolve_polymarket_user(args.user)
+    if not resolved.get("wallet"):
+        raise SystemExit(f"could not resolve Polymarket user: {args.user}")
+    profile_dir = Path(args.profile_dir or f"data/profiler_{resolved['handle']}")
+    result = run_agent(
+        AgentConfig(
+            profile_dir=profile_dir,
+            rules_path=profile_dir / "rules.json",
+            diagnostics_path=profile_dir / "diagnostics.json",
+            report_out=profile_dir / "research_report.md",
+            candidates_out=profile_dir / "candidate_factors.json",
+            next_commands_out=profile_dir / "next_commands.json",
+            candidate_library=Path(args.candidate_library),
+            db=Path(args.db),
+            wallets=[resolved["wallet"]],
+            rerun_profile=False,
+            run_tools=True,
+            launch_watch_clob=args.launch_watch_clob,
+            update_candidates=args.update_candidates,
+            research_engines=_parse_engines(args.research_engines),
+            min_samples=args.min_samples,
+        )
+    )
+    result["resolved_user"] = resolved
+    (profile_dir / "resolved_user.json").write_text(json.dumps(resolved, indent=2), encoding="utf-8")
+    print(json.dumps(result, indent=2))
+
+
 def parse_args():
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest="command")
@@ -125,6 +170,21 @@ def parse_args():
     trades.add_argument("--out", default="data/profiler/fills.csv")
     trades.add_argument("--limit", type=int, default=500)
     trades.add_argument("--max-offset", type=int, default=5000)
+    resolve = subparsers.add_parser("resolve-user")
+    resolve.add_argument("user")
+    resolve.add_argument("--out")
+    research_user_parser = subparsers.add_parser("research-user")
+    research_user_parser.add_argument("user")
+    research_user_parser.add_argument("--profile-dir")
+    research_user_parser.add_argument("--db", default="data/oktrader.sqlite")
+    research_user_parser.add_argument("--candidate-library", default="docs/candidate_factors.json")
+    research_user_parser.add_argument("--update-candidates", action="store_true")
+    research_user_parser.add_argument("--launch-watch-clob", action="store_true")
+    research_user_parser.add_argument("--min-samples", type=int, default=5)
+    research_user_parser.add_argument(
+        "--research-engines",
+        default="core,alphalens,shap,stumpy,agent",
+    )
     assets = subparsers.add_parser("assets-from-fills")
     assets.add_argument("--fills", default="data/profiler/fills.csv")
     assets.add_argument("--out", default="data/clob_assets.txt")
