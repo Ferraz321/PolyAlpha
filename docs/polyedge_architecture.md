@@ -163,7 +163,12 @@ Promotion gates:
 - `profiler/okprofiler/validation.py` runs a first validation pass using
   walk-forward splits, negative-control lift, and factor stability.
 - `profile_wallets.py profile` writes `factor_validations.json`.
+- `profile_wallets.py profile` writes `wallet_clusters.json` using a first-pass
+  behavior clustering heuristic.
 - Agent runs persist validation rows into `factor_validations`.
+- Agent runs persist behavior clusters into `wallet_clusters`.
+- Validation persistence advances `factor_candidates` lifecycle state to
+  `validating`, `approved`, `rejected`, or `decayed`.
 - `strategy_config.json` is now gated by approved live factors instead of every
   explainable live rule.
 - `validate-strategy-config --db ...` persists strategy lifecycle rows.

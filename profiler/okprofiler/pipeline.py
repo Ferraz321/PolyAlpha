@@ -3,6 +3,7 @@ from pathlib import Path
 
 import polars as pl
 
+from .clustering import cluster_wallets, persist_clusters, write_clusters
 from .diagnostics import build_diagnostics, write_diagnostics
 from .factor_reporting import write_factor_outputs
 from .features import add_derived_factors, extract_clob_features
@@ -38,6 +39,8 @@ class ProfilerConfig:
     research_engines: list[str]
     validation_out: Path | None = None
     validation_db: Path | None = None
+    clusters_out: Path | None = None
+    clusters_db: Path | None = None
 
 
 def run_profiler(config: ProfilerConfig) -> dict:
@@ -72,6 +75,12 @@ def run_profiler(config: ProfilerConfig) -> dict:
     rules = infer_wallet_rules(factor_table, config.min_samples, disabled_factors)
     rules["diagnostics"] = diagnostics
     rules["research_matrix"] = run_research_matrix(factor_table, config.research_engines)
+    clusters = cluster_wallets(factor_table)
+    rules["wallet_clusters"] = clusters
+    if config.clusters_out is not None:
+        write_clusters(clusters, config.clusters_out)
+    if config.clusters_db is not None:
+        rules["wallet_clusters_persisted"] = persist_clusters(config.clusters_db, clusters)
     validations = validate_factor_table(factor_table)
     rules["factor_validations"] = validations
     if config.validation_out is not None:

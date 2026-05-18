@@ -572,6 +572,12 @@ The `--db` flag is optional; when supplied, validated strategy definitions are
 persisted into the `strategies` table. Live alert triggers created with
 `--strategy-config` are persisted into `signals`.
 
+Python profiler runs also emit `wallet_clusters.json` and
+`factor_validations.json`. When the agent runs with a database, wallet clusters
+are persisted into `wallet_clusters`, and validation verdicts advance
+`factor_candidates` through the candidate/validating/approved/rejected/decayed
+lifecycle.
+
 Use the generated strategy rules in live alerts:
 
 ```bash

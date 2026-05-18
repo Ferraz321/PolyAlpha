@@ -111,6 +111,8 @@ def _rerun_profile(config: AgentConfig) -> None:
             research_engines=config.research_engines,
             validation_out=config.profile_dir / "factor_validations.json",
             validation_db=config.db,
+            clusters_out=config.profile_dir / "wallet_clusters.json",
+            clusters_db=config.db,
         )
     )
 

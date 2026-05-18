@@ -68,6 +68,7 @@ Latest smoke test:
 - Pulled public trade rows: 3020.
 - Pulled Gamma market rows: 200.
 - Generated: `fills.csv`, `markets.csv`, `factor_table.parquet`, `rules.json`, `research_report.md`, `candidate_factors.json`, `next_commands.json`, `sop_status.json`, and `strategy_config.json`.
+- Newer PolyEdge runs also generate `factor_validations.json` and `wallet_clusters.json` when the profiler has enough factor-table input.
 - Finding: wallet classified as `weather_temperature` specialist with `weather_market_ratio >= 0.867881`.
 - Automatic weather expansion: agent fetched 853 actual observation rows and 41,400 forecast-history rows, then populated actual-temperature and forecast factors.
 - Remaining evidence gaps: CLOB snapshots, optional news timeline, model disagreement, and settlement-grade PnL expansion for stronger replication claims.
@@ -189,6 +190,7 @@ Partially implemented:
    - [x] Add estimated wallet positions and wallet PnL rebuilt from fills.
    - [x] Persist validated strategy definitions into `strategies`.
    - [x] Persist live strategy trigger events into `signals`.
+   - [x] Add first-pass heuristic wallet clustering persisted into `wallet_clusters`.
    - [ ] Add strategy reconstruction features: entry-before-move, exit quality, sector-specific PnL, and stronger lead-time evidence.
    - [ ] Harden wallet PnL with settlement/redemption events.
 
@@ -229,6 +231,7 @@ Partially implemented:
    - [x] Add LLM semantic parser hook behind explicit opt-in.
    - [x] Add first-pass factor validation output with walk-forward, negative-control lift, and stability scoring.
    - [x] Persist agent candidate factors and validation rows into SQLite lifecycle tables.
+   - [x] Advance factor candidate lifecycle from validation verdicts, including decayed factors.
    - [ ] Add true negative-set backtests across non-wallet fills for real precision/recall.
    - [ ] Replace lightweight adapters with full optional Qlib/Alphalens/STUMPY/SHAP/Nautilus integrations when data format and dependencies are ready.
    - [ ] Add multi-model forecast adapter for `model_disagreement`.

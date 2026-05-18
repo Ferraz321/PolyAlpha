@@ -41,6 +41,7 @@ def persist_validations(db: Path, validations: list[dict]) -> int:
         if schema.exists():
             conn.executescript(schema.read_text(encoding="utf-8"))
         for validation in validations:
+            lifecycle_state = _candidate_lifecycle_state(validation)
             conn.execute(
                 """
                 INSERT INTO factor_validations (
@@ -75,6 +76,30 @@ def persist_validations(db: Path, validations: list[dict]) -> int:
                     _score(validation.get("capacity_usd")),
                     validation["verdict"],
                     json.dumps(validation, sort_keys=True),
+                ),
+            )
+            conn.execute(
+                """
+                INSERT INTO factor_candidates (
+                    factor_id, name, lifecycle_state, priority, required_data,
+                    owner_module, hypothesis, evidence_json, updated_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(factor_id) DO UPDATE SET
+                    lifecycle_state = excluded.lifecycle_state,
+                    evidence_json = excluded.evidence_json,
+                    updated_at = excluded.updated_at
+                """,
+                (
+                    validation["factor_id"],
+                    validation.get("label") or validation["factor_id"],
+                    lifecycle_state,
+                    3,
+                    "factor_table",
+                    None,
+                    validation.get("reason"),
+                    json.dumps({"latest_validation": validation}, sort_keys=True),
+                    datetime.now(timezone.utc).isoformat(),
                 ),
             )
     return len(validations)
@@ -113,7 +138,16 @@ def _validate_factor(
     out_of_sample = _precision_lift(test, spec, threshold)
     negative = _negative_control_lift(test, spec, threshold)
     stability = _stability(train, test, spec)
-    verdict = _verdict(out_of_sample, negative, stability, min_oos_lift, min_stability)
+    recent_lift = _recent_lift(clean, spec, threshold)
+    decay_score = max(0.0, in_sample - recent_lift)
+    verdict = _verdict(
+        out_of_sample,
+        negative,
+        stability,
+        decay_score,
+        min_oos_lift,
+        min_stability,
+    )
     return _result(
         spec,
         clean,
@@ -125,6 +159,8 @@ def _validate_factor(
         out_of_sample_score=out_of_sample,
         negative_control_score=negative,
         stability_score=stability,
+        decay_score=decay_score,
+        recent_lift=recent_lift,
         reason=_reason(verdict, out_of_sample, negative, stability),
     )
 
@@ -204,9 +240,12 @@ def _verdict(
     out_of_sample: float,
     negative: float,
     stability: float,
+    decay_score: float,
     min_oos_lift: float,
     min_stability: float,
 ) -> str:
+    if decay_score >= 0.20 and out_of_sample <= 0.0:
+        return "decayed"
     if out_of_sample >= min_oos_lift and stability >= min_stability and negative <= out_of_sample:
         return "approved"
     if out_of_sample > 0.0 and stability > 0.0:
@@ -226,6 +265,8 @@ def _result(
     out_of_sample_score: float = 0.0,
     negative_control_score: float = 0.0,
     stability_score: float = 0.0,
+    decay_score: float = 0.0,
+    recent_lift: float = 0.0,
 ) -> dict:
     return {
         "validation_id": f"{spec.column}:walk_forward:v1",
@@ -243,6 +284,8 @@ def _result(
         "out_of_sample_score": out_of_sample_score,
         "negative_control_score": negative_control_score,
         "stability_score": stability_score,
+        "decay_score": decay_score,
+        "recent_lift": recent_lift,
         "slippage_bps": None,
         "capacity_usd": None,
         "validated_at": datetime.now(timezone.utc).isoformat(),
@@ -254,6 +297,26 @@ def _sample_window(df: pl.DataFrame) -> tuple[str | None, str | None]:
         return None, None
     timestamps = df.get_column("timestamp")
     return str(timestamps.min()), str(timestamps.max())
+
+
+def _recent_lift(df: pl.DataFrame, spec: FactorSpec, threshold: float) -> float:
+    if df.height < 4:
+        return 0.0
+    recent = df.tail(max(1, df.height // 4))
+    return _precision_lift(recent, spec, threshold)
+
+
+def _candidate_lifecycle_state(validation: dict) -> str:
+    verdict = validation.get("verdict")
+    if verdict == "approved":
+        return "approved"
+    if verdict == "decayed":
+        return "decayed"
+    if verdict == "rejected":
+        return "rejected"
+    if verdict in {"researching", "insufficient_data"}:
+        return "validating"
+    return "candidate"
 
 
 def _reason(verdict: str, out_of_sample: float, negative: float, stability: float) -> str:

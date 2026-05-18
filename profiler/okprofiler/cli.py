@@ -101,6 +101,8 @@ def profile(args) -> None:
             research_engines=_parse_engines(args.research_engines),
             validation_out=Path(args.validation_out) if args.validation_out else None,
             validation_db=Path(args.validation_db) if args.validation_db else None,
+            clusters_out=Path(args.clusters_out) if args.clusters_out else None,
+            clusters_db=Path(args.clusters_db) if args.clusters_db else None,
         )
     )
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
@@ -271,6 +273,8 @@ def _add_profile_args(parser):
     parser.add_argument("--diagnostics-out", default="data/profiler/diagnostics.json")
     parser.add_argument("--validation-out", default="data/profiler/factor_validations.json")
     parser.add_argument("--validation-db")
+    parser.add_argument("--clusters-out", default="data/profiler/wallet_clusters.json")
+    parser.add_argument("--clusters-db")
     parser.add_argument("--factor-summary-out", default="data/profiler/factor_summary.md")
     parser.add_argument("--factor-log-out", default="data/profiler/factor_research_log.md")
     parser.add_argument("--lookback-secs", type=int, default=60)

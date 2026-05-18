@@ -24,6 +24,7 @@ def render_markdown(rules: dict) -> str:
         f"- rows: {rules.get('rows', 0)}",
         f"- wallets: {len(wallets)}",
         f"- approved_live_factors: {_approved_live_factor_count(rules)}",
+        f"- wallet_clusters: {len(rules.get('wallet_clusters', []))}",
         "",
         "## Top Reverse-Engineering Candidates",
         "",

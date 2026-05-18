@@ -108,6 +108,8 @@ def _run_profile(config: AgentToolConfig) -> dict:
             research_engines=config.research_engines,
             validation_out=config.profile_dir / "factor_validations.json",
             validation_db=config.db,
+            clusters_out=config.profile_dir / "wallet_clusters.json",
+            clusters_db=config.db,
         )
     )
     (config.profile_dir / "rules.json").write_text(json.dumps(rules, indent=2), encoding="utf-8")
