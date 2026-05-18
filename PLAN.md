@@ -62,6 +62,7 @@ Implemented:
 - `collector-data-api`
 - `analyzer`
 - `monitor`
+- `summary`
 - `export`
 - `sync-metadata`
 - `scan-data-api`
@@ -131,6 +132,7 @@ Partially implemented:
    - Store wallet watch events.
    - [x] Add first wallet-level microstructure joins: spread at fill, OFI at fill, favorable OFI rate.
    - [x] Default matched pool tracks multiple smart-money account types, not only the strict stable-alpha funnel.
+   - [x] Add summary command for full tier/tag distribution across all analyzed wallets.
    - [ ] Add strategy reconstruction features: lead time, market breadth, sector concentration, entry-before-move, exit quality.
 
 5. Production storage option

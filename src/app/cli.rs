@@ -16,6 +16,7 @@ pub enum Commands {
     CollectorDataApi(CollectorDataApiArgs),
     Analyzer(AnalyzerArgs),
     Monitor(MonitorArgs),
+    Summary(DbArgs),
     Export(ExportArgs),
     SyncMetadata(SyncMetadataArgs),
     AnalyzeCsv(AnalyzeCsvArgs),

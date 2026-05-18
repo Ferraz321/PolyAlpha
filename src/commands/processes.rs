@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::fs;
 use std::time::Duration;
 
@@ -133,6 +134,40 @@ pub async fn monitor(args: MonitorArgs) -> Result<()> {
             break;
         }
         tokio::time::sleep(Duration::from_secs(args.interval_secs)).await;
+    }
+    Ok(())
+}
+
+pub fn summary(db: std::path::PathBuf) -> Result<()> {
+    let storage = Storage::open(&db)?;
+    let reports = stored_reports(&storage)?;
+    let stats = storage.stats()?;
+    let mut tiers = BTreeMap::<String, usize>::new();
+    let mut tags = BTreeMap::<String, usize>::new();
+
+    for report in &reports {
+        *tiers
+            .entry(format!("{:?}", report.classification.smart_money_tier))
+            .or_default() += 1;
+        *tags
+            .entry(format!("{:?}", report.classification.primary_tag))
+            .or_default() += 1;
+    }
+
+    println!(
+        "summary: fills={}, wallets={}, reports={}, matched={}",
+        stats.fills,
+        stats.wallets,
+        reports.len(),
+        storage.matched_account_json()?.len()
+    );
+    println!("tiers:");
+    for (tier, count) in tiers {
+        println!("  {tier}: {count}");
+    }
+    println!("tags:");
+    for (tag, count) in tags {
+        println!("  {tag}: {count}");
     }
     Ok(())
 }

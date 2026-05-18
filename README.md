@@ -69,6 +69,12 @@ cargo run -- analyzer --db data/oktrader.sqlite --once --tag small-sample-noise
 cargo run -- monitor --db data/oktrader.sqlite --once
 ```
 
+See the full tier/tag distribution:
+
+```bash
+cargo run -- summary --db data/oktrader.sqlite
+```
+
 ## Core Engine
 
 The implementation focuses on the deterministic quant core:
