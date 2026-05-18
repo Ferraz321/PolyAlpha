@@ -37,6 +37,9 @@ Check the current research-platform surface:
 ```bash
 cargo run -- research-status --db data/oktrader.sqlite
 cargo run -- build-wallet-intelligence --db data/oktrader.sqlite
+cargo run -- validate-strategy-config \
+  --input data/profiler/strategy_config.json \
+  --db data/oktrader.sqlite
 ```
 
 ## Architecture

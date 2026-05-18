@@ -164,3 +164,5 @@ Promotion gates:
 - Agent runs persist validation rows into `factor_validations`.
 - `strategy_config.json` is now gated by approved live factors instead of every
   explainable live rule.
+- `validate-strategy-config --db ...` persists strategy lifecycle rows.
+- `alerts --strategy-config ...` persists live trigger rows into `signals`.

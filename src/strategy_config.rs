@@ -1,14 +1,14 @@
 use anyhow::{Context, Result};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct StrategyConfig {
     pub version: u64,
     #[serde(default)]
     pub strategies: Vec<Strategy>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Strategy {
     pub id: String,
     pub source_wallet: String,
@@ -17,20 +17,20 @@ pub struct Strategy {
     pub risk: Risk,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Trigger {
     #[serde(default)]
     pub all: Vec<Condition>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Condition {
     pub feature: String,
     pub op: String,
     pub value: f64,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Risk {
     pub mode: String,
     pub max_notional_usd: f64,

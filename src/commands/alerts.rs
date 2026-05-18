@@ -1,12 +1,14 @@
 use std::{fs, time::Duration};
 
 use anyhow::{Context, Result};
+use chrono::Utc;
 use oktrader_alpha::storage::Storage;
 use oktrader_alpha::storage_alerts::AlertMode;
+use oktrader_alpha::storage_research::SignalRecord;
 use oktrader_alpha::strategy_config::{
     StrategyConfig, matching_strategy_ids, parse_strategy_config,
 };
-use serde_json::Value;
+use serde_json::{Value, json};
 
 use crate::app::cli::AlertArgs;
 
@@ -25,6 +27,9 @@ pub async fn alerts(args: AlertArgs) -> Result<()> {
 
     loop {
         let storage = Storage::open(&args.db)?;
+        if let Some(config) = strategy_config.as_ref() {
+            crate::commands::strategy::upsert_strategies(&storage, config)?;
+        }
         let mut cursor = alert_cursor(&storage)?;
         if cursor == 0 {
             cursor = storage.max_fill_id()?;
@@ -95,6 +100,29 @@ fn strategy_trigger_message(
     let matched = matching_strategy_ids(config, &snapshot);
     if matched.is_empty() {
         return Ok(None);
+    }
+    for strategy_id in &matched {
+        storage.insert_signal_record(&SignalRecord {
+            signal_id: format!("strategy:{strategy_id}:fill:{}", stored.id),
+            strategy_id: strategy_id.clone(),
+            account: Some(fill.account.clone()),
+            market_id: Some(fill.market_id.clone()),
+            outcome_id: fill.condition_id.clone(),
+            signal_type: "live_strategy_trigger".to_string(),
+            score: "1".to_string(),
+            payload_json: json!({
+                "fill_id": stored.id,
+                "wallet": fill.account,
+                "market": fill.market_id,
+                "ofi": snapshot.ofi,
+                "spread": snapshot.spread,
+                "depth_imbalance": snapshot.depth_imbalance,
+                "price_momentum": snapshot.price_momentum,
+            })
+            .to_string(),
+            emitted_at: Utc::now().to_rfc3339(),
+            status: "new".to_string(),
+        })?;
     }
     Ok(Some(format!(
         "strategy_trigger fill_id={} wallet={} market={} strategies={} ofi={:?} spread={:?} depth_imbalance={:?}",

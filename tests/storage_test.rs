@@ -2,6 +2,7 @@ use chrono::TimeZone;
 use oktrader_alpha::microstructure::{JoinConfig, build_wallet_microstructure};
 use oktrader_alpha::model::{FillEvent, LiquidityRole, TradeSide};
 use oktrader_alpha::storage::Storage;
+use oktrader_alpha::storage_research::{SignalRecord, StrategyRecord};
 use oktrader_alpha::storage_types::{RawClobEventRecord, RawEvmLogRecord};
 use oktrader_alpha::wallet_intelligence::build_wallet_intelligence;
 use rust_decimal_macros::dec;
@@ -154,6 +155,45 @@ fn stores_wallet_intelligence_snapshots() {
     let stats = storage.research_stats().expect("stats");
     assert_eq!(stats.positions, 1);
     assert_eq!(stats.wallet_pnl, 1);
+}
+
+#[test]
+fn stores_strategy_and_signal_records() {
+    let storage = Storage::open(":memory:").expect("storage");
+    storage
+        .upsert_strategy_record(&StrategyRecord {
+            strategy_id: "reverse_test".to_string(),
+            name: "reverse_test".to_string(),
+            lifecycle_state: "live".to_string(),
+            config_json: "{}".to_string(),
+            source_factors_json: r#"["ofi"]"#.to_string(),
+            risk_json: "{}".to_string(),
+        })
+        .expect("strategy");
+    storage
+        .insert_signal_record(&SignalRecord {
+            signal_id: "strategy:reverse_test:fill:1".to_string(),
+            strategy_id: "reverse_test".to_string(),
+            account: Some("0xabc".to_string()),
+            market_id: Some("m1".to_string()),
+            outcome_id: None,
+            signal_type: "live_strategy_trigger".to_string(),
+            score: "1".to_string(),
+            payload_json: "{}".to_string(),
+            emitted_at: "2026-01-01T00:00:00Z".to_string(),
+            status: "new".to_string(),
+        })
+        .expect("signal");
+
+    let stats = storage.research_stats().expect("stats");
+    assert_eq!(stats.strategies, 1);
+    assert_eq!(stats.signals, 1);
+    assert_eq!(
+        storage
+            .signal_count_for_strategy("reverse_test")
+            .expect("signal count"),
+        1
+    );
 }
 
 fn fill(account: &str) -> FillEvent {

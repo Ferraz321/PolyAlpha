@@ -119,6 +119,8 @@ pub struct ProfileReadinessArgs {
 pub struct ValidateStrategyConfigArgs {
     #[arg(long, default_value = "data/profiler/strategy_config.json")]
     pub input: PathBuf,
+    #[arg(long)]
+    pub db: Option<PathBuf>,
 }
 
 #[derive(Debug, Clone, Args)]

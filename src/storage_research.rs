@@ -218,6 +218,15 @@ impl Storage {
         )?;
         Ok(())
     }
+
+    pub fn signal_count_for_strategy(&self, strategy_id: &str) -> Result<usize> {
+        self.init()?;
+        Ok(self.raw_connection().query_row(
+            "SELECT COUNT(*) FROM signals WHERE strategy_id = ?1",
+            params![strategy_id],
+            |row| row.get::<_, i64>(0),
+        )? as usize)
+    }
 }
 
 fn count(storage: &Storage, table: &str) -> Result<usize> {
