@@ -167,6 +167,17 @@ The readiness gate checks trades, distinct markets, closed markets, and CLOB
 as-of alignment. A wallet is not considered reverse-engineerable until this
 gate passes.
 
+Basic one-wallet workflow:
+
+```bash
+scripts/profile-wallet.sh 0xYourWallet data/oktrader.sqlite
+```
+
+This writes `data/profiler/readiness.json`, `diagnostics.json`, `rules.json`,
+`factor_table.parquet`, `report.md`, `report.html`, and `strategy_config.json`.
+If the wallet lacks CLOB alignment or metadata, inspect `diagnostics.json`; it
+will tell you which collection step is missing.
+
 ```bash
 cargo run -- export-profiler \
   --db data/oktrader.sqlite \
