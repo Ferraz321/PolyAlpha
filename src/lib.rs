@@ -19,5 +19,6 @@ pub mod storage_profiler;
 pub mod storage_types;
 pub mod storage_wallets;
 pub mod storage_watchlist;
+pub mod strategy_config;
 #[path = "analysis/tagging.rs"]
 pub mod tagging;

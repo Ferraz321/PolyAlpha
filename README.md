@@ -171,13 +171,22 @@ python profiler/profile_wallets.py \
   --fills data/profiler/fills.csv \
   --clob data/profiler/clob_events.csv \
   --news data/profiler/news.csv \
-  --out data/profiler/rules.json
+  --out data/profiler/rules.json \
+  --factor-out data/profiler/factor_table.parquet \
+  --strategy-out data/profiler/strategy_config.json
 ```
 
 The profiler is a separate Python research package under `profiler/okprofiler/`.
 It does an as-of join from wallet fills to previous CLOB events, can optionally
 join an external news timeline, extracts spread/OFI features, and emits
-human-readable per-wallet threshold rules.
+human-readable per-wallet threshold rules, a Parquet factor table, and a
+Rust-readable strategy config.
+
+Validate the generated strategy config before using it in monitoring:
+
+```bash
+cargo run -- validate-strategy-config --input data/profiler/strategy_config.json
+```
 
 ## Core Engine
 

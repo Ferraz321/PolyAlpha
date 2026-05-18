@@ -1,5 +1,6 @@
 import numpy as np
 import polars as pl
+import json
 from sklearn.neighbors import KernelDensity
 
 
@@ -18,9 +19,37 @@ def infer_wallet_rules(joined: pl.DataFrame, min_samples: int) -> dict:
     }
 
 
+def strategy_config_from_rules(rules: dict) -> str:
+    strategies = []
+    for wallet in rules.get("wallets", []):
+        if wallet.get("status") == "small_sample":
+            continue
+        ofi_threshold = wallet.get("ofi", {}).get("p90", 0.0)
+        spread_threshold = wallet.get("spread", {}).get("p50", 0.0)
+        strategies.append(
+            {
+                "id": f"reverse_{wallet['account'][:10]}",
+                "source_wallet": wallet["account"],
+                "enabled": False,
+                "trigger": {
+                    "all": [
+                        {"feature": "ofi", "op": ">", "value": ofi_threshold},
+                        {"feature": "spread", "op": "<=", "value": spread_threshold},
+                    ]
+                },
+                "risk": {
+                    "mode": "alert_only",
+                    "max_notional_usd": 0,
+                },
+            }
+        )
+    return json.dumps({"version": 1, "strategies": strategies}, indent=2)
+
+
 def _wallet_rule(account: str, wallet: pl.DataFrame) -> dict:
     ofi = _numeric(wallet, "ofi")
     spread = _numeric(wallet, "spread")
+    lag = _numeric(wallet, "feature_lag_secs")
     buy = wallet.filter(pl.col("side").str.to_lowercase() == "buy")
     sell = wallet.filter(pl.col("side").str.to_lowercase() == "sell")
     return {
@@ -30,7 +59,9 @@ def _wallet_rule(account: str, wallet: pl.DataFrame) -> dict:
         "sell_samples": sell.height,
         "ofi": _distribution(ofi),
         "spread": _distribution(spread),
+        "feature_lag_secs": _distribution(lag),
         "candidate_rule": _candidate_rule(ofi, spread),
+        "explainability_score": _explainability_score(ofi, spread),
     }
 
 
@@ -85,3 +116,11 @@ def _spike_zscore(values: np.ndarray) -> float:
     if std == 0.0:
         return 0.0
     return float((np.max(values) - np.mean(values)) / std)
+
+
+def _explainability_score(ofi: np.ndarray, spread: np.ndarray) -> float:
+    if len(ofi) == 0:
+        return 0.0
+    ofi_score = min(abs(_spike_zscore(ofi)) / 5.0, 1.0)
+    spread_score = 0.0 if len(spread) == 0 else min(abs(_spike_zscore(spread)) / 5.0, 1.0)
+    return float((ofi_score + spread_score) / 2.0)

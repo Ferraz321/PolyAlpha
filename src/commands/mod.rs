@@ -8,4 +8,5 @@ pub mod microstructure;
 pub mod planned;
 pub mod processes;
 pub mod profiler_export;
+pub mod strategy;
 pub mod watchlist;

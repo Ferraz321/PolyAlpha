@@ -19,6 +19,7 @@ pub enum Commands {
     Alerts(AlertArgs),
     ImportWatchlist(ImportWatchlistArgs),
     ExportProfiler(ExportProfilerArgs),
+    ValidateStrategyConfig(ValidateStrategyConfigArgs),
     Summary(DbArgs),
     Export(ExportArgs),
     SyncMetadata(SyncMetadataArgs),
@@ -121,6 +122,12 @@ pub struct ExportProfilerArgs {
     pub out_fills: PathBuf,
     #[arg(long, default_value = "data/profiler/clob_events.csv")]
     pub out_clob: PathBuf,
+}
+
+#[derive(Debug, Clone, Args)]
+pub struct ValidateStrategyConfigArgs {
+    #[arg(long, default_value = "data/profiler/strategy_config.json")]
+    pub input: PathBuf,
 }
 
 #[derive(Debug, Clone, Args)]

@@ -12,6 +12,8 @@ def main() -> None:
             fills_path=Path(args.fills),
             clob_path=Path(args.clob),
             news_path=Path(args.news) if args.news else None,
+            factor_out=Path(args.factor_out) if args.factor_out else None,
+            strategy_out=Path(args.strategy_out) if args.strategy_out else None,
             lookback_secs=args.lookback_secs,
             min_samples=args.min_samples,
         )
@@ -27,6 +29,8 @@ def parse_args():
     parser.add_argument("--clob", default="data/profiler/clob_events.csv")
     parser.add_argument("--news")
     parser.add_argument("--out", default="data/profiler/rules.json")
+    parser.add_argument("--factor-out", default="data/profiler/factor_table.parquet")
+    parser.add_argument("--strategy-out", default="data/profiler/strategy_config.json")
     parser.add_argument("--lookback-secs", type=int, default=60)
     parser.add_argument("--min-samples", type=int, default=5)
     return parser.parse_args()

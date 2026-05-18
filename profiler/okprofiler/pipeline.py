@@ -4,7 +4,7 @@ from pathlib import Path
 import polars as pl
 
 from .features import extract_clob_features
-from .rules import infer_wallet_rules
+from .rules import infer_wallet_rules, strategy_config_from_rules
 
 
 @dataclass(frozen=True)
@@ -12,6 +12,8 @@ class ProfilerConfig:
     fills_path: Path
     clob_path: Path
     news_path: Path | None
+    factor_out: Path | None
+    strategy_out: Path | None
     lookback_secs: int
     min_samples: int
 
@@ -24,7 +26,18 @@ def run_profiler(config: ProfilerConfig) -> dict:
     features = extract_clob_features(clob)
     joined = join_market_state(fills, features, config.lookback_secs)
     joined = attach_news(joined, config.news_path)
-    return infer_wallet_rules(joined, config.min_samples)
+    factor_table = build_factor_table(joined)
+    if config.factor_out is not None:
+        config.factor_out.parent.mkdir(parents=True, exist_ok=True)
+        factor_table.write_parquet(config.factor_out)
+    rules = infer_wallet_rules(factor_table, config.min_samples)
+    if config.strategy_out is not None:
+        config.strategy_out.parent.mkdir(parents=True, exist_ok=True)
+        config.strategy_out.write_text(
+            strategy_config_from_rules(rules),
+            encoding="utf-8",
+        )
+    return rules
 
 
 def join_market_state(
@@ -58,4 +71,20 @@ def attach_news(joined: pl.DataFrame, news_path: Path | None) -> pl.DataFrame:
         left_on="timestamp",
         right_on="published_at",
         strategy="backward",
+    )
+
+
+def build_factor_table(joined: pl.DataFrame) -> pl.DataFrame:
+    timestamp = pl.col("timestamp")
+    received_at = pl.col("received_at")
+    return joined.with_columns(
+        [
+            (timestamp.dt.timestamp("ms") - received_at.dt.timestamp("ms"))
+            .truediv(1000)
+            .alias("feature_lag_secs"),
+            (pl.col("price") - pl.col("best_bid")).alias("distance_to_bid"),
+            (pl.col("best_ask") - pl.col("price")).alias("distance_to_ask"),
+            pl.col("ofi").fill_null(0.0).alias("ofi_filled"),
+            pl.col("spread").fill_null(0.0).alias("spread_filled"),
+        ]
     )

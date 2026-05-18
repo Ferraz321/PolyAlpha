@@ -71,6 +71,7 @@ Implemented:
 - `alerts`
 - `import-watchlist`
 - `export-profiler`
+- `validate-strategy-config`
 - `summary`
 - `export`
 - `sync-metadata`
@@ -156,7 +157,10 @@ Partially implemented:
    - [x] Extract spread and OFI features for reverse engineering.
    - [x] Add KDE/quantile threshold output to `rules.json`.
    - [x] Add optional external news timeline as-of ingestion.
-   - [ ] Feed profiler rules back into Rust alert profiles.
+   - [x] Export `factor_table.parquet` for iterative ML/research workflows.
+   - [x] Export `strategy_config.json` for Rust monitor ingestion.
+   - [x] Add Rust strategy config validator.
+   - [ ] Feed profiler strategy triggers into live Rust alert evaluation.
 
 6. Production storage option
    - Status: planned.
