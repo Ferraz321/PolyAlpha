@@ -4,7 +4,8 @@ use std::time::Duration;
 use anyhow::{Context, Result};
 use oktrader_alpha::ingestion::DataApiClient;
 use oktrader_alpha::model::FillEvent;
-use oktrader_alpha::storage::{Storage, metric_parts};
+use oktrader_alpha::storage::Storage;
+use oktrader_alpha::storage_types::metric_parts;
 
 use crate::cli::{AnalyzerArgs, CollectorDataApiArgs, ExportArgs, MonitorArgs};
 use crate::report::{build_reports, filter_reports};

@@ -128,10 +128,16 @@ pub struct BackfillPolygonArgs {
     pub db: PathBuf,
     #[arg(long)]
     pub rpc_url: String,
+    #[arg(long, default_value = "0xE111180000d2663C0091e4f400237545B87B996B")]
+    pub ctf_exchange: String,
     #[arg(long)]
     pub from_block: u64,
     #[arg(long, default_value = "latest")]
     pub to_block: String,
+    #[arg(long, default_value_t = 5000)]
+    pub batch_blocks: u64,
+    #[arg(long)]
+    pub once: bool,
 }
 
 #[derive(Debug, Clone, Args)]

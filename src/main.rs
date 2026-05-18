@@ -1,4 +1,6 @@
+mod backfill;
 mod cli;
+mod evm_rpc;
 mod legacy_csv;
 mod planned;
 mod processes;
@@ -28,7 +30,7 @@ async fn main() -> Result<()> {
             taxonomy::print_taxonomy();
             Ok(())
         }
-        Commands::BackfillPolygon(args) => planned::backfill_polygon(args),
+        Commands::BackfillPolygon(args) => backfill::backfill_polygon(args).await,
         Commands::WatchLive(args) => planned::watch_live(args),
     }
 }

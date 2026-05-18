@@ -58,17 +58,30 @@ Implemented:
 
 Interface reserved, implementation pending:
 
-- `backfill-polygon`
 - `watch-live`
+
+Partially implemented:
+
+- `backfill-polygon`
 
 ## Next Milestones
 
 1. Polygon historical backfill
-   - Status: pending implementation.
-   - Add CTFExchange `OrderFilled` ABI decoding.
-   - Batch `eth_getLogs` by block range.
-   - Persist decoded fills into SQLite with the same dedupe key.
-   - Store backfill checkpoint in `scanner_state`.
+   - Status: partial implementation.
+   - [x] Add CLI args for RPC URL, CTF Exchange address, block range, and batch size.
+   - [x] Add JSON-RPC client for `eth_blockNumber`, `eth_getBlockByNumber`, and `eth_getLogs`.
+   - [x] Add standard V1 `OrderFilled` event topic generation.
+   - [x] Batch `eth_getLogs` by block range.
+   - [x] Decode maker-side standard `OrderFilled` logs into normalized fills.
+   - [x] Persist decoded fills into SQLite with the same dedupe key.
+   - [x] Store backfill checkpoint in `scanner_state`.
+   - [ ] Persist raw EVM logs into `raw_evm_logs`.
+   - [ ] Add Neg Risk CTF Exchange support.
+   - [ ] Add CTF Exchange V2 event decoder.
+   - [ ] Add taker-side reconstruction for direct fills where the taker is a real wallet.
+   - [ ] Add robust handling for Exchange-as-taker multi-order matches.
+   - [ ] Add market metadata mapping for token ID to condition/event slug.
+   - [ ] Add integration test with a known historical transaction/log fixture.
 
 2. Live collector
    - Status: pending implementation.

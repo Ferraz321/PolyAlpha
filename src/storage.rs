@@ -6,8 +6,8 @@ use chrono::{DateTime, Utc};
 use rusqlite::{Connection, OptionalExtension, params};
 use rust_decimal::Decimal;
 
-use crate::model::{AccountMetrics, FillEvent, LiquidityRole, TradeSide};
-use crate::tagging::AccountClassification;
+use crate::model::{FillEvent, LiquidityRole, TradeSide};
+use crate::storage_types::{DbStats, MetricParts, stable_fill_key};
 
 pub struct Storage {
     conn: Connection,
@@ -232,49 +232,33 @@ impl Storage {
         rows.collect::<rusqlite::Result<Vec<_>>>()
             .context("failed to load matched accounts")
     }
-}
 
-pub struct MetricParts {
-    pub account: String,
-    pub metrics_json: String,
-    pub classification_json: String,
-    pub passed_funnel: bool,
-    pub failed_reasons_json: String,
-}
+    pub fn set_state(&self, name: &str, value: &str) -> Result<()> {
+        self.init()?;
+        self.conn.execute(
+            r#"
+            INSERT INTO scanner_state (name, value, updated_at)
+            VALUES (?1, ?2, ?3)
+            ON CONFLICT(name) DO UPDATE SET
+                value = excluded.value,
+                updated_at = excluded.updated_at
+            "#,
+            params![name, value, Utc::now().to_rfc3339()],
+        )?;
+        Ok(())
+    }
 
-#[derive(Debug)]
-pub struct DbStats {
-    pub fills: usize,
-    pub wallets: usize,
-    pub account_metrics: usize,
-    pub matched_accounts: usize,
-}
-
-pub fn metric_parts(
-    metrics: &AccountMetrics,
-    classification: &AccountClassification,
-    passed_funnel: bool,
-    failed_reasons: &[String],
-) -> Result<MetricParts> {
-    Ok(MetricParts {
-        account: metrics.account.clone(),
-        metrics_json: serde_json::to_string(metrics)?,
-        classification_json: serde_json::to_string(classification)?,
-        passed_funnel,
-        failed_reasons_json: serde_json::to_string(failed_reasons)?,
-    })
-}
-
-pub fn stable_fill_key(fill: &FillEvent) -> String {
-    format!(
-        "{}:{}:{}:{}:{}:{}",
-        fill.tx_hash.as_deref().unwrap_or(""),
-        fill.account,
-        fill.condition_id.as_deref().unwrap_or(""),
-        fill.market_id,
-        fill.side,
-        fill.timestamp.timestamp()
-    )
+    pub fn get_state(&self, name: &str) -> Result<Option<String>> {
+        self.init()?;
+        self.conn
+            .query_row(
+                "SELECT value FROM scanner_state WHERE name = ?1",
+                params![name],
+                |row| row.get(0),
+            )
+            .optional()
+            .context("failed to read scanner state")
+    }
 }
 
 fn count(conn: &Connection, table: &str) -> Result<usize> {

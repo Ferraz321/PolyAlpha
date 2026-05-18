@@ -48,3 +48,15 @@ CREATE TABLE IF NOT EXISTS scanner_state (
     value TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS raw_evm_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    contract_address TEXT NOT NULL,
+    block_number INTEGER NOT NULL,
+    transaction_hash TEXT NOT NULL,
+    log_index INTEGER NOT NULL,
+    topic0 TEXT,
+    data TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(transaction_hash, log_index)
+);
