@@ -3,5 +3,6 @@ pub mod backfill_decode;
 pub mod clob_ws;
 pub mod legacy_csv;
 pub mod metadata;
+pub mod microstructure;
 pub mod planned;
 pub mod processes;

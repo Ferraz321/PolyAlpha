@@ -97,6 +97,15 @@ CREATE TABLE IF NOT EXISTS clob_asset_features (
     updated_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS wallet_microstructure_metrics (
+    account TEXT PRIMARY KEY,
+    observed_fills INTEGER NOT NULL,
+    avg_spread TEXT NOT NULL,
+    avg_ofi TEXT NOT NULL,
+    favorable_ofi_rate TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS market_tokens (
     token_id TEXT PRIMARY KEY,
     condition_id TEXT,

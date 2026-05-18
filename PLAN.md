@@ -49,6 +49,7 @@ SQLite tables:
 - `raw_evm_logs`: deduped raw Polygon logs for replay and decoder audits
 - `raw_clob_events`: deduped market websocket payload archive
 - `clob_asset_features`: latest BBO, spread, depth, OFI, and last-trade microstructure state
+- `wallet_microstructure_metrics`: wallet-level fill-to-CLOB timing joins and OFI quality metrics
 - `dirty_wallets`: incremental analysis queue
 - `market_tokens`: token to market/event metadata mapping
 
@@ -67,6 +68,7 @@ Implemented:
 - `list-taxonomy`
 - `watch-live`
 - `watch-clob`
+- `build-microstructure`
 
 Partially implemented:
 
@@ -106,6 +108,8 @@ Partially implemented:
    - [x] Persist raw CLOB book/price/trade payloads into `raw_clob_events`.
    - [x] Add websocket reconnect and exponential backoff handling.
    - [x] Add CLOB order-book feature extraction for BBO, spread, book depth, OFI, and last trade state.
+   - [x] Add wallet-level fill-to-CLOB timing joins for spread, OFI, and favorable flow rate.
+   - [ ] Feed wallet microstructure metrics into account classification and monitor alerts.
    - [ ] Add address-level maker behavior joins where wallet attribution is available from settlement logs.
 
 3. Incremental analysis
@@ -123,7 +127,8 @@ Partially implemented:
    - Status: pending implementation.
    - Emit smart-money trade alerts.
    - Store wallet watch events.
-   - Add strategy reconstruction features: lead time, market breadth, sector concentration, entry-before-move, exit quality.
+   - [x] Add first wallet-level microstructure joins: spread at fill, OFI at fill, favorable OFI rate.
+   - [ ] Add strategy reconstruction features: lead time, market breadth, sector concentration, entry-before-move, exit quality.
 
 5. Production storage option
    - Status: planned.

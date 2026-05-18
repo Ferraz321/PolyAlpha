@@ -29,5 +29,6 @@ async fn main() -> Result<()> {
         Commands::BackfillPolygon(args) => commands::backfill::backfill_polygon(args).await,
         Commands::WatchLive(args) => commands::planned::watch_live(args).await,
         Commands::WatchClob(args) => commands::clob_ws::watch_clob(args).await,
+        Commands::BuildMicrostructure(args) => commands::microstructure::build_microstructure(args),
     }
 }

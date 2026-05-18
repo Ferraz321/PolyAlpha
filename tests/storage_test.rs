@@ -1,4 +1,5 @@
 use chrono::TimeZone;
+use oktrader_alpha::microstructure::{JoinConfig, build_wallet_microstructure};
 use oktrader_alpha::model::{FillEvent, LiquidityRole, TradeSide};
 use oktrader_alpha::storage::Storage;
 use oktrader_alpha::storage_types::{RawClobEventRecord, RawEvmLogRecord};
@@ -64,6 +65,50 @@ fn stores_clob_asset_features() {
 }
 
 #[test]
+fn joins_wallet_fills_to_clob_microstructure() {
+    let storage = Storage::open(":memory:").expect("open");
+    storage.init().expect("init");
+    let payload = r#"{
+        "event_type":"price_change",
+        "market":"m1",
+        "price_changes":[
+            {"asset_id":"m1","best_bid":"0.40","best_ask":"0.42","side":"BUY","size":"10"}
+        ]
+    }"#;
+    let event = RawClobEventRecord {
+        channel: "market".to_string(),
+        event_type: Some("price_change".to_string()),
+        asset_id: Some("m1".to_string()),
+        payload: payload.to_string(),
+        received_at: "2026-01-01T00:00:00+00:00".to_string(),
+        stable_key: "clob-join-test".to_string(),
+    };
+    storage.insert_raw_clob_event(&event).expect("event");
+
+    let fills = vec![custom_fill(
+        "0xabc",
+        "m1",
+        TradeSide::Buy,
+        dec!(0.41),
+        dec!(100),
+    )];
+    let metrics = build_wallet_microstructure(
+        &storage,
+        &fills,
+        JoinConfig {
+            pre_secs: 10,
+            post_secs: 10,
+            event_limit: 5,
+        },
+    )
+    .expect("microstructure");
+
+    assert_eq!(metrics.len(), 1);
+    assert_eq!(metrics[0].observed_fills, 1);
+    assert_eq!(metrics[0].favorable_ofi_rate, "1");
+}
+
+#[test]
 fn insert_fills_marks_wallet_dirty() {
     let mut storage = Storage::open(":memory:").expect("storage");
     storage
@@ -78,16 +123,26 @@ fn insert_fills_marks_wallet_dirty() {
 }
 
 fn fill(account: &str) -> FillEvent {
+    custom_fill(account, "123", TradeSide::Buy, dec!(0.5), dec!(1))
+}
+
+fn custom_fill(
+    account: &str,
+    market_id: &str,
+    side: TradeSide,
+    price: rust_decimal::Decimal,
+    shares: rust_decimal::Decimal,
+) -> FillEvent {
     FillEvent {
         account: account.to_string(),
-        market_id: "123".to_string(),
+        market_id: market_id.to_string(),
         condition_id: None,
         event_slug: None,
         sector: None,
-        side: TradeSide::Buy,
+        side,
         role: LiquidityRole::Taker,
-        price: dec!(0.5),
-        shares: dec!(1),
+        price,
+        shares,
         timestamp: chrono::Utc.with_ymd_and_hms(2026, 1, 1, 0, 0, 0).unwrap(),
         tx_hash: Some("0xtx".to_string()),
         order_hash: Some("0xorder".to_string()),

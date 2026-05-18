@@ -59,6 +59,20 @@ pub struct ClobAssetFeature {
     pub updated_at: String,
 }
 
+pub struct StoredClobEvent {
+    pub payload: String,
+    pub received_at: String,
+}
+
+pub struct WalletMicrostructureMetric {
+    pub account: String,
+    pub observed_fills: usize,
+    pub avg_spread: String,
+    pub avg_ofi: String,
+    pub favorable_ofi_rate: String,
+    pub updated_at: String,
+}
+
 pub fn metric_parts(
     metrics: &AccountMetrics,
     classification: &AccountClassification,

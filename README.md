@@ -51,6 +51,15 @@ cargo run -- watch-clob \
   --reconnect-max-secs 60
 ```
 
+Build wallet-level CLOB timing features after you have both fills and CLOB events:
+
+```bash
+cargo run -- build-microstructure \
+  --db data/oktrader.sqlite \
+  --pre-secs 60 \
+  --post-secs 30
+```
+
 One-shot local smoke test:
 
 ```bash
@@ -133,7 +142,7 @@ This scanner uses the public Data API (`https://data-api.polymarket.com/trades`)
 
 `scan-data-api` is the older CSV-compatible scanner. Prefer `collector-data-api` + `analyzer` for ongoing work.
 
-`watch-clob` uses Polymarket's public market websocket. It archives raw book, price, and trade payloads for token IDs listed one per line in `--assets-file`, and maintains `clob_asset_features` with BBO, spread, depth, OFI, and last-trade state. Public CLOB market messages do not identify wallet addresses, so wallet attribution still comes from Polygon settlement logs.
+`watch-clob` uses Polymarket's public market websocket. It archives raw book, price, and trade payloads for token IDs listed one per line in `--assets-file`, and maintains `clob_asset_features` with BBO, spread, depth, OFI, and last-trade state. `build-microstructure` joins those CLOB observations back to wallet fills and writes `wallet_microstructure_metrics`. Public CLOB market messages do not identify wallet addresses, so wallet attribution still comes from Polygon settlement logs.
 
 ## CLI Workflow
 

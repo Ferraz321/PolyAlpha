@@ -24,6 +24,7 @@ pub enum Commands {
     BackfillPolygon(BackfillPolygonArgs),
     WatchLive(WatchLiveArgs),
     WatchClob(WatchClobArgs),
+    BuildMicrostructure(BuildMicrostructureArgs),
 }
 
 #[derive(Debug, Clone, Args)]
@@ -201,6 +202,18 @@ pub struct WatchClobArgs {
     pub reconnect_max_secs: u64,
     #[arg(long)]
     pub once: bool,
+}
+
+#[derive(Debug, Clone, Args)]
+pub struct BuildMicrostructureArgs {
+    #[arg(long, default_value = "data/oktrader.sqlite")]
+    pub db: PathBuf,
+    #[arg(long, default_value_t = 60)]
+    pub pre_secs: i64,
+    #[arg(long, default_value_t = 30)]
+    pub post_secs: i64,
+    #[arg(long, default_value_t = 25)]
+    pub event_limit: usize,
 }
 
 #[derive(Debug, Clone, Args)]
