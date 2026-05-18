@@ -151,19 +151,23 @@ Partially implemented:
    - [ ] Add strategy reconstruction features: lead time, market breadth, sector concentration, entry-before-move, exit quality.
 
 5. Python Profiler
-   - Status: partial implementation.
+   - Status: core reverse-engineering loop implemented; expanding factor library.
    - [x] Add reverse-engineering readiness gate for known wallets.
    - [x] Export known-wallet fills and raw CLOB events for profiler input.
    - [x] Add Python Polars as-of join from fills to previous CLOB events.
    - [x] Split profiler into package modules: CLI, features, pipeline, rules.
    - [x] Extract spread and OFI features for reverse engineering.
+   - [x] Extract depth imbalance, price momentum, and time-to-resolution features.
    - [x] Add KDE/quantile threshold output to `rules.json`.
    - [x] Add optional external news timeline as-of ingestion.
    - [x] Export `factor_table.parquet` for iterative ML/research workflows.
    - [x] Export `strategy_config.json` for Rust monitor ingestion.
    - [x] Add Rust strategy config validator.
-   - [ ] Feed profiler strategy triggers into live Rust alert evaluation.
-   - [ ] Add profiler success score: reproducibility, coverage, precision, and factor stability.
+   - [x] Feed profiler strategy triggers into live Rust alert evaluation.
+   - [x] Add profiler success score: reproducibility, coverage, precision, and factor stability.
+   - [x] Add profiler Markdown/HTML report and agent-style research notes.
+   - [ ] Add true negative-set backtests across non-wallet fills for real precision/recall.
+   - [ ] Add richer factor library: time-of-day, market sector, pre-news lead time, exit quality.
 
 6. Production storage option
    - Status: planned.

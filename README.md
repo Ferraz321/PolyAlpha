@@ -185,20 +185,36 @@ python profiler/profile_wallets.py \
   --news data/profiler/news.csv \
   --out data/profiler/rules.json \
   --factor-out data/profiler/factor_table.parquet \
-  --strategy-out data/profiler/strategy_config.json
+  --strategy-out data/profiler/strategy_config.json \
+  --report-out data/profiler/report.md \
+  --html-out data/profiler/report.html
 ```
 
 The profiler is a separate Python research package under `profiler/okprofiler/`.
 It does an as-of join from wallet fills to previous CLOB events, can optionally
-join an external news timeline, extracts spread/OFI features, and emits
-human-readable per-wallet threshold rules, a Parquet factor table, and a
-Rust-readable strategy config.
+join an external news timeline or a market metadata CSV with `resolution_time`,
+extracts spread, OFI, depth imbalance, price momentum, and time-to-resolution
+features, and emits human-readable per-wallet threshold rules, a Parquet factor
+table, a reproducibility/coverage report, and a Rust-readable strategy config.
 
 Validate the generated strategy config before using it in monitoring:
 
 ```bash
 cargo run -- validate-strategy-config --input data/profiler/strategy_config.json
 ```
+
+Use the generated strategy rules in live alerts:
+
+```bash
+cargo run -- alerts \
+  --db data/oktrader.sqlite \
+  --watchlist \
+  --strategy-config data/profiler/strategy_config.json \
+  --interval-secs 5
+```
+
+Generated strategies are disabled by default. Enable only the strategies you
+have reviewed in `strategy_config.json`; monitor runs in alert-only mode.
 
 ## Core Engine
 

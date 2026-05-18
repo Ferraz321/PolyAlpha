@@ -1,8 +1,11 @@
-use std::time::Duration;
+use std::{fs, time::Duration};
 
 use anyhow::{Context, Result};
 use oktrader_alpha::storage::Storage;
 use oktrader_alpha::storage_alerts::AlertMode;
+use oktrader_alpha::strategy_config::{
+    StrategyConfig, matching_strategy_ids, parse_strategy_config,
+};
 use serde_json::Value;
 
 use crate::app::cli::AlertArgs;
@@ -18,6 +21,7 @@ pub async fn alerts(args: AlertArgs) -> Result<()> {
         AlertMode::Matched
     };
     let http = reqwest::Client::new();
+    let strategy_config = load_strategy_config(&args)?;
 
     loop {
         let storage = Storage::open(&args.db)?;
@@ -32,6 +36,14 @@ pub async fn alerts(args: AlertArgs) -> Result<()> {
         for stored in &fills {
             let message = alert_message(&storage, stored)?;
             println!("{message}");
+            if let Some(trigger) =
+                strategy_trigger_message(&storage, stored, strategy_config.as_ref())?
+            {
+                println!("{trigger}");
+                if let Some(url) = args.webhook_url.as_deref() {
+                    send_webhook(&http, url, &trigger).await?;
+                }
+            }
             if let Some(url) = args.webhook_url.as_deref() {
                 send_webhook(&http, url, &message).await?;
             }
@@ -52,11 +64,48 @@ pub async fn alerts(args: AlertArgs) -> Result<()> {
     Ok(())
 }
 
+fn load_strategy_config(args: &AlertArgs) -> Result<Option<StrategyConfig>> {
+    let Some(path) = args.strategy_config.as_ref() else {
+        return Ok(None);
+    };
+    let content =
+        fs::read_to_string(path).with_context(|| format!("failed to read {}", path.display()))?;
+    Ok(Some(parse_strategy_config(&content)?))
+}
+
 fn alert_cursor(storage: &Storage) -> Result<i64> {
     Ok(storage
         .get_state(ALERT_CURSOR)?
         .and_then(|value| value.parse().ok())
         .unwrap_or(0))
+}
+
+fn strategy_trigger_message(
+    storage: &Storage,
+    stored: &oktrader_alpha::storage_alerts::StoredFill,
+    config: Option<&StrategyConfig>,
+) -> Result<Option<String>> {
+    let Some(config) = config else {
+        return Ok(None);
+    };
+    let fill = &stored.fill;
+    let Some(snapshot) = storage.latest_feature_snapshot(&fill.market_id)? else {
+        return Ok(None);
+    };
+    let matched = matching_strategy_ids(config, &snapshot);
+    if matched.is_empty() {
+        return Ok(None);
+    }
+    Ok(Some(format!(
+        "strategy_trigger fill_id={} wallet={} market={} strategies={} ofi={:?} spread={:?} depth_imbalance={:?}",
+        stored.id,
+        fill.account,
+        fill.market_id,
+        matched.join(","),
+        snapshot.ofi,
+        snapshot.spread,
+        snapshot.depth_imbalance,
+    )))
 }
 
 fn alert_message(

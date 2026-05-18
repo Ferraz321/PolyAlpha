@@ -36,6 +36,14 @@ pub struct Risk {
     pub max_notional_usd: f64,
 }
 
+#[derive(Debug, Clone, Default)]
+pub struct FeatureSnapshot {
+    pub ofi: Option<f64>,
+    pub spread: Option<f64>,
+    pub price_momentum: Option<f64>,
+    pub depth_imbalance: Option<f64>,
+}
+
 pub fn parse_strategy_config(json: &str) -> Result<StrategyConfig> {
     let config: StrategyConfig = serde_json::from_str(json).context("invalid strategy config")?;
     for strategy in &config.strategies {
@@ -63,7 +71,7 @@ fn validate_strategy(strategy: &Strategy) -> Result<()> {
         anyhow::ensure!(
             matches!(
                 condition.feature.as_str(),
-                "ofi" | "spread" | "price_momentum"
+                "ofi" | "spread" | "price_momentum" | "depth_imbalance"
             ),
             "unsupported feature {}",
             condition.feature
@@ -74,4 +82,78 @@ fn validate_strategy(strategy: &Strategy) -> Result<()> {
         "invalid risk settings"
     );
     Ok(())
+}
+
+pub fn matching_strategy_ids(config: &StrategyConfig, snapshot: &FeatureSnapshot) -> Vec<String> {
+    config
+        .strategies
+        .iter()
+        .filter(|strategy| strategy.enabled)
+        .filter(|strategy| {
+            strategy
+                .trigger
+                .all
+                .iter()
+                .all(|condition| condition_matches(condition, snapshot))
+        })
+        .map(|strategy| strategy.id.clone())
+        .collect()
+}
+
+fn condition_matches(condition: &Condition, snapshot: &FeatureSnapshot) -> bool {
+    let Some(value) = feature_value(&condition.feature, snapshot) else {
+        return false;
+    };
+    match condition.op.as_str() {
+        ">" => value > condition.value,
+        ">=" => value >= condition.value,
+        "<" => value < condition.value,
+        "<=" => value <= condition.value,
+        "==" => (value - condition.value).abs() < f64::EPSILON,
+        _ => false,
+    }
+}
+
+fn feature_value(feature: &str, snapshot: &FeatureSnapshot) -> Option<f64> {
+    match feature {
+        "ofi" => snapshot.ofi,
+        "spread" => snapshot.spread,
+        "price_momentum" => snapshot.price_momentum,
+        "depth_imbalance" => snapshot.depth_imbalance,
+        _ => None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{FeatureSnapshot, matching_strategy_ids, parse_strategy_config};
+
+    #[test]
+    fn validates_and_matches_depth_aware_strategy() {
+        let config = parse_strategy_config(
+            r#"{
+              "version": 1,
+              "strategies": [{
+                "id": "reverse_test",
+                "source_wallet": "0xabc",
+                "enabled": true,
+                "trigger": {"all": [
+                  {"feature": "ofi", "op": ">", "value": 0.5},
+                  {"feature": "depth_imbalance", "op": ">=", "value": 0.1}
+                ]},
+                "risk": {"mode": "alert_only", "max_notional_usd": 0}
+              }]
+            }"#,
+        )
+        .unwrap();
+        let snapshot = FeatureSnapshot {
+            ofi: Some(0.7),
+            depth_imbalance: Some(0.2),
+            ..Default::default()
+        };
+        assert_eq!(
+            matching_strategy_ids(&config, &snapshot),
+            vec!["reverse_test"]
+        );
+    }
 }

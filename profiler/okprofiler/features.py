@@ -25,6 +25,10 @@ def empty_features() -> pl.DataFrame:
             "ofi": pl.Float64,
             "best_bid": pl.Float64,
             "best_ask": pl.Float64,
+            "mid_price": pl.Float64,
+            "bid_depth": pl.Float64,
+            "ask_depth": pl.Float64,
+            "depth_imbalance": pl.Float64,
             "trade_size": pl.Float64,
         }
     )
@@ -59,6 +63,10 @@ def _tick_feature(row: dict, market: str | None, item: dict, event_type: str) ->
         "ofi": size if side == "BUY" else -size if side == "SELL" else 0.0,
         "best_bid": bid,
         "best_ask": ask,
+        "mid_price": _mid_price(bid, ask),
+        "bid_depth": None,
+        "ask_depth": None,
+        "depth_imbalance": None,
         "trade_size": size,
     }
 
@@ -80,6 +88,10 @@ def _book_feature(row: dict, item: dict) -> dict:
         "ofi": 0.0 if total == 0 else (bid_depth - ask_depth) / total,
         "best_bid": best_bid,
         "best_ask": best_ask,
+        "mid_price": _mid_price(best_bid, best_ask),
+        "bid_depth": bid_depth,
+        "ask_depth": ask_depth,
+        "depth_imbalance": 0.0 if total == 0 else (bid_depth - ask_depth) / total,
         "trade_size": 0.0,
     }
 
@@ -89,3 +101,9 @@ def _to_float(value) -> float | None:
         return None if value is None else float(value)
     except Exception:
         return None
+
+
+def _mid_price(bid: float | None, ask: float | None) -> float | None:
+    if bid is None or ask is None:
+        return None
+    return (bid + ask) / 2.0

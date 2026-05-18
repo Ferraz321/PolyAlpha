@@ -70,6 +70,8 @@ pub struct AlertArgs {
     #[arg(long)]
     pub webhook_url: Option<String>,
     #[arg(long)]
+    pub strategy_config: Option<PathBuf>,
+    #[arg(long)]
     pub once: bool,
 }
 
