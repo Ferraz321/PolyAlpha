@@ -31,6 +31,7 @@ Implemented:
 - max single-market PnL concentration
 - account taxonomy and smart-money tiers
 - multi-type matched pool: stable alpha, information edge, stat-arb/market-maker, swing trader, and watchlist tiers
+- configurable account type profiles under `config/account_types/*.json`
 - public Data API collector
 - SQLite storage
 - analyzer process
@@ -133,6 +134,7 @@ Partially implemented:
    - [x] Add first wallet-level microstructure joins: spread at fill, OFI at fill, favorable OFI rate.
    - [x] Default matched pool tracks multiple smart-money account types, not only the strict stable-alpha funnel.
    - [x] Add summary command for full tier/tag distribution across all analyzed wallets.
+   - [x] Move account type judgment rules into configurable profile files.
    - [ ] Add strategy reconstruction features: lead time, market breadth, sector concentration, entry-before-move, exit quality.
 
 5. Production storage option

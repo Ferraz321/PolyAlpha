@@ -20,6 +20,10 @@ primary_tag:
 default matched pool:
   includes stable alpha, information edge, stat-arb/market-maker, swing trader,
   plus core/candidate/watchlist smart-money tiers. It does not require the
-  single strict passed_funnel flag."#
+  single strict passed_funnel flag.
+
+profile config:
+  account type rules live under config/account_types/*.json. Add a new JSON file
+  there to define another strategy family or judgment mechanism."#
     );
 }

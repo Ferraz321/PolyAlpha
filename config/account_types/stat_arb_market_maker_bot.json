@@ -1,0 +1,17 @@
+{
+  "id": "stat_arb_market_maker_bot",
+  "family": "market_making_or_arbitrage",
+  "tier": "candidate_smart_money",
+  "tag": "stat_arb_market_maker_bot",
+  "default_pool": true,
+  "priority": 80,
+  "rules": [
+    { "metric": "trade_count", "min": "1000" },
+    { "metric": "closed_markets", "min": "50" },
+    { "metric": "total_volume", "min": "250000" },
+    { "metric": "total_pnl", "min": "0.000001" },
+    { "metric": "win_rate", "min": "0.55", "max": "0.65" },
+    { "metric": "profit_loss_ratio", "min": "1.0" },
+    { "metric": "maker_ratio", "min": "0.60" }
+  ]
+}

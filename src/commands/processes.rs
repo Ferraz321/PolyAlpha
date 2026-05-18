@@ -5,12 +5,13 @@ use std::time::Duration;
 use anyhow::{Context, Result};
 use oktrader_alpha::ingestion::DataApiClient;
 use oktrader_alpha::model::FillEvent;
+use oktrader_alpha::profile_config::load_account_profiles;
 use oktrader_alpha::storage::Storage;
 use oktrader_alpha::storage_types::metric_parts;
 
 use crate::app::cli::{AnalyzerArgs, CollectorDataApiArgs, ExportArgs, MonitorArgs};
 use crate::app::report::{
-    AccountReport, attach_microstructure, build_incremental_reports, filter_reports,
+    AccountReport, attach_microstructure, build_incremental_reports_with_profiles, filter_reports,
 };
 
 pub fn init_db(db: std::path::PathBuf) -> Result<()> {
@@ -51,6 +52,7 @@ pub async fn analyzer(args: AnalyzerArgs) -> Result<()> {
     ensure_parent(&args.out_matches)?;
     ensure_parent(&args.out_report)?;
     let filters = args.filters.load()?;
+    let profiles = load_account_profiles(&args.profile_dir)?;
 
     loop {
         let mut storage = Storage::open(&args.db)?;
@@ -59,7 +61,7 @@ pub async fn analyzer(args: AnalyzerArgs) -> Result<()> {
             Vec::new()
         } else {
             let fills = storage.load_fills_for_wallets(&dirty_wallets)?;
-            build_incremental_reports(fills, args.close_loop_alpha)?
+            build_incremental_reports_with_profiles(fills, args.close_loop_alpha, &profiles)?
         };
         storage.replace_account_metrics(&reports, |report| {
             metric_parts(

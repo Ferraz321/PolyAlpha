@@ -1,0 +1,15 @@
+{
+  "id": "swing_trader",
+  "family": "directional_swing",
+  "tier": "watchlist",
+  "tag": "swing_trader",
+  "default_pool": true,
+  "priority": 70,
+  "rules": [
+    { "metric": "closed_markets", "min": "20" },
+    { "metric": "total_pnl", "min": "10000" },
+    { "metric": "win_rate", "min": "0.55", "max": "0.75" },
+    { "metric": "profit_loss_ratio", "min": "2.0" },
+    { "metric": "max_single_market_pnl_share", "max": "0.50" }
+  ]
+}

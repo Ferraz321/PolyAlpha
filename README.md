@@ -75,6 +75,14 @@ See the full tier/tag distribution:
 cargo run -- summary --db data/oktrader.sqlite
 ```
 
+Account type rules are configurable:
+
+```text
+config/account_types/*.json
+```
+
+Each JSON file defines one wallet profile such as stable alpha, information edge, market-making/stat-arb, or swing trading. To add a new smart-money type, add another file with an `id`, `family`, `tier`, optional known `tag`, and metric threshold `rules`.
+
 ## Core Engine
 
 The implementation focuses on the deterministic quant core:

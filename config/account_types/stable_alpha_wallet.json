@@ -1,0 +1,17 @@
+{
+  "id": "stable_alpha_wallet",
+  "family": "repeatable_alpha",
+  "tier": "candidate_smart_money",
+  "tag": "stable_alpha_wallet",
+  "default_pool": true,
+  "priority": 100,
+  "rules": [
+    { "metric": "closed_markets", "min": "15" },
+    { "metric": "trade_count", "min": "100" },
+    { "metric": "total_volume", "min": "50000" },
+    { "metric": "total_pnl", "min": "10000" },
+    { "metric": "win_rate", "min": "0.70" },
+    { "metric": "profit_loss_ratio", "min": "1.2" },
+    { "metric": "max_single_market_pnl_share", "max": "0.40" }
+  ]
+}

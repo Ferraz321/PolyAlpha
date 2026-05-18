@@ -7,11 +7,12 @@ use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use oktrader_alpha::ingestion::DataApiClient;
 use oktrader_alpha::model::FillEvent;
+use oktrader_alpha::profile_config::load_account_profiles;
 use serde::Serialize;
 use tracing::info;
 
 use crate::app::cli::{AnalyzeCsvArgs, ScanDataApiArgs};
-use crate::app::report::{build_reports, filter_reports};
+use crate::app::report::{build_reports_with_profiles, filter_reports};
 use crate::commands::processes::fetch_data_api_fills;
 
 #[derive(Debug, Serialize)]
@@ -34,7 +35,9 @@ pub fn analyze_csv(args: AnalyzeCsvArgs) -> Result<()> {
     let fills = reader
         .deserialize::<FillEvent>()
         .collect::<Result<Vec<_>, csv::Error>>()?;
-    let reports = build_reports(fills, args.passed_only, args.close_loop_alpha)?;
+    let profiles = load_account_profiles(&args.profile_dir)?;
+    let reports =
+        build_reports_with_profiles(fills, args.passed_only, args.close_loop_alpha, &profiles)?;
     let filters = args.filters.clone().load()?;
     let reports = filter_reports(&reports, &filters);
 
@@ -49,13 +52,15 @@ pub async fn scan_data_api(args: ScanDataApiArgs) -> Result<()> {
     ensure_parent(&args.out_stats)?;
     let client = DataApiClient::new(&args.data_api_base_url)?;
     let filters = args.filters.clone().load()?;
+    let profiles = load_account_profiles(&args.profile_dir)?;
 
     loop {
         let cycle = scan_once(&client, &args).await?;
         let fills = read_fills(&args.out_fills)?;
         let total_trades = fills.len();
         let total_unique_wallets = unique_wallets(&fills).len();
-        let reports = build_reports(fills, args.passed_only, args.close_loop_alpha)?;
+        let reports =
+            build_reports_with_profiles(fills, args.passed_only, args.close_loop_alpha, &profiles)?;
         let passed = reports.iter().filter(|report| report.passed_funnel).count();
         let matched = filter_reports(&reports, &filters);
 

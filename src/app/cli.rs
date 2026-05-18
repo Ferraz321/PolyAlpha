@@ -64,6 +64,8 @@ pub struct AnalyzerArgs {
     pub once: bool,
     #[arg(long, default_value = "0.95")]
     pub close_loop_alpha: rust_decimal::Decimal,
+    #[arg(long, default_value = "config/account_types")]
+    pub profile_dir: PathBuf,
     #[command(flatten)]
     pub filters: ReportFilterArgs,
 }
@@ -106,6 +108,8 @@ pub struct AnalyzeCsvArgs {
     pub passed_only: bool,
     #[arg(long, default_value = "0.95")]
     pub close_loop_alpha: rust_decimal::Decimal,
+    #[arg(long, default_value = "config/account_types")]
+    pub profile_dir: PathBuf,
     #[command(flatten)]
     pub filters: ReportFilterArgs,
 }
@@ -134,6 +138,8 @@ pub struct ScanDataApiArgs {
     pub passed_only: bool,
     #[arg(long, default_value = "0.95")]
     pub close_loop_alpha: rust_decimal::Decimal,
+    #[arg(long, default_value = "config/account_types")]
+    pub profile_dir: PathBuf,
     #[command(flatten)]
     pub filters: ReportFilterArgs,
 }

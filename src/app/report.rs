@@ -5,9 +5,10 @@ use anyhow::{Context, Result};
 use oktrader_alpha::filter::{FunnelConfig, evaluate};
 use oktrader_alpha::metrics::{MetricsConfig, compute_account_metrics};
 use oktrader_alpha::model::FillEvent;
+use oktrader_alpha::profile_config::AccountProfile;
 use oktrader_alpha::storage_types::WalletMicrostructureMetric;
 use oktrader_alpha::tagging::{
-    AccountClassification, AccountTag, SmartMoneyTier, classify_profile,
+    AccountClassification, AccountTag, SmartMoneyTier, classify_profile_with_profiles,
 };
 use serde::{Deserialize, Serialize};
 
@@ -68,10 +69,11 @@ impl ReportFilter {
     }
 }
 
-pub fn build_reports(
+pub fn build_reports_with_profiles(
     fills: Vec<FillEvent>,
     passed_only: bool,
     close_loop_alpha: rust_decimal::Decimal,
+    profiles: &[AccountProfile],
 ) -> Result<Vec<AccountReport>> {
     let (metrics, _closed_loops) =
         compute_account_metrics(&fills, MetricsConfig { close_loop_alpha })?;
@@ -86,7 +88,7 @@ pub fn build_reports(
             }
 
             Some(AccountReport {
-                classification: classify_profile(&metrics),
+                classification: classify_profile_with_profiles(&metrics, profiles),
                 metrics,
                 passed_funnel: decision.passed,
                 failed_reasons: decision.failed_reasons,
@@ -106,11 +108,12 @@ pub fn attach_microstructure(
     reports
 }
 
-pub fn build_incremental_reports(
+pub fn build_incremental_reports_with_profiles(
     fills: Vec<FillEvent>,
     close_loop_alpha: rust_decimal::Decimal,
+    profiles: &[AccountProfile],
 ) -> Result<Vec<AccountReport>> {
-    build_reports(fills, false, close_loop_alpha)
+    build_reports_with_profiles(fills, false, close_loop_alpha, profiles)
 }
 
 pub fn filter_reports<'a>(
@@ -119,7 +122,11 @@ pub fn filter_reports<'a>(
 ) -> Vec<&'a AccountReport> {
     reports
         .iter()
-        .filter(|report| !filters.is_empty() || ReportFilter::default_match(report))
+        .filter(|report| {
+            !filters.is_empty()
+                || report.classification.default_pool
+                || ReportFilter::default_match(report)
+        })
         .filter(|report| {
             filters.tiers.is_empty()
                 || filters

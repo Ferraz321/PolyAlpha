@@ -1,0 +1,15 @@
+{
+  "id": "information_edge_wallet",
+  "family": "information_edge",
+  "tier": "watchlist",
+  "tag": "information_edge_wallet",
+  "default_pool": true,
+  "priority": 90,
+  "rules": [
+    { "metric": "closed_markets", "min": "8" },
+    { "metric": "total_volume", "min": "25000" },
+    { "metric": "total_pnl", "min": "10000" },
+    { "metric": "win_rate", "min": "0.80" },
+    { "metric": "max_single_market_pnl_share", "max": "0.60" }
+  ]
+}

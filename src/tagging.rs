@@ -3,6 +3,7 @@ use rust_decimal_macros::dec;
 use serde::{Deserialize, Serialize};
 
 use crate::model::AccountMetrics;
+use crate::profile_config::{AccountProfile, match_profile};
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, Hash, ValueEnum)]
 #[serde(rename_all = "snake_case")]
@@ -43,6 +44,12 @@ pub struct AccountClassification {
     pub smart_money_tier: SmartMoneyTier,
     pub primary_tag: AccountTag,
     pub risk_flags: Vec<RiskFlag>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub strategy_profile: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub strategy_family: Option<String>,
+    #[serde(default)]
+    pub default_pool: bool,
 }
 
 pub fn classify(metrics: &AccountMetrics) -> AccountTag {
@@ -50,14 +57,37 @@ pub fn classify(metrics: &AccountMetrics) -> AccountTag {
 }
 
 pub fn classify_profile(metrics: &AccountMetrics) -> AccountClassification {
+    classify_profile_with_profiles(metrics, &[])
+}
+
+pub fn classify_profile_with_profiles(
+    metrics: &AccountMetrics,
+    profiles: &[AccountProfile],
+) -> AccountClassification {
     let risk_flags = risk_flags(metrics);
     let primary_tag = primary_tag(metrics);
     let smart_money_tier = smart_money_tier(metrics, &primary_tag, &risk_flags);
+    let matched_profile = match_profile(metrics, profiles);
+    let smart_money_tier = matched_profile
+        .as_ref()
+        .map(|profile| profile.tier.clone())
+        .unwrap_or(smart_money_tier);
+    let primary_tag = matched_profile
+        .as_ref()
+        .and_then(|profile| profile.tag.clone())
+        .unwrap_or(primary_tag);
 
     AccountClassification {
         smart_money_tier,
         primary_tag,
         risk_flags,
+        strategy_profile: matched_profile.as_ref().map(|profile| profile.id.clone()),
+        strategy_family: matched_profile
+            .as_ref()
+            .map(|profile| profile.family.clone()),
+        default_pool: matched_profile
+            .as_ref()
+            .is_some_and(|profile| profile.default_pool),
     }
 }
 
