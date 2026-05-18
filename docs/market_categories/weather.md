@@ -39,7 +39,7 @@ This playbook is the required reverse-engineering checklist for wallets whose
 - `actual_temp_inside_bucket`: whether realized daily high landed in bucket.
 - `actual_temp_error_to_mid_f`: realized daily high minus bucket midpoint.
 
-## Candidate External Weather Factors
+### Historical Forecast Context
 
 - `forecast_temp_f`: forecast temperature at entry time.
 - `forecast_error_to_bucket`: forecast distance from the traded bucket.
@@ -47,6 +47,9 @@ This playbook is the required reverse-engineering checklist for wallets whose
 - `forecast_delta_1h`: one-hour forecast revision.
 - `forecast_delta_6h`: six-hour forecast revision.
 - `forecast_volatility`: recent forecast instability.
+
+## Candidate External Weather Factors
+
 - `model_disagreement`: spread between forecast providers/models.
 - `bucket_distance_from_normal`: distance from city seasonal normal.
 

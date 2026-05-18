@@ -10,7 +10,8 @@ def main() -> int:
         print("usage: scripts/research_user.py @username-or-url [db]", file=sys.stderr)
         return 2
     user_id = sys.argv[1]
-    db = sys.argv[2] if len(sys.argv) > 2 else os.environ.get("OKTRADER_DB", "data/oktrader.sqlite")
+    db = sys.argv[2] if len(sys.argv) > 2 and not sys.argv[2].startswith("-") else os.environ.get("OKTRADER_DB", "data/oktrader.sqlite")
+    extra_args = sys.argv[3:] if len(sys.argv) > 2 and not sys.argv[2].startswith("-") else sys.argv[2:]
     cmd = [
         _python(),
         "profiler/profile_wallets.py",
@@ -19,6 +20,7 @@ def main() -> int:
         "--db",
         db,
         "--update-candidates",
+        *extra_args,
     ]
     return subprocess.call(cmd)
 

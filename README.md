@@ -225,7 +225,7 @@ flowchart LR
 | Agent `next_commands.json` planner and candidate factor backlog | Implemented |
 | Open-Meteo archive fetch entrypoint | Implemented as data adapter |
 | Weather observation factors in `factor_table` | Implemented for actual daily high |
-| Weather forecast factors in `factor_table` | Planned next |
+| Weather forecast history adapter and forecast factors in `factor_table` | Implemented |
 | Full audit-grade realized PnL from settlement/redemption events | In progress/future hardening |
 | Automatic trading/execution | Not enabled; alert/strategy validation only |
 
@@ -590,6 +590,15 @@ python profiler/profile_wallets.py fetch-weather-open-meteo \
   --out data/profiler_beefslayer/weather_observations.csv
 ```
 
+Historical weather forecast factors can be fetched with:
+
+```bash
+python profiler/profile_wallets.py fetch-weather-forecast-history \
+  --profile-dir data/profiler_beefslayer \
+  --locations-csv config/weather_locations.csv \
+  --out data/profiler_beefslayer/forecast_history.csv
+```
+
 Fast username workflow:
 
 ```bash
@@ -599,9 +608,40 @@ python scripts/research_user.py @beefslayer data/oktrader.sqlite
 This resolves the Polymarket profile to a proxy wallet, runs the Rust + Python
 agent tool loop, and writes the usual profile outputs under
 `data/profiler_<username>/`.
+When the first profiling pass identifies a weather-temperature specialist, the
+agent automatically fetches Open-Meteo actual observations and historical
+forecast context, then reruns the profiler so weather factors are present in
+the same report.
 
-Shell scripts are kept as Linux-compatible wrappers, but Python scripts are the
-portable standard entrypoints.
+For a bounded smoke test that still touches the real Polymarket endpoints:
+
+```bash
+python scripts/research_user.py @beefslayer data/oktrader.sqlite \
+  --profile-dir data/profiler_smoketest_beefslayer \
+  --trades-limit 500 \
+  --trades-max-offset 1500 \
+  --gamma-limit 200 \
+  --gamma-max-offset 800
+```
+
+Expected outputs include `resolved_user.json`, `fills.csv`, `markets.csv`,
+`factor_table.parquet`, `rules.json`, `research_report.md`,
+`candidate_factors.json`, `next_commands.json`, `sop_status.json`, and
+`strategy_config.json`. The current smoke-tested `@beefslayer` profile resolves
+to wallet `0x331bf91c132af9d921e1908ca0979363fc47193f`, pulls 3020 public trade
+rows, classifies the wallet as a weather-temperature specialist, and proposes
+weather observation/forecast factors for the next research loop.
+
+The automatic weather enrichment in the smoke profile produced 853 actual
+observation rows and 41,400 forecast-history rows, then populated
+`actual_temp_distance_to_bucket`, `actual_temp_inside_bucket`,
+`actual_temp_error_to_mid_f`, `forecast_temp_f`,
+`forecast_error_to_bucket`, `forecast_inside_bucket`, `forecast_delta_1h`,
+`forecast_delta_6h`, and `forecast_volatility` in `factor_table.parquet`.
+
+Python scripts under `scripts/` are the only portable workflow entrypoints.
+Legacy `.sh` wrappers were removed to avoid drift between Linux-only wrappers
+and the cross-platform automation path.
 
 Market semantic parsing is deterministic first. For long-tail titles that do
 not match a stable parser, the semantic layer can call an LLM provider and ask
@@ -611,19 +651,23 @@ keeps fragile parsing outside the factor library while still producing numeric
 factors.
 
 LLM provider configuration is decoupled in `profiler/okprofiler/llm.py`.
-Default mode is Anthropic-compatible and reads environment variables first,
-then `~/.claude/settings.json`:
+LLM market parsing is disabled by default so the baseline profiler cannot be
+blocked by model API latency, quota, or authentication. To enable it, set
+`OKTRADER_ENABLE_LLM_MARKET_PARSER=1`. Default provider mode is
+Anthropic-compatible and reads environment variables first, then
+`~/.claude/settings.json`:
 
 ```bash
+export OKTRADER_ENABLE_LLM_MARKET_PARSER=1
 export OKTRADER_LLM_PROVIDER=anthropic
 export OKTRADER_LLM_BASE_URL="$ANTHROPIC_BASE_URL"
 export OKTRADER_LLM_API_KEY="$ANTHROPIC_AUTH_TOKEN"
 export OKTRADER_LLM_MODEL="${ANTHROPIC_MODEL:-GLM-5.1}"
 ```
 
-For custom parsers, `OKTRADER_LLM_MARKET_PARSER` still works. The command must
-accept a JSON payload on stdin and return JSON only. Set
-`OKTRADER_LLM_PROVIDER=off` to disable provider calls entirely.
+For custom parsers, `OKTRADER_LLM_MARKET_PARSER` still works without enabling
+the provider. The command must accept a JSON payload on stdin and return JSON
+only. Set `OKTRADER_LLM_PROVIDER=off` to disable provider calls entirely.
 
 ## Core Engine
 

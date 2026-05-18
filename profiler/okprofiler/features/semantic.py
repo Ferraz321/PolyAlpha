@@ -62,6 +62,8 @@ def _parse_with_command(payload: dict) -> dict:
 
 
 def _parse_with_provider(payload: dict) -> dict:
+    if os.environ.get("OKTRADER_ENABLE_LLM_MARKET_PARSER", "0") != "1":
+        return {}
     return complete_json(
         system=(
             "You are a strict market semantics parser. Return only compact JSON "

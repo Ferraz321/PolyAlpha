@@ -2,15 +2,19 @@
 
 ## Product Shape
 
-One Rust CLI project with three long-running roles:
+One Rust CLI project plus one Python research/agent toolbox:
 
 - `collector-data-api`: collects recent public Polymarket trades into SQLite.
 - `watch-live`: polls Polygon settlement logs and appends decoded fills.
 - `watch-clob`: subscribes to Polymarket CLOB market websocket events for selected asset pools.
 - `analyzer`: reads fills from SQLite, computes account metrics, classifies wallets, and maintains the matched smart-money pool.
 - `monitor`: reads matched accounts and prints or exports the current key-wallet set.
+- `profiler/okprofiler`: mines factor tables, strategy rules, market playbooks, and research reports.
+- `scripts/*.py`: portable workflow entrypoints for release builds, VPS runs, wallet profiling, user research, CLOB recording, and agent loops.
 
-The project keeps all roles in one binary for now. If data volume or operations demand it, these roles can later split into separate services without changing the database contract.
+The Rust roles stay in one binary for now. If data volume or operations demand
+it, these roles can later split into separate services without changing the
+database contract. Python remains the research brain and orchestration layer.
 
 ## Engineering Rules
 
@@ -21,7 +25,9 @@ The project keeps all roles in one binary for now. If data volume or operations 
 - Keep strategy research logic under `src/analysis` for Rust and `profiler/okprofiler` for Python.
 - SQLite is the local source of truth; JSON/CSV are exports or compatibility paths.
 - `PLAN.md` must be updated whenever a milestone changes.
-- VPS scripts under `scripts/` are the default overnight run path.
+- Portable Python scripts under `scripts/` are the default workflow and overnight run path.
+- Shell wrappers have been removed; do not add a second script layer unless a platform truly needs it.
+- Research SOP lives in `docs/research_sop.md` and `config/agent_sop.json`.
 
 ## Current Status
 
@@ -45,6 +51,26 @@ Implemented:
 - CSV compatibility path
 - codebase refactor into small modules under 300 lines
 - directory refactor into `app`, `commands`, and `chain`
+- portable Python workflow scripts only; legacy shell wrappers removed
+- user-to-wallet resolver for Polymarket handles and profile URLs
+- end-to-end `research-user` agent path from Polymarket ID to report
+- agent SOP status tracking via `sop_status.json`
+- human and machine-readable research SOP
+- LLM semantic parser hook, disabled by default and enabled only via `OKTRADER_ENABLE_LLM_MARKET_PARSER=1`
+- weather-temperature market playbook and weather semantic factors
+- Open-Meteo actual weather observation adapter and observation factors
+
+Latest smoke test:
+
+- Command: `python scripts/research_user.py @beefslayer data/oktrader.sqlite --profile-dir data/profiler_smoketest_beefslayer --trades-limit 500 --trades-max-offset 1500 --gamma-limit 200 --gamma-max-offset 800 --min-samples 5`
+- Result: passed.
+- Resolved wallet: `0x331bf91c132af9d921e1908ca0979363fc47193f`.
+- Pulled public trade rows: 3020.
+- Pulled Gamma market rows: 200.
+- Generated: `fills.csv`, `markets.csv`, `factor_table.parquet`, `rules.json`, `research_report.md`, `candidate_factors.json`, `next_commands.json`, `sop_status.json`, and `strategy_config.json`.
+- Finding: wallet classified as `weather_temperature` specialist with `weather_market_ratio >= 0.867881`.
+- Automatic weather expansion: agent fetched 853 actual observation rows and 41,400 forecast-history rows, then populated actual-temperature and forecast factors.
+- Remaining evidence gaps: CLOB snapshots, optional news timeline, model disagreement, and settlement-grade PnL expansion for stronger replication claims.
 
 SQLite tables:
 
@@ -138,17 +164,18 @@ Partially implemented:
    - [x] Preserve previous metrics for non-dirty wallets during incremental cycles.
 
 4. Monitoring and strategy research
-   - Status: pending implementation.
+   - Status: implemented for alerting and config validation; expanding reconstruction depth.
    - [x] Emit new-fill alerts for matched wallets, with optional all-wallet debug mode.
    - [x] Emit watchlist-only alerts for manually supplied smart-money addresses.
    - [x] Add webhook delivery for alert messages.
    - [x] Store alert cursor in `scanner_state`.
-   - [x] Add release/VPS background run scripts with logs, pid files, status, and stop commands.
+   - [x] Add release/VPS background run Python scripts with logs, pid files, status, and stop commands.
    - [x] Add first wallet-level microstructure joins: spread at fill, OFI at fill, favorable OFI rate.
    - [x] Default matched pool tracks multiple smart-money account types, not only the strict stable-alpha funnel.
    - [x] Add summary command for full tier/tag distribution across all analyzed wallets.
    - [x] Move account type judgment rules into configurable profile files.
-   - [ ] Add strategy reconstruction features: lead time, market breadth, sector concentration, entry-before-move, exit quality.
+   - [x] Add strategy reconstruction features: market breadth, time-of-day, same-market reentry, weather specialization, and weather bucket semantics.
+   - [ ] Add strategy reconstruction features: entry-before-move, exit quality, sector-specific PnL, and stronger lead-time evidence.
 
 5. Python Profiler
    - Status: core reverse-engineering loop implemented; expanding factor library.
@@ -177,9 +204,18 @@ Partially implemented:
    - [x] Add Data API wallet trade fetch fallback when local DB has no fills.
    - [x] Add maintained factor catalog plus per-run factor summary and research log.
    - [x] Generate CLOB asset pools from wallet fills and add wallet CLOB recording script.
+   - [x] Add Polymarket user/profile URL resolver.
+   - [x] Add end-to-end `research-user` flow from ID to wallet, data fetch, profiler, agent report, and next commands.
+   - [x] Add portable Python workflow scripts and remove legacy shell wrappers.
+   - [x] Add agent SOP status tracking with `sop_status.json`.
+   - [x] Add weather market category playbook and weather semantic/observation factors.
+   - [x] Add Open-Meteo historical forecast adapter.
+   - [x] Add forecast factors: `forecast_temp_f`, `forecast_error_to_bucket`, `forecast_inside_bucket`, `forecast_delta_1h`, `forecast_delta_6h`, and `forecast_volatility`.
+   - [x] Add LLM semantic parser hook behind explicit opt-in.
    - [ ] Add true negative-set backtests across non-wallet fills for real precision/recall.
    - [ ] Replace lightweight adapters with full optional Qlib/Alphalens/STUMPY/SHAP/Nautilus integrations when data format and dependencies are ready.
-   - [ ] Add richer factor library: time-of-day, market sector, pre-news lead time, exit quality.
+   - [ ] Add multi-model forecast adapter for `model_disagreement`.
+   - [ ] Add richer factor library: market sector PnL, pre-news lead time, exit quality, and negative-control precision/recall.
 
 6. Production storage option
    - Status: planned.

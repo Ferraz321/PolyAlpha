@@ -37,7 +37,7 @@ def add_weather_factors(df: pl.DataFrame) -> pl.DataFrame:
     if not any(column in df.columns for column in ["event_slug", "market_slug", "title"]):
         return df
     rows = [_parse_row(row) for row in df.iter_rows(named=True)]
-    parsed = pl.DataFrame(rows) if rows else _empty_weather(df.height)
+    parsed = pl.DataFrame(rows, infer_schema_length=None) if rows else _empty_weather(df.height)
     parsed = parsed.with_columns(pl.Series("__row_nr", range(parsed.height)))
     base = df.with_row_index("__row_nr")
     out = base.join(parsed, on="__row_nr", how="left").drop("__row_nr")

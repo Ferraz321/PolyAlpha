@@ -2,7 +2,8 @@ from dataclasses import dataclass
 import json
 from pathlib import Path
 
-from .agent_tools import AgentToolConfig, next_commands, run_agent_tools, update_candidate_library
+from .agent_planner import next_commands
+from .agent_tools import AgentToolConfig, run_agent_tools, update_candidate_library
 from .pipeline import ProfilerConfig, run_profiler
 from .sop import build_sop_status, write_sop_status
 
@@ -26,6 +27,10 @@ class AgentConfig:
     update_candidates: bool
     research_engines: list[str]
     min_samples: int
+    trades_limit: int = 500
+    trades_max_offset: int = 5000
+    gamma_limit: int = 500
+    gamma_max_offset: int = 5000
 
 
 def run_agent(config: AgentConfig) -> dict:
@@ -39,6 +44,10 @@ def run_agent(config: AgentConfig) -> dict:
                 launch_watch_clob=config.launch_watch_clob,
                 min_samples=config.min_samples,
                 research_engines=config.research_engines,
+                trades_limit=config.trades_limit,
+                trades_max_offset=config.trades_max_offset,
+                gamma_limit=config.gamma_limit,
+                gamma_max_offset=config.gamma_max_offset,
             )
         )
     elif config.rerun_profile:
@@ -47,14 +56,6 @@ def run_agent(config: AgentConfig) -> dict:
     diagnostics = _read_json(config.diagnostics_path)
     candidates = _candidate_factors(rules)
     commands = next_commands(config.profile_dir, config.db, diagnostics, candidates)
-    sop_status = build_sop_status(
-        config.profile_dir,
-        diagnostics,
-        rules,
-        candidates,
-        commands,
-        config.sop_path,
-    )
     result = {
         "version": 1,
         "profile_dir": str(config.profile_dir),
@@ -64,14 +65,24 @@ def run_agent(config: AgentConfig) -> dict:
         "wallets": _wallet_summaries(rules),
         "candidates": candidates,
         "next_commands": commands,
-        "sop_status": sop_status,
+        "sop_status": {},
         "missing_actions": diagnostics.get("missing_actions", []),
     }
     _write_json(config.candidates_out, {"version": 1, "candidates": candidates})
     _write_json(config.next_commands_out, {"version": 1, "commands": commands})
-    write_sop_status(sop_status, config.sop_status_out)
     if config.update_candidates:
         update_candidate_library(config.candidate_library, candidates)
+    _write_text(config.report_out, _render_report(result, diagnostics))
+    sop_status = build_sop_status(
+        config.profile_dir,
+        diagnostics,
+        rules,
+        candidates,
+        commands,
+        config.sop_path,
+    )
+    result["sop_status"] = sop_status
+    write_sop_status(sop_status, config.sop_status_out)
     _write_text(config.report_out, _render_report(result, diagnostics))
     return result
 
@@ -84,6 +95,7 @@ def _rerun_profile(config: AgentConfig) -> None:
             news_path=_optional(config.profile_dir / "news.csv"),
             markets_path=_optional(config.profile_dir / "markets.csv"),
             weather_path=_optional(config.profile_dir / "weather_observations.csv"),
+            forecast_path=_optional(config.profile_dir / "forecast_history.csv"),
             factor_out=config.profile_dir / "factor_table.parquet",
             strategy_out=config.profile_dir / "strategy_config.json",
             report_out=config.profile_dir / "report.md",

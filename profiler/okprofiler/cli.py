@@ -12,6 +12,7 @@ from .data_sources import (
 )
 from .pipeline import ProfilerConfig, run_profiler
 from .weather_sources import fetch_open_meteo_archive
+from .weather_sources import fetch_open_meteo_forecast_history
 
 
 def main() -> None:
@@ -64,6 +65,14 @@ def main() -> None:
         )
         print(json.dumps({"weather_rows": rows, "out": args.out}, indent=2))
         return
+    if args.command == "fetch-weather-forecast-history":
+        rows = fetch_open_meteo_forecast_history(
+            profile_dir=Path(args.profile_dir),
+            locations_csv=Path(args.locations_csv),
+            out=Path(args.out),
+        )
+        print(json.dumps({"forecast_rows": rows, "out": args.out}, indent=2))
+        return
     if args.command == "agent":
         agent(args)
         return
@@ -79,6 +88,7 @@ def profile(args) -> None:
             news_path=Path(args.news) if args.news else None,
             markets_path=Path(args.markets) if args.markets else None,
             weather_path=Path(args.weather) if args.weather else None,
+            forecast_path=Path(args.forecast) if args.forecast else None,
             factor_out=Path(args.factor_out) if args.factor_out else None,
             strategy_out=Path(args.strategy_out) if args.strategy_out else None,
             report_out=Path(args.report_out) if args.report_out else None,
@@ -120,6 +130,10 @@ def agent(args) -> None:
             update_candidates=args.update_candidates,
             research_engines=_parse_engines(args.research_engines),
             min_samples=args.min_samples,
+            trades_limit=args.trades_limit,
+            trades_max_offset=args.trades_max_offset,
+            gamma_limit=args.gamma_limit,
+            gamma_max_offset=args.gamma_max_offset,
         )
     )
     print(json.dumps(result, indent=2))
@@ -186,6 +200,10 @@ def parse_args():
     research_user_parser.add_argument("--update-candidates", action="store_true")
     research_user_parser.add_argument("--launch-watch-clob", action="store_true")
     research_user_parser.add_argument("--min-samples", type=int, default=5)
+    research_user_parser.add_argument("--trades-limit", type=int, default=500)
+    research_user_parser.add_argument("--trades-max-offset", type=int, default=5000)
+    research_user_parser.add_argument("--gamma-limit", type=int, default=500)
+    research_user_parser.add_argument("--gamma-max-offset", type=int, default=5000)
     research_user_parser.add_argument(
         "--research-engines",
         default="core,alphalens,shap,stumpy,agent",
@@ -198,6 +216,10 @@ def parse_args():
     weather.add_argument("--profile-dir", default="data/profiler")
     weather.add_argument("--locations-csv", default="config/weather_locations.csv")
     weather.add_argument("--out", default="data/profiler/weather_observations.csv")
+    forecast = subparsers.add_parser("fetch-weather-forecast-history")
+    forecast.add_argument("--profile-dir", default="data/profiler")
+    forecast.add_argument("--locations-csv", default="config/weather_locations.csv")
+    forecast.add_argument("--out", default="data/profiler/forecast_history.csv")
     agent_parser = subparsers.add_parser("agent")
     agent_parser.add_argument("--profile-dir", default="data/profiler")
     agent_parser.add_argument("--db", default="data/oktrader.sqlite")
@@ -216,6 +238,10 @@ def parse_args():
     agent_parser.add_argument("--launch-watch-clob", action="store_true")
     agent_parser.add_argument("--update-candidates", action="store_true")
     agent_parser.add_argument("--min-samples", type=int, default=5)
+    agent_parser.add_argument("--trades-limit", type=int, default=500)
+    agent_parser.add_argument("--trades-max-offset", type=int, default=5000)
+    agent_parser.add_argument("--gamma-limit", type=int, default=500)
+    agent_parser.add_argument("--gamma-max-offset", type=int, default=5000)
     agent_parser.add_argument(
         "--research-engines",
         default="core,alphalens,shap,stumpy,agent",
@@ -234,6 +260,7 @@ def _add_profile_args(parser):
     parser.add_argument("--news")
     parser.add_argument("--markets")
     parser.add_argument("--weather")
+    parser.add_argument("--forecast")
     parser.add_argument("--out", default="data/profiler/rules.json")
     parser.add_argument("--factor-out", default="data/profiler/factor_table.parquet")
     parser.add_argument("--strategy-out", default="data/profiler/strategy_config.json")

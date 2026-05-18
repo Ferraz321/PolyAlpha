@@ -8,6 +8,7 @@ import polars as pl
 
 
 OPEN_METEO_ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"
+OPEN_METEO_HISTORICAL_FORECAST_URL = "https://historical-forecast-api.open-meteo.com/v1/forecast"
 
 
 def fetch_open_meteo_archive(profile_dir: Path, locations_csv: Path, out: Path) -> int:
@@ -29,6 +30,25 @@ def fetch_open_meteo_archive(profile_dir: Path, locations_csv: Path, out: Path) 
     return len(rows)
 
 
+def fetch_open_meteo_forecast_history(profile_dir: Path, locations_csv: Path, out: Path) -> int:
+    locations = _read_locations(locations_csv)
+    factor_table = profile_dir / "factor_table.parquet"
+    if not factor_table.exists():
+        raise SystemExit(f"missing factor table: {factor_table}")
+    df = pl.read_parquet(factor_table)
+    if not {"weather_city", "timestamp"}.issubset(set(df.columns)):
+        raise SystemExit("factor table does not contain weather_city/timestamp")
+    rows = []
+    for city, window in _trade_windows(df).items():
+        if city not in locations:
+            rows.append({"city": city, "timestamp": window["start"], "status": "missing_coordinates"})
+            continue
+        lat, lon = locations[city]
+        rows.extend(_fetch_forecast_city(city, lat, lon, window["start"], window["end"]))
+    _write_forecast_rows(out, rows)
+    return len(rows)
+
+
 def _city_windows(df: pl.DataFrame) -> dict[str, dict[str, str]]:
     windows = (
         df.filter(pl.col("weather_city").is_not_null() & pl.col("weather_event_date").is_not_null())
@@ -39,6 +59,20 @@ def _city_windows(df: pl.DataFrame) -> dict[str, dict[str, str]]:
     for row in windows.iter_rows(named=True):
         start = str(row["start"])
         end = str(row["end"])
+        out[str(row["weather_city"]).lower()] = {"start": start, "end": end}
+    return out
+
+
+def _trade_windows(df: pl.DataFrame) -> dict[str, dict[str, str]]:
+    windows = (
+        df.filter(pl.col("weather_city").is_not_null() & pl.col("timestamp").is_not_null())
+        .group_by("weather_city")
+        .agg([pl.col("timestamp").min().alias("start"), pl.col("timestamp").max().alias("end")])
+    )
+    out = {}
+    for row in windows.iter_rows(named=True):
+        start = str(row["start"])[:10]
+        end = str(row["end"])[:10]
         out[str(row["weather_city"]).lower()] = {"start": start, "end": end}
     return out
 
@@ -66,6 +100,35 @@ def _fetch_city(city: str, lat: float, lon: float, start: str, end: str) -> list
             "timestamp": timestamp,
             "temperature_f": temp,
             "source": "open-meteo-archive",
+            "status": "ok",
+        }
+        for timestamp, temp in zip(times, temps)
+    ]
+
+
+def _fetch_forecast_city(city: str, lat: float, lon: float, start: str, end: str) -> list[dict]:
+    query = urlencode(
+        {
+            "latitude": lat,
+            "longitude": lon,
+            "start_date": start,
+            "end_date": end,
+            "hourly": "temperature_2m",
+            "temperature_unit": "fahrenheit",
+            "timezone": "UTC",
+        }
+    )
+    with urlopen(f"{OPEN_METEO_HISTORICAL_FORECAST_URL}?{query}", timeout=30) as response:
+        payload = json.loads(response.read().decode("utf-8"))
+    hourly = payload.get("hourly", {})
+    times = hourly.get("time", [])
+    temps = hourly.get("temperature_2m", [])
+    return [
+        {
+            "city": city,
+            "timestamp": timestamp,
+            "forecast_temp_f": temp,
+            "source": "open-meteo-historical-forecast",
             "status": "ok",
         }
         for timestamp, temp in zip(times, temps)
@@ -106,6 +169,16 @@ def _read_locations(path: Path) -> dict[str, tuple[float, float]]:
 def _write_rows(path: Path, rows: list[dict]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     fields = ["city", "event_date", "actual_high_temp_f", "source", "status"]
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer.writeheader()
+        for row in rows:
+            writer.writerow({field: row.get(field) for field in fields})
+
+
+def _write_forecast_rows(path: Path, rows: list[dict]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fields = ["city", "timestamp", "forecast_temp_f", "source", "status"]
     with path.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=fields)
         writer.writeheader()

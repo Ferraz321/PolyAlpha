@@ -34,6 +34,12 @@ PROFILE_COLUMNS = [
     "actual_temp_distance_to_bucket",
     "actual_temp_inside_bucket",
     "actual_temp_error_to_mid_f",
+    "forecast_temp_f",
+    "forecast_error_to_bucket",
+    "forecast_inside_bucket",
+    "forecast_delta_1h",
+    "forecast_delta_6h",
+    "forecast_volatility",
 ]
 
 

@@ -37,16 +37,18 @@ a research idea into production.
 | `actual_temp_distance_to_bucket` | weather observations | Actual daily high distance from the traded bucket. | No | active |
 | `actual_temp_inside_bucket` | weather observations | Whether actual daily high landed inside the traded bucket. | No | active |
 | `actual_temp_error_to_mid_f` | weather observations | Actual daily high minus bucket midpoint. | No | active |
+| `forecast_temp_f` | weather forecast history | Historical forecast temperature aligned before wallet fill. | No | active |
+| `forecast_error_to_bucket` | weather forecast history | Forecast temperature distance from traded bucket. | No | active |
+| `forecast_inside_bucket` | weather forecast history | Whether forecast temperature was inside traded bucket. | No | active |
+| `forecast_delta_1h` | weather forecast history | One-hour forecast temperature revision. | No | active |
+| `forecast_delta_6h` | weather forecast history | Six-hour forecast temperature revision. | No | active |
+| `forecast_volatility` | weather forecast history | Short-window forecast temperature volatility. | No | active |
 
 ## Candidate Factors To Add
 
 | Candidate | Required Data | Why It Matters |
 | --- | --- | --- |
 | `sector_concentration` | markets | Detect information edge limited to domains. |
-| `forecast_error_to_bucket` | external weather | Compare forecast temperature to traded bucket. |
-| `forecast_delta_1h` | external weather | Detect forecast revisions shortly before entry. |
-| `forecast_delta_6h` | external weather | Detect larger weather model revision windows. |
-| `forecast_inside_bucket` | external weather | Check whether forecast already lands inside the traded bucket. |
 | `model_disagreement` | external weather | Compare multiple forecast models for mispricing. |
 | `market_breadth_rate` | fills | Separate broad stat-arb from narrow sniping. |
 | `entry_before_move_secs` | CLOB/future price | Measures whether wallet enters before price moves. |

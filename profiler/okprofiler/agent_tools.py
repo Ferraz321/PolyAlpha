@@ -6,6 +6,7 @@ from pathlib import Path
 
 from .data_sources import assets_from_fills, fetch_gamma_markets, fetch_user_trades
 from .pipeline import ProfilerConfig, run_profiler
+from .agent_weather import fetch_weather_context, has_weather_category
 
 
 @dataclass
@@ -40,6 +41,8 @@ class AgentToolConfig:
     gamma_max_offset: int = 5000
     min_samples: int = 5
     research_engines: list[str] = field(default_factory=list)
+    auto_weather_context: bool = True
+    weather_locations_csv: Path = Path("config/weather_locations.csv")
 
 
 def run_agent_tools(config: AgentToolConfig) -> dict:
@@ -59,27 +62,15 @@ def run_agent_tools(config: AgentToolConfig) -> dict:
         )
         runs.append(ToolRun("fetch-gamma-markets", ["python", "fetch-gamma-markets"], "ok", stdout=f"rows={rows}"))
     if config.run_profile:
-        rules = run_profiler(
-            ProfilerConfig(
-                fills_path=config.profile_dir / "fills.csv",
-                clob_path=config.profile_dir / "clob_events.csv",
-                news_path=_optional(config.profile_dir / "news.csv"),
-                markets_path=_optional(config.profile_dir / "markets.csv"),
-                weather_path=_optional(config.profile_dir / "weather_observations.csv"),
-                factor_out=config.profile_dir / "factor_table.parquet",
-                strategy_out=config.profile_dir / "strategy_config.json",
-                report_out=config.profile_dir / "report.md",
-                html_out=config.profile_dir / "report.html",
-                diagnostics_out=config.profile_dir / "diagnostics.json",
-                factor_summary_out=config.profile_dir / "factor_summary.md",
-                factor_log_out=config.profile_dir / "factor_research_log.md",
-                lookback_secs=60,
-                min_samples=config.min_samples,
-                research_engines=config.research_engines,
-            )
-        )
-        (config.profile_dir / "rules.json").write_text(json.dumps(rules, indent=2), encoding="utf-8")
+        rules = _run_profile(config)
         runs.append(ToolRun("python-profile", ["python", "profile"], "ok"))
+        if config.auto_weather_context and has_weather_category(rules):
+            weather_runs = fetch_weather_context(config.profile_dir, config.weather_locations_csv, rules)
+            for run in weather_runs:
+                runs.append(ToolRun(run.name, ["python", run.name], "ok", stdout=f"rows={run.rows}"))
+            if weather_runs:
+                rules = _run_profile(config)
+                runs.append(ToolRun("python-profile-after-weather", ["python", "profile"], "ok"))
     asset_rows = assets_from_fills(
         fills=config.profile_dir / "fills.csv",
         out=config.profile_dir / "clob_assets.txt",
@@ -96,75 +87,29 @@ def run_agent_tools(config: AgentToolConfig) -> dict:
     }
 
 
-def next_commands(profile_dir: Path, db: Path, diagnostics: dict, candidates: list[dict]) -> list[dict]:
-    commands = []
-    sources = diagnostics.get("sources", {})
-    if not sources.get("clob_features", {}).get("ready", False):
-        commands.append(
-            {
-                "reason": "collect live CLOB snapshots for traded assets",
-                "command": [
-                    "cargo",
-                    "run",
-                    "--",
-                    "watch-clob",
-                    "--db",
-                    str(db),
-                    "--assets-file",
-                    str(profile_dir / "clob_assets.txt"),
-                ],
-            }
+def _run_profile(config: AgentToolConfig) -> dict:
+    rules = run_profiler(
+        ProfilerConfig(
+            fills_path=config.profile_dir / "fills.csv",
+            clob_path=config.profile_dir / "clob_events.csv",
+            news_path=_optional(config.profile_dir / "news.csv"),
+            markets_path=_optional(config.profile_dir / "markets.csv"),
+            weather_path=_optional(config.profile_dir / "weather_observations.csv"),
+            forecast_path=_optional(config.profile_dir / "forecast_history.csv"),
+            factor_out=config.profile_dir / "factor_table.parquet",
+            strategy_out=config.profile_dir / "strategy_config.json",
+            report_out=config.profile_dir / "report.md",
+            html_out=config.profile_dir / "report.html",
+            diagnostics_out=config.profile_dir / "diagnostics.json",
+            factor_summary_out=config.profile_dir / "factor_summary.md",
+            factor_log_out=config.profile_dir / "factor_research_log.md",
+            lookback_secs=60,
+            min_samples=config.min_samples,
+            research_engines=config.research_engines,
         )
-    needs_observations = any(item.get("required_data") == "external_weather_observation" for item in candidates)
-    weather_ready = diagnostics.get("sources", {}).get("weather_observations", {}).get("ready", False)
-    if needs_observations and not weather_ready:
-        commands.append(
-            {
-                "reason": "fetch external weather observations for actual-temperature factors",
-                "command": [
-                    "python",
-                    "profiler/profile_wallets.py",
-                    "fetch-weather-open-meteo",
-                    "--profile-dir",
-                    str(profile_dir),
-                    "--locations-csv",
-                    "config/weather_locations.csv",
-                    "--out",
-                    str(profile_dir / "weather_observations.csv"),
-                ],
-                "status": "planned",
-            }
-        )
-    if any(item.get("required_data") == "external_weather_forecast" for item in candidates):
-        commands.append(
-            {
-                "reason": "implement/fetch forecast history adapter for forecast-error factors",
-                "command": [
-                    "python",
-                    "profiler/profile_wallets.py",
-                    "fetch-weather-forecast-history",
-                    "--profile-dir",
-                    str(profile_dir),
-                ],
-                "status": "planned",
-            }
-        )
-    commands.append(
-        {
-            "reason": "rerun full agent loop after adding data",
-            "command": [
-                "python",
-                "profiler/profile_wallets.py",
-                "agent",
-                "--profile-dir",
-                str(profile_dir),
-                "--db",
-                str(db),
-                "--run-tools",
-            ],
-        }
     )
-    return commands
+    (config.profile_dir / "rules.json").write_text(json.dumps(rules, indent=2), encoding="utf-8")
+    return rules
 
 
 def update_candidate_library(path: Path, candidates: list[dict]) -> None:

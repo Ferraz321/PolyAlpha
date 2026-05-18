@@ -19,6 +19,7 @@ class ProfilerConfig:
     news_path: Path | None
     markets_path: Path | None
     weather_path: Path | None
+    forecast_path: Path | None
     factor_out: Path | None
     strategy_out: Path | None
     report_out: Path | None
@@ -42,6 +43,7 @@ def run_profiler(config: ProfilerConfig) -> dict:
     joined = attach_market_metadata(joined, config.markets_path)
     factor_table = add_derived_factors(build_factor_table(joined))
     factor_table = attach_weather_observations(factor_table, config.weather_path)
+    factor_table = attach_weather_forecasts(factor_table, config.forecast_path)
     factor_table = add_derived_factors(factor_table)
     if config.factor_out is not None:
         config.factor_out.parent.mkdir(parents=True, exist_ok=True)
@@ -54,6 +56,7 @@ def run_profiler(config: ProfilerConfig) -> dict:
         news_path=config.news_path,
         markets_path=config.markets_path,
         weather_path=config.weather_path,
+        forecast_path=config.forecast_path,
     )
     if config.diagnostics_out is not None:
         write_diagnostics(diagnostics, config.diagnostics_out)
@@ -191,6 +194,37 @@ def attach_weather_observations(joined: pl.DataFrame, weather_path: Path | None)
         ]
     ).unique(["weather_city", "weather_event_date"])
     return joined.join(daily, on=["weather_city", "weather_event_date"], how="left")
+
+
+def attach_weather_forecasts(joined: pl.DataFrame, forecast_path: Path | None) -> pl.DataFrame:
+    required = {"weather_city", "timestamp"}
+    if forecast_path is None or not forecast_path.exists() or not required.issubset(set(joined.columns)):
+        return joined
+    forecasts = pl.read_csv(
+        forecast_path,
+        try_parse_dates=True,
+        schema_overrides={"city": pl.Utf8},
+    )
+    if not {"city", "timestamp", "forecast_temp_f"}.issubset(set(forecasts.columns)):
+        return joined
+    hourly = forecasts.select(
+        [
+            pl.col("city").str.to_lowercase().alias("forecast_city"),
+            pl.col("timestamp").dt.replace_time_zone("UTC").alias("forecast_timestamp"),
+            pl.col("forecast_temp_f").cast(pl.Float64),
+            pl.col("source").cast(pl.Utf8).alias("forecast_source"),
+        ]
+    ).sort(["forecast_city", "forecast_timestamp"])
+    return joined.sort(["weather_city", "timestamp"]).join_asof(
+        hourly,
+        left_on="timestamp",
+        right_on="forecast_timestamp",
+        by_left="weather_city",
+        by_right="forecast_city",
+        strategy="backward",
+        tolerance="6h",
+        check_sortedness=False,
+    )
 
 
 def build_factor_table(joined: pl.DataFrame) -> pl.DataFrame:
