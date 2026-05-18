@@ -1,0 +1,187 @@
+{
+  "version": 1,
+  "candidates": [
+    {
+      "factor": "actual_temp_distance_to_bucket",
+      "status": "candidate",
+      "priority": 1,
+      "required_data": "external_weather_observation",
+      "market_categories": [
+        "weather_temperature"
+      ],
+      "wallets": [
+        "0x331bf91c132af9d921e1908ca0979363fc47193f"
+      ],
+      "reason": "needed by weather temperature specialist to test whether the observed specialization is a reusable edge"
+    },
+    {
+      "factor": "forecast_error_to_bucket",
+      "status": "candidate",
+      "priority": 1,
+      "required_data": "external_weather_forecast",
+      "market_categories": [
+        "weather_temperature"
+      ],
+      "wallets": [
+        "0x331bf91c132af9d921e1908ca0979363fc47193f"
+      ],
+      "reason": "needed by weather temperature specialist to test whether the observed specialization is a reusable edge"
+    },
+    {
+      "factor": "forecast_delta_1h",
+      "status": "candidate",
+      "priority": 2,
+      "required_data": "external_weather_forecast",
+      "market_categories": [
+        "weather_temperature"
+      ],
+      "wallets": [
+        "0x331bf91c132af9d921e1908ca0979363fc47193f"
+      ],
+      "reason": "needed by weather temperature specialist to test whether the observed specialization is a reusable edge"
+    },
+    {
+      "factor": "forecast_delta_6h",
+      "status": "candidate",
+      "priority": 2,
+      "required_data": "external_weather_forecast",
+      "market_categories": [
+        "weather_temperature"
+      ],
+      "wallets": [
+        "0x331bf91c132af9d921e1908ca0979363fc47193f"
+      ],
+      "reason": "needed by weather temperature specialist to test whether the observed specialization is a reusable edge"
+    },
+    {
+      "factor": "forecast_inside_bucket",
+      "status": "candidate",
+      "priority": 2,
+      "required_data": "external_weather_forecast",
+      "market_categories": [
+        "weather_temperature"
+      ],
+      "wallets": [
+        "0x331bf91c132af9d921e1908ca0979363fc47193f"
+      ],
+      "reason": "needed by weather temperature specialist to test whether the observed specialization is a reusable edge"
+    },
+    {
+      "factor": "forecast_temp_f",
+      "status": "candidate",
+      "priority": 2,
+      "required_data": "external_weather_forecast",
+      "market_categories": [
+        "weather_temperature"
+      ],
+      "wallets": [
+        "0x331bf91c132af9d921e1908ca0979363fc47193f"
+      ],
+      "reason": "needed by weather temperature specialist to test whether the observed specialization is a reusable edge"
+    },
+    {
+      "factor": "forecast_volatility",
+      "status": "candidate",
+      "priority": 2,
+      "required_data": "external_weather_forecast",
+      "market_categories": [
+        "weather_temperature"
+      ],
+      "wallets": [
+        "0x331bf91c132af9d921e1908ca0979363fc47193f"
+      ],
+      "reason": "needed by weather temperature specialist to test whether the observed specialization is a reusable edge"
+    },
+    {
+      "factor": "model_disagreement",
+      "status": "candidate",
+      "priority": 2,
+      "required_data": "external_weather_forecast",
+      "market_categories": [
+        "weather_temperature"
+      ],
+      "wallets": [
+        "0x331bf91c132af9d921e1908ca0979363fc47193f"
+      ],
+      "reason": "needed by weather temperature specialist to test whether the observed specialization is a reusable edge"
+    },
+    {
+      "factor": "bucket_distance_from_normal",
+      "status": "candidate",
+      "priority": 3,
+      "required_data": "external_weather_forecast",
+      "market_categories": [
+        "weather_temperature"
+      ],
+      "wallets": [
+        "0x331bf91c132af9d921e1908ca0979363fc47193f"
+      ],
+      "reason": "needed by weather temperature specialist to test whether the observed specialization is a reusable edge"
+    },
+    {
+      "factor": "city_specific_pnl",
+      "status": "candidate",
+      "priority": 3,
+      "required_data": "fills_and_settlement",
+      "market_categories": [
+        "weather_temperature"
+      ],
+      "wallets": [
+        "0x331bf91c132af9d921e1908ca0979363fc47193f"
+      ],
+      "reason": "needed by weather temperature specialist to test whether the observed specialization is a reusable edge"
+    },
+    {
+      "factor": "city_specific_win_rate",
+      "status": "candidate",
+      "priority": 3,
+      "required_data": "fills_and_settlement",
+      "market_categories": [
+        "weather_temperature"
+      ],
+      "wallets": [
+        "0x331bf91c132af9d921e1908ca0979363fc47193f"
+      ],
+      "reason": "needed by weather temperature specialist to test whether the observed specialization is a reusable edge"
+    },
+    {
+      "factor": "max_weather_market_pnl_share",
+      "status": "candidate",
+      "priority": 3,
+      "required_data": "factor_table",
+      "market_categories": [
+        "weather_temperature"
+      ],
+      "wallets": [
+        "0x331bf91c132af9d921e1908ca0979363fc47193f"
+      ],
+      "reason": "needed by weather temperature specialist to test whether the observed specialization is a reusable edge"
+    },
+    {
+      "factor": "weather_expectancy",
+      "status": "candidate",
+      "priority": 3,
+      "required_data": "fills_and_settlement",
+      "market_categories": [
+        "weather_temperature"
+      ],
+      "wallets": [
+        "0x331bf91c132af9d921e1908ca0979363fc47193f"
+      ],
+      "reason": "needed by weather temperature specialist to test whether the observed specialization is a reusable edge"
+    },
+    {
+      "factor": "weather_realized_pnl",
+      "status": "candidate",
+      "priority": 3,
+      "required_data": "fills_and_settlement",
+      "market_categories": [
+        "weather_temperature"
+      ],
+      "wallets": [
+        "0x331bf91c132af9d921e1908ca0979363fc47193f"
+      ],
+      "reason": "needed by weather temperature specialist to test whether the observed specialization is a reusable edge"
+    }
+  ]
+}

@@ -23,6 +23,16 @@ The agent consumes only structured artifacts such as `rules.json`,
 proposes new experiments, writes `research_report.md`, and writes a structured
 `candidate_factors.json` backlog.
 
+With `--run-tools`, it also becomes a local orchestrator over both engines:
+
+- Rust: `profile-readiness`, `export-profiler`, `validate-strategy-config`,
+  and optional one-shot `watch-clob`.
+- Python: remote user trade fetch, Gamma market metadata fetch, profiler run,
+  CLOB asset extraction, and deterministic research planning.
+
+The planner writes `next_commands.json` so a later agent loop can decide which
+data source or factor family to add next.
+
 Research matrix engines are coordinated by `okprofiler/research_matrix.py`:
 
 - `core`: row counts, factor registry coverage, market/wallet breadth

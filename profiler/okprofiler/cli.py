@@ -5,6 +5,7 @@ from pathlib import Path
 from .agent import AgentConfig, run_agent
 from .data_sources import assets_from_fills, fetch_gamma_markets, fetch_news_rss, fetch_user_trades
 from .pipeline import ProfilerConfig, run_profiler
+from .weather_sources import fetch_open_meteo_archive
 
 
 def main() -> None:
@@ -39,6 +40,14 @@ def main() -> None:
         )
         print(json.dumps({"asset_rows": rows, "out": args.out}, indent=2))
         return
+    if args.command == "fetch-weather-open-meteo":
+        rows = fetch_open_meteo_archive(
+            profile_dir=Path(args.profile_dir),
+            locations_csv=Path(args.locations_csv),
+            out=Path(args.out),
+        )
+        print(json.dumps({"weather_rows": rows, "out": args.out}, indent=2))
+        return
     if args.command == "agent":
         agent(args)
         return
@@ -72,6 +81,9 @@ def profile(args) -> None:
 
 def agent(args) -> None:
     profile_dir = Path(args.profile_dir)
+    wallet_pool = args.wallet_pool
+    if wallet_pool is None and (profile_dir / "wallet_pool.txt").exists():
+        wallet_pool = str(profile_dir / "wallet_pool.txt")
     result = run_agent(
         AgentConfig(
             profile_dir=profile_dir,
@@ -79,7 +91,14 @@ def agent(args) -> None:
             diagnostics_path=Path(args.diagnostics) if args.diagnostics else profile_dir / "diagnostics.json",
             report_out=Path(args.report_out) if args.report_out else profile_dir / "research_report.md",
             candidates_out=Path(args.candidates_out) if args.candidates_out else profile_dir / "candidate_factors.json",
+            next_commands_out=Path(args.next_commands_out) if args.next_commands_out else profile_dir / "next_commands.json",
+            candidate_library=Path(args.candidate_library),
+            db=Path(args.db),
+            wallets=_parse_wallets(args.wallet, wallet_pool),
             rerun_profile=args.rerun_profile,
+            run_tools=args.run_tools,
+            launch_watch_clob=args.launch_watch_clob,
+            update_candidates=args.update_candidates,
             research_engines=_parse_engines(args.research_engines),
             min_samples=args.min_samples,
         )
@@ -109,13 +128,25 @@ def parse_args():
     assets.add_argument("--fills", default="data/profiler/fills.csv")
     assets.add_argument("--out", default="data/clob_assets.txt")
     assets.add_argument("--limit", type=int)
+    weather = subparsers.add_parser("fetch-weather-open-meteo")
+    weather.add_argument("--profile-dir", default="data/profiler")
+    weather.add_argument("--locations-csv", default="config/weather_locations.csv")
+    weather.add_argument("--out", default="data/profiler/weather_observations.csv")
     agent_parser = subparsers.add_parser("agent")
     agent_parser.add_argument("--profile-dir", default="data/profiler")
+    agent_parser.add_argument("--db", default="data/oktrader.sqlite")
+    agent_parser.add_argument("--wallet", action="append", default=[])
+    agent_parser.add_argument("--wallet-pool")
     agent_parser.add_argument("--rules")
     agent_parser.add_argument("--diagnostics")
     agent_parser.add_argument("--report-out")
     agent_parser.add_argument("--candidates-out")
+    agent_parser.add_argument("--next-commands-out")
+    agent_parser.add_argument("--candidate-library", default="docs/candidate_factors.json")
     agent_parser.add_argument("--rerun-profile", action="store_true")
+    agent_parser.add_argument("--run-tools", action="store_true")
+    agent_parser.add_argument("--launch-watch-clob", action="store_true")
+    agent_parser.add_argument("--update-candidates", action="store_true")
     agent_parser.add_argument("--min-samples", type=int, default=5)
     agent_parser.add_argument(
         "--research-engines",
@@ -153,3 +184,16 @@ def _add_profile_args(parser):
 
 def _parse_engines(raw: str) -> list[str]:
     return [item.strip() for item in raw.split(",") if item.strip()]
+
+
+def _parse_wallets(raw_wallets: list[str], wallet_pool: str | None) -> list[str]:
+    wallets = list(raw_wallets or [])
+    if wallet_pool:
+        path = Path(wallet_pool)
+        if path.exists():
+            wallets.extend(
+                line.strip().split(",", 1)[0]
+                for line in path.read_text(encoding="utf-8").splitlines()
+                if line.strip()
+            )
+    return list(dict.fromkeys(wallets))

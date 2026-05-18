@@ -2,6 +2,7 @@ from dataclasses import dataclass
 import json
 from pathlib import Path
 
+from .agent_tools import AgentToolConfig, next_commands, run_agent_tools, update_candidate_library
 from .pipeline import ProfilerConfig, run_profiler
 
 
@@ -12,27 +13,52 @@ class AgentConfig:
     diagnostics_path: Path
     report_out: Path
     candidates_out: Path
+    next_commands_out: Path
+    candidate_library: Path
+    db: Path
+    wallets: list[str]
     rerun_profile: bool
+    run_tools: bool
+    launch_watch_clob: bool
+    update_candidates: bool
     research_engines: list[str]
     min_samples: int
 
 
 def run_agent(config: AgentConfig) -> dict:
-    if config.rerun_profile:
+    tool_result = {}
+    if config.run_tools:
+        tool_result = run_agent_tools(
+            AgentToolConfig(
+                profile_dir=config.profile_dir,
+                db=config.db,
+                wallets=config.wallets,
+                launch_watch_clob=config.launch_watch_clob,
+                min_samples=config.min_samples,
+                research_engines=config.research_engines,
+            )
+        )
+    elif config.rerun_profile:
         _rerun_profile(config)
     rules = _read_json(config.rules_path)
     diagnostics = _read_json(config.diagnostics_path)
     candidates = _candidate_factors(rules)
+    commands = next_commands(config.profile_dir, config.db, diagnostics, candidates)
     result = {
         "version": 1,
         "profile_dir": str(config.profile_dir),
         "rules_path": str(config.rules_path),
         "diagnostics_path": str(config.diagnostics_path),
+        "tool_result": tool_result,
         "wallets": _wallet_summaries(rules),
         "candidates": candidates,
+        "next_commands": commands,
         "missing_actions": diagnostics.get("missing_actions", []),
     }
     _write_json(config.candidates_out, {"version": 1, "candidates": candidates})
+    _write_json(config.next_commands_out, {"version": 1, "commands": commands})
+    if config.update_candidates:
+        update_candidate_library(config.candidate_library, candidates)
     _write_text(config.report_out, _render_report(result, diagnostics))
     return result
 
@@ -130,6 +156,13 @@ def _render_report(result: dict, diagnostics: dict) -> str:
             f"- `{candidate['factor']}` priority={candidate['priority']} "
             f"required_data={candidate['required_data']}: {candidate['reason']}"
         )
+    lines.extend(["", "## Next Commands", ""])
+    for command in result.get("next_commands", []):
+        lines.append(f"- {command.get('reason')}: `{' '.join(command.get('command', []))}`")
+    if result.get("tool_result", {}).get("runs"):
+        lines.extend(["", "## Tool Runs", ""])
+        for run in result["tool_result"]["runs"]:
+            lines.append(f"- {run['name']}: {run['status']}")
     if result.get("missing_actions"):
         lines.extend(["", "## Missing Actions", ""])
         for action in result["missing_actions"]:

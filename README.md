@@ -334,6 +334,29 @@ The agent is deterministic: it consumes profiler artifacts, market-category
 playbooks, and candidate factor lists. It does not invent evidence; it records
 missing data and the next factors to implement or collect.
 
+Run the full Rust + Python agent tool loop for a wallet:
+
+```bash
+OKTRADER_PROFILE_DIR=data/profiler_beefslayer scripts/agent-research.sh \
+  --wallet 0x331bf91c132af9d921e1908ca0979363fc47193f \
+  --db data/oktrader.sqlite \
+  --run-tools \
+  --update-candidates
+```
+
+That loop runs Rust `profile-readiness`, Rust `export-profiler`, optional
+remote trade fallback, Gamma metadata fetch, Python profiler, CLOB asset
+extraction, Rust `validate-strategy-config`, and then writes
+`research_report.md`, `candidate_factors.json`, and `next_commands.json`.
+For weather accounts, external observation data can be fetched with:
+
+```bash
+python profiler/profile_wallets.py fetch-weather-open-meteo \
+  --profile-dir data/profiler_beefslayer \
+  --locations-csv config/weather_locations.csv \
+  --out data/profiler_beefslayer/weather_observations.csv
+```
+
 ## Core Engine
 
 The implementation focuses on the deterministic quant core:
