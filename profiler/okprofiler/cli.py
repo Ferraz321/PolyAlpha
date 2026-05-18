@@ -62,6 +62,7 @@ def profile(args) -> None:
             clob_path=Path(args.clob),
             news_path=Path(args.news) if args.news else None,
             markets_path=Path(args.markets) if args.markets else None,
+            weather_path=Path(args.weather) if args.weather else None,
             factor_out=Path(args.factor_out) if args.factor_out else None,
             strategy_out=Path(args.strategy_out) if args.strategy_out else None,
             report_out=Path(args.report_out) if args.report_out else None,
@@ -165,6 +166,7 @@ def _add_profile_args(parser):
     parser.add_argument("--clob", default="data/profiler/clob_events.csv")
     parser.add_argument("--news")
     parser.add_argument("--markets")
+    parser.add_argument("--weather")
     parser.add_argument("--out", default="data/profiler/rules.json")
     parser.add_argument("--factor-out", default="data/profiler/factor_table.parquet")
     parser.add_argument("--strategy-out", default="data/profiler/strategy_config.json")

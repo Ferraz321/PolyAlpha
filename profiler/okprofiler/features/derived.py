@@ -4,6 +4,7 @@ from .basic import add_basic_factors
 from .behavior import add_behavior_factors
 from .timing import add_timing_factors
 from .weather import add_weather_factors
+from .weather_observations import add_weather_observation_factors
 
 
 def add_derived_factors(df: pl.DataFrame) -> pl.DataFrame:
@@ -11,4 +12,5 @@ def add_derived_factors(df: pl.DataFrame) -> pl.DataFrame:
     out = add_timing_factors(out)
     out = add_behavior_factors(out)
     out = add_weather_factors(out)
+    out = add_weather_observation_factors(out)
     return out

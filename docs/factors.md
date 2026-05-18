@@ -34,6 +34,9 @@ a research idea into production.
 | `is_low_temp_bucket` | fills | Whether bucket midpoint is at or below 40°F. | No | active |
 | `is_high_temp_bucket` | fills | Whether bucket midpoint is at or above 75°F. | No | active |
 | `is_extreme_temperature_bucket` | fills | Whether bucket midpoint is at or below 32°F or at or above 90°F. | No | active |
+| `actual_temp_distance_to_bucket` | weather observations | Actual daily high distance from the traded bucket. | No | active |
+| `actual_temp_inside_bucket` | weather observations | Whether actual daily high landed inside the traded bucket. | No | active |
+| `actual_temp_error_to_mid_f` | weather observations | Actual daily high minus bucket midpoint. | No | active |
 
 ## Candidate Factors To Add
 
@@ -45,7 +48,6 @@ a research idea into production.
 | `forecast_delta_6h` | external weather | Detect larger weather model revision windows. |
 | `forecast_inside_bucket` | external weather | Check whether forecast already lands inside the traded bucket. |
 | `model_disagreement` | external weather | Compare multiple forecast models for mispricing. |
-| `actual_temp_distance_to_bucket` | external weather | Final realized temperature distance from traded bucket. |
 | `market_breadth_rate` | fills | Separate broad stat-arb from narrow sniping. |
 | `entry_before_move_secs` | CLOB/future price | Measures whether wallet enters before price moves. |
 | `exit_quality` | fills/CLOB | Measures whether unwind exits near favorable BBO. |

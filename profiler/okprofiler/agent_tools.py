@@ -64,6 +64,7 @@ def run_agent_tools(config: AgentToolConfig) -> dict:
                 clob_path=config.profile_dir / "clob_events.csv",
                 news_path=_optional(config.profile_dir / "news.csv"),
                 markets_path=_optional(config.profile_dir / "markets.csv"),
+                weather_path=_optional(config.profile_dir / "weather_observations.csv"),
                 factor_out=config.profile_dir / "factor_table.parquet",
                 strategy_out=config.profile_dir / "strategy_config.json",
                 report_out=config.profile_dir / "report.md",
@@ -112,10 +113,12 @@ def next_commands(profile_dir: Path, db: Path, diagnostics: dict, candidates: li
                 ],
             }
         )
-    if any(item.get("required_data") == "external_weather_forecast" for item in candidates):
+    needs_observations = any(item.get("required_data") == "external_weather_observation" for item in candidates)
+    weather_ready = diagnostics.get("sources", {}).get("weather_observations", {}).get("ready", False)
+    if needs_observations and not weather_ready:
         commands.append(
             {
-                "reason": "fetch external weather forecast history for weather factors",
+                "reason": "fetch external weather observations for actual-temperature factors",
                 "command": [
                     "python",
                     "profiler/profile_wallets.py",
@@ -126,6 +129,20 @@ def next_commands(profile_dir: Path, db: Path, diagnostics: dict, candidates: li
                     "config/weather_locations.csv",
                     "--out",
                     str(profile_dir / "weather_observations.csv"),
+                ],
+                "status": "planned",
+            }
+        )
+    if any(item.get("required_data") == "external_weather_forecast" for item in candidates):
+        commands.append(
+            {
+                "reason": "implement/fetch forecast history adapter for forecast-error factors",
+                "command": [
+                    "python",
+                    "profiler/profile_wallets.py",
+                    "fetch-weather-forecast-history",
+                    "--profile-dir",
+                    str(profile_dir),
                 ],
                 "status": "planned",
             }

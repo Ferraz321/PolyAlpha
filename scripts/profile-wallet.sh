@@ -64,6 +64,7 @@ echo "[4/5] profile"
   --fills "$OUT_DIR/fills.csv" \
   --clob "$OUT_DIR/clob_events.csv" \
   --markets "$OUT_DIR/markets.csv" \
+  --weather "$OUT_DIR/weather_observations.csv" \
   --out "$OUT_DIR/rules.json" \
   --factor-out "$OUT_DIR/factor_table.parquet" \
   --strategy-out "$OUT_DIR/strategy_config.json" \

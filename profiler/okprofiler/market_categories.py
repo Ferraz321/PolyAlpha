@@ -14,6 +14,9 @@ WEATHER_ACTIVE_FACTORS = [
     "trade_notional",
     "same_market_reentry_count",
     "buy_ratio",
+    "actual_temp_distance_to_bucket",
+    "actual_temp_inside_bucket",
+    "actual_temp_error_to_mid_f",
 ]
 
 
@@ -46,6 +49,12 @@ def infer_market_categories(wallet: dict) -> list[dict]:
         if distributions.get(factor, {}).get("count", 0) > 0
     ]
     missing = [factor for factor in WEATHER_ACTIVE_FACTORS if factor not in available]
+    available_set = set(available)
+    next_candidates = [
+        factor
+        for factor in WEATHER_CANDIDATE_FACTORS
+        if factor not in available_set
+    ]
     return [
         {
             "id": "weather_temperature",
@@ -53,7 +62,7 @@ def infer_market_categories(wallet: dict) -> list[dict]:
             "confidence": min(1.0, ratio),
             "active_factors": available,
             "missing_active_factors": missing,
-            "next_candidate_factors": WEATHER_CANDIDATE_FACTORS,
+            "next_candidate_factors": next_candidates,
             "summary": _weather_summary(distributions),
         }
     ]

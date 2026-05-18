@@ -18,6 +18,7 @@ class ProfilerConfig:
     clob_path: Path
     news_path: Path | None
     markets_path: Path | None
+    weather_path: Path | None
     factor_out: Path | None
     strategy_out: Path | None
     report_out: Path | None
@@ -40,6 +41,8 @@ def run_profiler(config: ProfilerConfig) -> dict:
     joined = attach_news(joined, config.news_path)
     joined = attach_market_metadata(joined, config.markets_path)
     factor_table = add_derived_factors(build_factor_table(joined))
+    factor_table = attach_weather_observations(factor_table, config.weather_path)
+    factor_table = add_derived_factors(factor_table)
     if config.factor_out is not None:
         config.factor_out.parent.mkdir(parents=True, exist_ok=True)
         factor_table.write_parquet(config.factor_out)
@@ -50,6 +53,7 @@ def run_profiler(config: ProfilerConfig) -> dict:
         factor_table=factor_table,
         news_path=config.news_path,
         markets_path=config.markets_path,
+        weather_path=config.weather_path,
     )
     if config.diagnostics_out is not None:
         write_diagnostics(diagnostics, config.diagnostics_out)
@@ -165,6 +169,28 @@ def attach_market_metadata(joined: pl.DataFrame, markets_path: Path | None) -> p
         right_on="asset_id",
         how="left",
     )
+
+
+def attach_weather_observations(joined: pl.DataFrame, weather_path: Path | None) -> pl.DataFrame:
+    required = {"weather_city", "weather_event_date"}
+    if weather_path is None or not weather_path.exists() or not required.issubset(set(joined.columns)):
+        return joined
+    weather = pl.read_csv(
+        weather_path,
+        try_parse_dates=True,
+        schema_overrides={"city": pl.Utf8, "event_date": pl.Utf8},
+    )
+    if not {"city", "event_date", "actual_high_temp_f"}.issubset(set(weather.columns)):
+        return joined
+    daily = weather.select(
+        [
+            pl.col("city").str.to_lowercase().alias("weather_city"),
+            pl.col("event_date").alias("weather_event_date"),
+            pl.col("actual_high_temp_f").cast(pl.Float64),
+            pl.col("source").cast(pl.Utf8),
+        ]
+    ).unique(["weather_city", "weather_event_date"])
+    return joined.join(daily, on=["weather_city", "weather_event_date"], how="left")
 
 
 def build_factor_table(joined: pl.DataFrame) -> pl.DataFrame:

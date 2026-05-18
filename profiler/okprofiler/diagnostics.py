@@ -13,6 +13,7 @@ def build_diagnostics(
     factor_table: pl.DataFrame,
     news_path: Path | None,
     markets_path: Path | None,
+    weather_path: Path | None,
 ) -> dict:
     sources = {
         "fills": _source_status(fills, ["account", "market_id", "timestamp", "side", "price", "shares"]),
@@ -20,6 +21,7 @@ def build_diagnostics(
         "clob_features": _source_status(clob_features, ["asset_id", "received_at", "spread", "ofi"]),
         "news": _file_status(news_path, ["published_at"]),
         "markets": _file_status(markets_path, ["asset_id", "resolution_time"]),
+        "weather_observations": _file_status(weather_path, ["city", "event_date", "actual_high_temp_f"]),
     }
     factors = [_factor_status(spec, factor_table, sources) for spec in FACTOR_SPECS]
     return {
@@ -78,6 +80,8 @@ def _missing_actions(sources: dict, factors: list[dict]) -> list[str]:
         actions.append("run fetch-gamma-markets or provide markets.csv for resolution/sector factors")
     if not sources["news"]["ready"]:
         actions.append("provide news.csv if you want pre-news information-edge evidence")
+    if not sources["weather_observations"]["ready"]:
+        actions.append("run fetch-weather-open-meteo for weather actual-temperature factors")
     if not any(row["available"] for row in factors):
         actions.append("factor table has no usable factors; collect richer CLOB/metadata inputs")
     return actions

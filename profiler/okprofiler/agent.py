@@ -70,6 +70,7 @@ def _rerun_profile(config: AgentConfig) -> None:
             clob_path=config.profile_dir / "clob_events.csv",
             news_path=_optional(config.profile_dir / "news.csv"),
             markets_path=_optional(config.profile_dir / "markets.csv"),
+            weather_path=_optional(config.profile_dir / "weather_observations.csv"),
             factor_out=config.profile_dir / "factor_table.parquet",
             strategy_out=config.profile_dir / "strategy_config.json",
             report_out=config.profile_dir / "report.md",

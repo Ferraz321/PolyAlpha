@@ -1,6 +1,5 @@
 import csv
 import json
-from datetime import timezone
 from pathlib import Path
 from urllib.parse import urlencode
 from urllib.request import urlopen
@@ -22,24 +21,24 @@ def fetch_open_meteo_archive(profile_dir: Path, locations_csv: Path, out: Path) 
     rows = []
     for city, window in _city_windows(df).items():
         if city not in locations:
-            rows.append({"city": city, "status": "missing_coordinates"})
+            rows.append({"city": city, "event_date": window["start"], "status": "missing_coordinates"})
             continue
         lat, lon = locations[city]
-        rows.extend(_fetch_city(city, lat, lon, window["start"], window["end"]))
+        rows.extend(_daily_highs(city, _fetch_city(city, lat, lon, window["start"], window["end"])))
     _write_rows(out, rows)
     return len(rows)
 
 
 def _city_windows(df: pl.DataFrame) -> dict[str, dict[str, str]]:
     windows = (
-        df.filter(pl.col("weather_city").is_not_null())
+        df.filter(pl.col("weather_city").is_not_null() & pl.col("weather_event_date").is_not_null())
         .group_by("weather_city")
-        .agg([pl.col("timestamp").min().alias("start"), pl.col("timestamp").max().alias("end")])
+        .agg([pl.col("weather_event_date").min().alias("start"), pl.col("weather_event_date").max().alias("end")])
     )
     out = {}
     for row in windows.iter_rows(named=True):
-        start = row["start"].replace(tzinfo=timezone.utc).date().isoformat()
-        end = row["end"].replace(tzinfo=timezone.utc).date().isoformat()
+        start = str(row["start"])
+        end = str(row["end"])
         out[str(row["weather_city"]).lower()] = {"start": start, "end": end}
     return out
 
@@ -73,6 +72,25 @@ def _fetch_city(city: str, lat: float, lon: float, start: str, end: str) -> list
     ]
 
 
+def _daily_highs(city: str, rows: list[dict]) -> list[dict]:
+    highs = {}
+    for row in rows:
+        if row.get("status") != "ok" or row.get("temperature_f") is None:
+            continue
+        event_date = str(row["timestamp"])[:10]
+        highs[event_date] = max(float(row["temperature_f"]), highs.get(event_date, float("-inf")))
+    return [
+        {
+            "city": city,
+            "event_date": event_date,
+            "actual_high_temp_f": high,
+            "source": "open-meteo-archive",
+            "status": "ok",
+        }
+        for event_date, high in sorted(highs.items())
+    ]
+
+
 def _read_locations(path: Path) -> dict[str, tuple[float, float]]:
     if not path.exists():
         return {}
@@ -87,7 +105,7 @@ def _read_locations(path: Path) -> dict[str, tuple[float, float]]:
 
 def _write_rows(path: Path, rows: list[dict]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    fields = ["city", "timestamp", "temperature_f", "source", "status"]
+    fields = ["city", "event_date", "actual_high_temp_f", "source", "status"]
     with path.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=fields)
         writer.writeheader()

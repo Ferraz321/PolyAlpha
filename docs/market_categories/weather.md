@@ -33,6 +33,12 @@ This playbook is the required reverse-engineering checklist for wallets whose
 - `same_market_reentry_count`: repeat entries in the same market.
 - `buy_ratio`: buy-side fill ratio.
 
+### Actual Weather Outcome
+
+- `actual_temp_distance_to_bucket`: realized daily high distance from bucket.
+- `actual_temp_inside_bucket`: whether realized daily high landed in bucket.
+- `actual_temp_error_to_mid_f`: realized daily high minus bucket midpoint.
+
 ## Candidate External Weather Factors
 
 - `forecast_temp_f`: forecast temperature at entry time.
@@ -42,7 +48,6 @@ This playbook is the required reverse-engineering checklist for wallets whose
 - `forecast_delta_6h`: six-hour forecast revision.
 - `forecast_volatility`: recent forecast instability.
 - `model_disagreement`: spread between forecast providers/models.
-- `actual_temp_distance_to_bucket`: realized temperature distance from bucket.
 - `bucket_distance_from_normal`: distance from city seasonal normal.
 
 ## Interpretation

@@ -198,7 +198,8 @@ flowchart LR
 | Agent CLI orchestrating Rust + Python tools | Implemented |
 | Agent `next_commands.json` planner and candidate factor backlog | Implemented |
 | Open-Meteo archive fetch entrypoint | Implemented as data adapter |
-| Weather forecast/observation factors in `factor_table` | Planned next |
+| Weather observation factors in `factor_table` | Implemented for actual daily high |
+| Weather forecast factors in `factor_table` | Planned next |
 | Full audit-grade realized PnL from settlement/redemption events | In progress/future hardening |
 | Automatic trading/execution | Not enabled; alert/strategy validation only |
 

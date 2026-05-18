@@ -31,6 +31,9 @@ PROFILE_COLUMNS = [
     "is_low_temp_bucket",
     "is_high_temp_bucket",
     "is_extreme_temperature_bucket",
+    "actual_temp_distance_to_bucket",
+    "actual_temp_inside_bucket",
+    "actual_temp_error_to_mid_f",
 ]
 
 
