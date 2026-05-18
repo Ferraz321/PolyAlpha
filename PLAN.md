@@ -94,10 +94,15 @@ Partially implemented:
    - Merge live events through the same storage boundary.
 
 3. Incremental analysis
-   - Status: pending implementation.
-   - Track dirty wallets from newly inserted fills.
-   - Recompute only changed wallets instead of the full database.
-   - Add wallet lifecycle states: `cold`, `active`, `watchlist`, `matched`, `excluded`.
+   - Status: partial implementation.
+   - [x] Add `dirty_wallets` queue table.
+   - [x] Mark wallets dirty when new fills are inserted.
+   - [x] Analyzer consumes and clears dirty wallet queue.
+   - [x] Add wallet lifecycle states: `cold`, `active`, `watchlist`, `matched`, `excluded`.
+   - [x] Update lifecycle status for matched and stale wallets.
+   - [ ] Recompute only changed wallets instead of full database.
+   - [ ] Add per-wallet fill loading for efficient partial recompute.
+   - [ ] Preserve previous metrics for non-dirty wallets during incremental cycles.
 
 4. Monitoring and strategy research
    - Status: pending implementation.

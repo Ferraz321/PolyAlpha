@@ -27,8 +27,12 @@ pub async fn collector_data_api(args: CollectorDataApiArgs) -> Result<()> {
         let summary = storage.insert_fills(&fills)?;
         let stats = storage.stats()?;
         println!(
-            "collector: inserted_fills={}, new_wallets={}, total_fills={}, total_wallets={}",
-            summary.inserted_fills, summary.new_wallets, stats.fills, stats.wallets
+            "collector: inserted_fills={}, new_wallets={}, total_fills={}, total_wallets={}, dirty_wallets={}",
+            summary.inserted_fills,
+            summary.new_wallets,
+            stats.fills,
+            stats.wallets,
+            stats.dirty_wallets
         );
 
         if args.once {
@@ -47,6 +51,7 @@ pub async fn analyzer(args: AnalyzerArgs) -> Result<()> {
 
     loop {
         let mut storage = Storage::open(&args.db)?;
+        let dirty_wallets = storage.dirty_wallets(10_000)?;
         let fills = storage.load_fills()?;
         let reports = build_reports(fills, false, args.close_loop_alpha)?;
         let matched_reports = filter_reports(&reports, &filters);
@@ -64,6 +69,11 @@ pub async fn analyzer(args: AnalyzerArgs) -> Result<()> {
             |report| &report.metrics.account,
             |report| Ok(serde_json::to_string(report)?),
         )?;
+        for report in &matched_reports {
+            storage.update_wallet_status(&report.metrics.account, "matched")?;
+        }
+        storage.clear_dirty_wallets(&dirty_wallets)?;
+        let lifecycle_updates = storage.refresh_wallet_statuses()?;
 
         fs::write(&args.out_report, serde_json::to_vec_pretty(&reports)?)?;
         fs::write(
@@ -71,8 +81,10 @@ pub async fn analyzer(args: AnalyzerArgs) -> Result<()> {
             serde_json::to_vec_pretty(&matched_reports)?,
         )?;
         println!(
-            "analyzer: wallets={}, reports={}, matched={}, out={}",
+            "analyzer: wallets={}, dirty_consumed={}, lifecycle_updates={}, reports={}, matched={}, out={}",
             storage.stats()?.wallets,
+            dirty_wallets.len(),
+            lifecycle_updates,
             reports.len(),
             matched_reports.len(),
             args.out_matches.display()

@@ -19,6 +19,7 @@ pub struct DbStats {
     pub account_metrics: usize,
     pub matched_accounts: usize,
     pub raw_evm_logs: usize,
+    pub dirty_wallets: usize,
 }
 
 pub struct RawEvmLogRecord {

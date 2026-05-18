@@ -28,6 +28,12 @@ CREATE TABLE IF NOT EXISTS wallets (
     status TEXT NOT NULL DEFAULT 'active'
 );
 
+CREATE TABLE IF NOT EXISTS dirty_wallets (
+    account TEXT PRIMARY KEY,
+    reason TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS account_metrics (
     account TEXT PRIMARY KEY,
     metrics_json TEXT NOT NULL,
