@@ -575,11 +575,26 @@ agent tool loop, and writes the usual profile outputs under
 `data/profiler_<username>/`.
 
 Market semantic parsing is deterministic first. For long-tail titles that do
-not match a stable parser, set `OKTRADER_LLM_MARKET_PARSER` to a command that
-accepts a JSON payload on stdin and returns normalized JSON fields such as
-`weather_city`, `weather_event_date`, `temperature_low_f`,
-`temperature_high_f`, and `temperature_bucket_type`. This keeps fragile parsing
-outside the factor library while still producing numeric factors.
+not match a stable parser, the semantic layer can call an LLM provider and ask
+for normalized JSON fields such as `weather_city`, `weather_event_date`,
+`temperature_low_f`, `temperature_high_f`, and `temperature_bucket_type`. This
+keeps fragile parsing outside the factor library while still producing numeric
+factors.
+
+LLM provider configuration is decoupled in `profiler/okprofiler/llm.py`.
+Default mode is Anthropic-compatible and reads environment variables first,
+then `~/.claude/settings.json`:
+
+```bash
+export OKTRADER_LLM_PROVIDER=anthropic
+export OKTRADER_LLM_BASE_URL="$ANTHROPIC_BASE_URL"
+export OKTRADER_LLM_API_KEY="$ANTHROPIC_AUTH_TOKEN"
+export OKTRADER_LLM_MODEL="${ANTHROPIC_MODEL:-GLM-5.1}"
+```
+
+For custom parsers, `OKTRADER_LLM_MARKET_PARSER` still works. The command must
+accept a JSON payload on stdin and return JSON only. Set
+`OKTRADER_LLM_PROVIDER=off` to disable provider calls entirely.
 
 ## Core Engine
 

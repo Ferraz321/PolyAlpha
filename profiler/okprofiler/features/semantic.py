@@ -2,18 +2,24 @@ import json
 import os
 import subprocess
 
+from ..llm import complete_json
+
 
 _CACHE: dict[str, dict] = {}
 
 
 def parse_market_semantics(row: dict) -> dict:
-    command = os.environ.get("OKTRADER_LLM_MARKET_PARSER")
-    if not command:
-        return {}
     key = _cache_key(row)
     if key in _CACHE:
         return _CACHE[key]
-    payload = {
+    payload = _payload(row)
+    parsed = _parse_with_command(payload) or _parse_with_provider(payload)
+    _CACHE[key] = _clean(parsed)
+    return _CACHE[key]
+
+
+def _payload(row: dict) -> dict:
+    return {
         "instruction": (
             "Parse this Polymarket market into normalized numeric factors. "
             "Return JSON only. Use null when unknown."
@@ -33,6 +39,12 @@ def parse_market_semantics(row: dict) -> dict:
             "outcome": row.get("outcome"),
         },
     }
+
+
+def _parse_with_command(payload: dict) -> dict:
+    command = os.environ.get("OKTRADER_LLM_MARKET_PARSER")
+    if not command:
+        return {}
     try:
         proc = subprocess.run(
             command,
@@ -46,8 +58,17 @@ def parse_market_semantics(row: dict) -> dict:
         parsed = json.loads(proc.stdout) if proc.returncode == 0 and proc.stdout.strip() else {}
     except Exception:
         parsed = {}
-    _CACHE[key] = _clean(parsed)
-    return _CACHE[key]
+    return parsed
+
+
+def _parse_with_provider(payload: dict) -> dict:
+    return complete_json(
+        system=(
+            "You are a strict market semantics parser. Return only compact JSON "
+            "matching the requested schema. Do not add explanations."
+        ),
+        payload=payload,
+    )
 
 
 def _cache_key(row: dict) -> str:
