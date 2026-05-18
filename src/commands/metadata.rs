@@ -5,7 +5,7 @@ use rusqlite::{Connection, params};
 use serde::Deserialize;
 use serde_json::Value;
 
-use crate::cli::SyncMetadataArgs;
+use crate::app::cli::SyncMetadataArgs;
 
 #[derive(Debug)]
 struct TokenMetadata {
@@ -33,7 +33,7 @@ pub async fn sync_metadata(args: SyncMetadataArgs) -> Result<()> {
         std::fs::create_dir_all(parent).context("failed to create db directory")?;
     }
     let conn = Connection::open(&args.db).context("failed to open sqlite database")?;
-    conn.execute_batch(include_str!("../sql/schema.sql"))?;
+    conn.execute_batch(include_str!("../../sql/schema.sql"))?;
     let mut offset = 0usize;
     let mut inserted = 0usize;
 

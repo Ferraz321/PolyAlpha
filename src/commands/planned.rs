@@ -1,7 +1,7 @@
 use anyhow::Result;
 use oktrader_alpha::storage::Storage;
 
-use crate::cli::DbArgs;
+use crate::app::cli::DbArgs;
 
 pub fn watch_live(args: DbArgs) -> Result<()> {
     let storage = Storage::open(&args.db)?;

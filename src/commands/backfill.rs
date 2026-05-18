@@ -4,11 +4,11 @@ use anyhow::{Context, Result};
 use oktrader_alpha::model::FillEvent;
 use oktrader_alpha::storage::Storage;
 
-use crate::backfill_decode::{
+use crate::app::cli::BackfillPolygonArgs;
+use crate::chain::evm_rpc::{EvmLog, EvmRpc};
+use crate::commands::backfill_decode::{
     ORDER_FILLED_SIG, ORDER_FILLED_V2_SIG, decode_order_filled, event_topic,
 };
-use crate::cli::BackfillPolygonArgs;
-use crate::evm_rpc::{EvmLog, EvmRpc};
 
 const NEG_RISK_EXCHANGE: &str = "0xe2222d279d744050d28e00520010520000310F59";
 

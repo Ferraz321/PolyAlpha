@@ -15,6 +15,7 @@ The project keeps all roles in one binary for now. If data volume or operations 
 - One Rust workspace, one CLI binary, multiple role-based subcommands.
 - Keep Rust source files under 300 lines where practical.
 - Put shared logic in modules, not in CLI command handlers.
+- Keep command orchestration under `src/commands`, CLI/report UX under `src/app`, and chain adapters under `src/chain`.
 - SQLite is the local source of truth; JSON/CSV are exports or compatibility paths.
 - `PLAN.md` must be updated whenever a milestone changes.
 
@@ -34,6 +35,7 @@ Implemented:
 - JSON export
 - CSV compatibility path
 - codebase refactor into small modules under 300 lines
+- directory refactor into `app`, `commands`, and `chain`
 
 SQLite tables:
 

@@ -10,7 +10,7 @@ use oktrader_alpha::tagging::{
 };
 use serde::Serialize;
 
-use crate::cli::ReportFilterArgs;
+use crate::app::cli::ReportFilterArgs;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct AccountReport {

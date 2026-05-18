@@ -1,17 +1,10 @@
-mod backfill;
-mod backfill_decode;
-mod cli;
-mod evm_rpc;
-mod legacy_csv;
-mod metadata;
-mod planned;
-mod processes;
-mod report;
-mod taxonomy;
+mod app;
+mod chain;
+mod commands;
 
 use anyhow::Result;
+use app::cli::{Cli, Commands};
 use clap::Parser;
-use cli::{Cli, Commands};
 use tracing_subscriber::EnvFilter;
 
 #[tokio::main]
@@ -21,19 +14,19 @@ async fn main() -> Result<()> {
         .init();
 
     match Cli::parse().command {
-        Commands::InitDb(args) => processes::init_db(args.db),
-        Commands::CollectorDataApi(args) => processes::collector_data_api(args).await,
-        Commands::Analyzer(args) => processes::analyzer(args).await,
-        Commands::Monitor(args) => processes::monitor(args).await,
-        Commands::Export(args) => processes::export_matched(args),
-        Commands::SyncMetadata(args) => metadata::sync_metadata(args).await,
-        Commands::AnalyzeCsv(args) => legacy_csv::analyze_csv(args),
-        Commands::ScanDataApi(args) => legacy_csv::scan_data_api(args).await,
+        Commands::InitDb(args) => commands::processes::init_db(args.db),
+        Commands::CollectorDataApi(args) => commands::processes::collector_data_api(args).await,
+        Commands::Analyzer(args) => commands::processes::analyzer(args).await,
+        Commands::Monitor(args) => commands::processes::monitor(args).await,
+        Commands::Export(args) => commands::processes::export_matched(args),
+        Commands::SyncMetadata(args) => commands::metadata::sync_metadata(args).await,
+        Commands::AnalyzeCsv(args) => commands::legacy_csv::analyze_csv(args),
+        Commands::ScanDataApi(args) => commands::legacy_csv::scan_data_api(args).await,
         Commands::ListTaxonomy => {
-            taxonomy::print_taxonomy();
+            app::taxonomy::print_taxonomy();
             Ok(())
         }
-        Commands::BackfillPolygon(args) => backfill::backfill_polygon(args).await,
-        Commands::WatchLive(args) => planned::watch_live(args),
+        Commands::BackfillPolygon(args) => commands::backfill::backfill_polygon(args).await,
+        Commands::WatchLive(args) => commands::planned::watch_live(args),
     }
 }

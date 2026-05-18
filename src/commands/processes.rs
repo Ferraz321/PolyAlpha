@@ -7,8 +7,8 @@ use oktrader_alpha::model::FillEvent;
 use oktrader_alpha::storage::Storage;
 use oktrader_alpha::storage_types::metric_parts;
 
-use crate::cli::{AnalyzerArgs, CollectorDataApiArgs, ExportArgs, MonitorArgs};
-use crate::report::{build_reports, filter_reports};
+use crate::app::cli::{AnalyzerArgs, CollectorDataApiArgs, ExportArgs, MonitorArgs};
+use crate::app::report::{build_reports, filter_reports};
 
 pub fn init_db(db: std::path::PathBuf) -> Result<()> {
     let storage = Storage::open(&db)?;

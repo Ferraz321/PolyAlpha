@@ -50,6 +50,17 @@ The implementation focuses on the deterministic quant core:
 - capacity, statistical significance, and alpha-generation funnel
 - rule-based account taxonomy for stable alpha wallets, information-edge wallets, market-maker bots, swing traders, one-shot whales, and noise
 
+## Project Layout
+
+```text
+src/app/          CLI args, report filtering, taxonomy text
+src/commands/     command implementations: collector, analyzer, backfill, metadata, CSV compatibility
+src/chain/        EVM JSON-RPC adapter
+src/*.rs          reusable core library modules: model, metrics, storage, tagging, ingestion
+sql/schema.sql    SQLite schema
+tests/fixtures/   historical-log-shaped decoder fixtures
+```
+
 ## CSV Input
 
 `analyze-csv` expects normalized fill rows:

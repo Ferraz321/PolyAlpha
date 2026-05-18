@@ -5,7 +5,7 @@ use oktrader_alpha::storage_types::scale_6;
 use rust_decimal::Decimal;
 use tiny_keccak::{Hasher, Keccak};
 
-use crate::evm_rpc::EvmLog;
+use crate::chain::evm_rpc::EvmLog;
 
 pub const ORDER_FILLED_SIG: &str =
     "OrderFilled(bytes32,address,address,uint256,uint256,uint256,uint256,uint256)";
@@ -218,7 +218,7 @@ mod tests {
     #[test]
     fn decodes_v2_fixture_and_reconstructs_taker() {
         let mut log: EvmLog =
-            serde_json::from_str(include_str!("../tests/fixtures/order_filled_v2.json"))
+            serde_json::from_str(include_str!("../../tests/fixtures/order_filled_v2.json"))
                 .expect("fixture");
         log.topics[0] = event_topic(ORDER_FILLED_V2_SIG);
         log.data = format!(

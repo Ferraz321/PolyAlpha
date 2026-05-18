@@ -10,9 +10,9 @@ use oktrader_alpha::model::FillEvent;
 use serde::Serialize;
 use tracing::info;
 
-use crate::cli::{AnalyzeCsvArgs, ScanDataApiArgs};
-use crate::processes::fetch_data_api_fills;
-use crate::report::{build_reports, filter_reports};
+use crate::app::cli::{AnalyzeCsvArgs, ScanDataApiArgs};
+use crate::app::report::{build_reports, filter_reports};
+use crate::commands::processes::fetch_data_api_fills;
 
 #[derive(Debug, Serialize)]
 struct ScannerStats {
