@@ -10,7 +10,15 @@ One Rust CLI project with three long-running roles:
 
 The project keeps all roles in one binary for now. If data volume or operations demand it, these roles can later split into separate services without changing the database contract.
 
-## Current Milestone
+## Engineering Rules
+
+- One Rust workspace, one CLI binary, multiple role-based subcommands.
+- Keep Rust source files under 300 lines where practical.
+- Put shared logic in modules, not in CLI command handlers.
+- SQLite is the local source of truth; JSON/CSV are exports or compatibility paths.
+- `PLAN.md` must be updated whenever a milestone changes.
+
+## Current Status
 
 Implemented:
 
@@ -25,6 +33,7 @@ Implemented:
 - monitor process
 - JSON export
 - CSV compatibility path
+- codebase refactor into small modules under 300 lines
 
 SQLite tables:
 
@@ -34,30 +43,53 @@ SQLite tables:
 - `matched_accounts`: currently selected smart-money pool
 - `scanner_state`: reserved for collector/analyzer checkpoints
 
+## Command Status
+
+Implemented:
+
+- `init-db`
+- `collector-data-api`
+- `analyzer`
+- `monitor`
+- `export`
+- `scan-data-api`
+- `analyze-csv`
+- `list-taxonomy`
+
+Interface reserved, implementation pending:
+
+- `backfill-polygon`
+- `watch-live`
+
 ## Next Milestones
 
 1. Polygon historical backfill
+   - Status: pending implementation.
    - Add CTFExchange `OrderFilled` ABI decoding.
    - Batch `eth_getLogs` by block range.
    - Persist decoded fills into SQLite with the same dedupe key.
    - Store backfill checkpoint in `scanner_state`.
 
 2. Live collector
+   - Status: pending implementation.
    - Subscribe to Polygon new blocks or poll recent block ranges.
    - Add Polymarket CLOB websocket trade/book ingestion.
    - Merge live events through the same storage boundary.
 
 3. Incremental analysis
+   - Status: pending implementation.
    - Track dirty wallets from newly inserted fills.
    - Recompute only changed wallets instead of the full database.
    - Add wallet lifecycle states: `cold`, `active`, `watchlist`, `matched`, `excluded`.
 
 4. Monitoring and strategy research
+   - Status: pending implementation.
    - Emit smart-money trade alerts.
    - Store wallet watch events.
    - Add strategy reconstruction features: lead time, market breadth, sector concentration, entry-before-move, exit quality.
 
 5. Production storage option
+   - Status: planned.
    - Keep SQLite as local default.
    - Add Postgres for wallet/config state.
    - Add ClickHouse for large tick/order-book and historical log analytics.

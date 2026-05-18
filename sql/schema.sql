@@ -1,0 +1,50 @@
+CREATE TABLE IF NOT EXISTS fills (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    account TEXT NOT NULL,
+    market_id TEXT NOT NULL,
+    condition_id TEXT,
+    event_slug TEXT,
+    sector TEXT,
+    side TEXT NOT NULL,
+    role TEXT NOT NULL,
+    price TEXT NOT NULL,
+    shares TEXT NOT NULL,
+    timestamp TEXT NOT NULL,
+    tx_hash TEXT,
+    order_hash TEXT,
+    stable_key TEXT NOT NULL UNIQUE,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_fills_account ON fills(account);
+CREATE INDEX IF NOT EXISTS idx_fills_timestamp ON fills(timestamp);
+CREATE INDEX IF NOT EXISTS idx_fills_market ON fills(market_id);
+
+CREATE TABLE IF NOT EXISTS wallets (
+    account TEXT PRIMARY KEY,
+    first_seen_at TEXT NOT NULL,
+    last_seen_at TEXT NOT NULL,
+    total_trades INTEGER NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'active'
+);
+
+CREATE TABLE IF NOT EXISTS account_metrics (
+    account TEXT PRIMARY KEY,
+    metrics_json TEXT NOT NULL,
+    classification_json TEXT NOT NULL,
+    passed_funnel INTEGER NOT NULL,
+    failed_reasons_json TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS matched_accounts (
+    account TEXT PRIMARY KEY,
+    report_json TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS scanner_state (
+    name TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
