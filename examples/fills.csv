@@ -1,0 +1,5 @@
+account,market_id,condition_id,event_slug,sector,side,role,price,shares,timestamp,tx_hash,order_hash
+0xalpha,m1,,election-2026,politics,buy,taker,0.40,1000,2026-01-01T00:00:00Z,,
+0xalpha,m1,,election-2026,politics,sell,taker,0.62,950,2026-01-02T00:00:00Z,,
+0xalpha,m2,,rate-cut-2026,macro,buy,maker,0.70,1000,2026-01-03T00:00:00Z,,
+0xalpha,m2,,rate-cut-2026,macro,sell,maker,0.20,1000,2026-01-04T00:00:00Z,,

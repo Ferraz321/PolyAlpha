@@ -1,0 +1,18 @@
+[metrics]
+close_loop_alpha = "0.95"
+
+[funnel]
+min_total_volume = "50000"
+min_avg_trade_size = "1000"
+min_closed_markets = 15
+min_total_pnl = "10000"
+min_win_rate = "0.75"
+
+[ingestion.polymarket]
+clob_ws_url = "wss://ws-subscriptions-clob.polymarket.com/ws/market"
+gamma_base_url = "https://gamma-api.polymarket.com"
+
+[ingestion.polygon]
+rpc_url = "${POLYGON_RPC_URL}"
+ctf_exchange_address = "${CTF_EXCHANGE_ADDRESS}"
+conditional_tokens_address = "${CONDITIONAL_TOKENS_ADDRESS}"
