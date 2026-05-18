@@ -8,7 +8,7 @@ use oktrader_alpha::storage::Storage;
 use oktrader_alpha::storage_types::metric_parts;
 
 use crate::app::cli::{AnalyzerArgs, CollectorDataApiArgs, ExportArgs, MonitorArgs};
-use crate::app::report::{build_reports, filter_reports};
+use crate::app::report::{AccountReport, build_incremental_reports, filter_reports};
 
 pub fn init_db(db: std::path::PathBuf) -> Result<()> {
     let storage = Storage::open(&db)?;
@@ -52,10 +52,12 @@ pub async fn analyzer(args: AnalyzerArgs) -> Result<()> {
     loop {
         let mut storage = Storage::open(&args.db)?;
         let dirty_wallets = storage.dirty_wallets(10_000)?;
-        let fills = storage.load_fills()?;
-        let reports = build_reports(fills, false, args.close_loop_alpha)?;
-        let matched_reports = filter_reports(&reports, &filters);
-
+        let reports = if dirty_wallets.is_empty() {
+            Vec::new()
+        } else {
+            let fills = storage.load_fills_for_wallets(&dirty_wallets)?;
+            build_incremental_reports(fills, args.close_loop_alpha)?
+        };
         storage.replace_account_metrics(&reports, |report| {
             metric_parts(
                 &report.metrics,
@@ -64,6 +66,8 @@ pub async fn analyzer(args: AnalyzerArgs) -> Result<()> {
                 &report.failed_reasons,
             )
         })?;
+        let all_reports = stored_reports(&storage)?;
+        let matched_reports = filter_reports(&all_reports, &filters);
         storage.replace_matched_accounts(
             &matched_reports,
             |report| &report.metrics.account,
@@ -75,7 +79,11 @@ pub async fn analyzer(args: AnalyzerArgs) -> Result<()> {
         storage.clear_dirty_wallets(&dirty_wallets)?;
         let lifecycle_updates = storage.refresh_wallet_statuses()?;
 
-        fs::write(&args.out_report, serde_json::to_vec_pretty(&reports)?)?;
+        let report_export = all_reports
+            .iter()
+            .map(serde_json::to_value)
+            .collect::<Result<Vec<_>, _>>()?;
+        fs::write(&args.out_report, serde_json::to_vec_pretty(&report_export)?)?;
         fs::write(
             &args.out_matches,
             serde_json::to_vec_pretty(&matched_reports)?,
@@ -85,7 +93,7 @@ pub async fn analyzer(args: AnalyzerArgs) -> Result<()> {
             storage.stats()?.wallets,
             dirty_wallets.len(),
             lifecycle_updates,
-            reports.len(),
+            report_export.len(),
             matched_reports.len(),
             args.out_matches.display()
         );
@@ -97,6 +105,14 @@ pub async fn analyzer(args: AnalyzerArgs) -> Result<()> {
     }
 
     Ok(())
+}
+
+fn stored_reports(storage: &Storage) -> Result<Vec<AccountReport>> {
+    storage
+        .load_account_report_json()?
+        .into_iter()
+        .map(|json| serde_json::from_str(&json).map_err(Into::into))
+        .collect()
 }
 
 pub async fn monitor(args: MonitorArgs) -> Result<()> {

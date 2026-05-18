@@ -100,9 +100,9 @@ Partially implemented:
    - [x] Analyzer consumes and clears dirty wallet queue.
    - [x] Add wallet lifecycle states: `cold`, `active`, `watchlist`, `matched`, `excluded`.
    - [x] Update lifecycle status for matched and stale wallets.
-   - [ ] Recompute only changed wallets instead of full database.
-   - [ ] Add per-wallet fill loading for efficient partial recompute.
-   - [ ] Preserve previous metrics for non-dirty wallets during incremental cycles.
+   - [x] Recompute only changed wallets instead of full database.
+   - [x] Add per-wallet fill loading for efficient partial recompute.
+   - [x] Preserve previous metrics for non-dirty wallets during incremental cycles.
 
 4. Monitoring and strategy research
    - Status: pending implementation.

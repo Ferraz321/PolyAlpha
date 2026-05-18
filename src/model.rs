@@ -37,7 +37,7 @@ pub struct FillEvent {
     pub order_hash: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct MarketClosedLoop {
     pub account: String,
     pub market_id: String,
@@ -56,7 +56,7 @@ pub struct MarketClosedLoop {
     pub sectors: Vec<String>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct AccountMetrics {
     pub account: String,
     #[serde(with = "rust_decimal::serde::str")]

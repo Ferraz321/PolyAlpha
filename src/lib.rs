@@ -4,6 +4,7 @@ pub mod metrics;
 pub mod model;
 pub mod storage;
 pub mod storage_logs;
+pub mod storage_metrics;
 pub mod storage_types;
 pub mod storage_wallets;
 pub mod tagging;

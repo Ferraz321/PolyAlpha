@@ -1,10 +1,10 @@
 use clap::ValueEnum;
 use rust_decimal_macros::dec;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::model::AccountMetrics;
 
-#[derive(Debug, Clone, Serialize, PartialEq, Eq, Hash, ValueEnum)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, Hash, ValueEnum)]
 #[serde(rename_all = "snake_case")]
 pub enum SmartMoneyTier {
     CoreSmartMoney,
@@ -13,7 +13,7 @@ pub enum SmartMoneyTier {
     NotSmartMoney,
 }
 
-#[derive(Debug, Clone, Serialize, PartialEq, Eq, Hash, ValueEnum)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, Hash, ValueEnum)]
 #[serde(rename_all = "snake_case")]
 pub enum AccountTag {
     StableAlphaWallet,
@@ -27,7 +27,7 @@ pub enum AccountTag {
     Unclassified,
 }
 
-#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum RiskFlag {
     SmallSample,
@@ -38,7 +38,7 @@ pub enum RiskFlag {
     MakerRatioUnavailableOrLow,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct AccountClassification {
     pub smart_money_tier: SmartMoneyTier,
     pub primary_tag: AccountTag,

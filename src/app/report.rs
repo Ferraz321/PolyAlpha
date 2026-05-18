@@ -8,11 +8,11 @@ use oktrader_alpha::model::FillEvent;
 use oktrader_alpha::tagging::{
     AccountClassification, AccountTag, SmartMoneyTier, classify_profile,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::app::cli::ReportFilterArgs;
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct AccountReport {
     #[serde(flatten)]
     pub metrics: oktrader_alpha::model::AccountMetrics,
@@ -69,6 +69,13 @@ pub fn build_reports(
             })
         })
         .collect())
+}
+
+pub fn build_incremental_reports(
+    fills: Vec<FillEvent>,
+    close_loop_alpha: rust_decimal::Decimal,
+) -> Result<Vec<AccountReport>> {
+    build_reports(fills, false, close_loop_alpha)
 }
 
 pub fn filter_reports<'a>(

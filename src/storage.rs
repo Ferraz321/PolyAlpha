@@ -7,7 +7,7 @@ use rusqlite::{Connection, OptionalExtension, params};
 use rust_decimal::Decimal;
 
 use crate::model::{FillEvent, LiquidityRole, TradeSide};
-use crate::storage_types::{DbStats, MetricParts, stable_fill_key};
+use crate::storage_types::{DbStats, stable_fill_key};
 
 pub struct Storage {
     conn: Connection,
@@ -164,46 +164,6 @@ impl Storage {
 
         rows.collect::<rusqlite::Result<Vec<_>>>()
             .context("failed to load fills")
-    }
-
-    pub fn replace_account_metrics<T>(
-        &mut self,
-        reports: &[T],
-        to_parts: impl Fn(&T) -> Result<MetricParts>,
-    ) -> Result<()> {
-        self.init()?;
-        let tx = self.conn.transaction()?;
-        let updated_at = Utc::now().to_rfc3339();
-
-        for report in reports {
-            let parts = to_parts(report)?;
-            tx.execute(
-                r#"
-                INSERT INTO account_metrics (
-                    account, metrics_json, classification_json, passed_funnel,
-                    failed_reasons_json, updated_at
-                )
-                VALUES (?1, ?2, ?3, ?4, ?5, ?6)
-                ON CONFLICT(account) DO UPDATE SET
-                    metrics_json = excluded.metrics_json,
-                    classification_json = excluded.classification_json,
-                    passed_funnel = excluded.passed_funnel,
-                    failed_reasons_json = excluded.failed_reasons_json,
-                    updated_at = excluded.updated_at
-                "#,
-                params![
-                    parts.account,
-                    parts.metrics_json,
-                    parts.classification_json,
-                    i64::from(parts.passed_funnel),
-                    parts.failed_reasons_json,
-                    updated_at,
-                ],
-            )?;
-        }
-
-        tx.commit()?;
-        Ok(())
     }
 
     pub fn replace_matched_accounts<T>(
