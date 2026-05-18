@@ -5,6 +5,8 @@ Rust toolkit for cross-market Polymarket smart-money mining.
 The project is a single Rust CLI with three production roles:
 
 - `collector-data-api`: continuously collects recent public Polymarket trades.
+- `watch-live`: continuously polls Polygon settlement logs for verified fills.
+- `watch-clob`: continuously archives selected CLOB market websocket events.
 - `analyzer`: continuously computes wallet features and account classifications.
 - `monitor`: continuously watches the classified smart-money pool.
 
@@ -28,6 +30,23 @@ cargo run -- analyzer \
   --interval-secs 60
 
 cargo run -- monitor --db data/oktrader.sqlite --interval-secs 10
+```
+
+Polygon settlement live scanner:
+
+```bash
+cargo run -- watch-live \
+  --db data/oktrader.sqlite \
+  --rpc-url "$POLYGON_RPC_URL" \
+  --include-neg-risk
+```
+
+CLOB microstructure scanner for a token pool:
+
+```bash
+cargo run -- watch-clob \
+  --db data/oktrader.sqlite \
+  --assets-file data/clob_assets.txt
 ```
 
 One-shot local smoke test:
@@ -54,7 +73,7 @@ The implementation focuses on the deterministic quant core:
 
 ```text
 src/app/          CLI args, report filtering, taxonomy text
-src/commands/     command implementations: collector, analyzer, backfill, metadata, CSV compatibility
+src/commands/     command implementations: collector, analyzer, backfill, websocket, metadata, CSV compatibility
 src/chain/        EVM JSON-RPC adapter
 src/*.rs          reusable core library modules: model, metrics, storage, tagging, ingestion
 sql/schema.sql    SQLite schema
@@ -111,6 +130,8 @@ Outputs:
 This scanner uses the public Data API (`https://data-api.polymarket.com/trades`). It is good for continuous discovery. A production-grade build should still add Polygon log replay for settlement-level verification.
 
 `scan-data-api` is the older CSV-compatible scanner. Prefer `collector-data-api` + `analyzer` for ongoing work.
+
+`watch-clob` uses Polymarket's public market websocket. It archives raw book, price, and trade payloads for token IDs listed one per line in `--assets-file`; public CLOB market messages do not identify wallet addresses, so wallet attribution still comes from Polygon settlement logs.
 
 ## CLI Workflow
 

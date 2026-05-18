@@ -23,6 +23,7 @@ pub enum Commands {
     ListTaxonomy,
     BackfillPolygon(BackfillPolygonArgs),
     WatchLive(WatchLiveArgs),
+    WatchClob(WatchClobArgs),
 }
 
 #[derive(Debug, Clone, Args)]
@@ -175,6 +176,25 @@ pub struct WatchLiveArgs {
     pub lookback_blocks: u64,
     #[arg(long, default_value_t = 2000)]
     pub max_blocks_per_cycle: u64,
+    #[arg(long)]
+    pub once: bool,
+}
+
+#[derive(Debug, Clone, Args)]
+pub struct WatchClobArgs {
+    #[arg(long, default_value = "data/oktrader.sqlite")]
+    pub db: PathBuf,
+    #[arg(
+        long,
+        default_value = "wss://ws-subscriptions-clob.polymarket.com/ws/market"
+    )]
+    pub ws_url: String,
+    #[arg(long)]
+    pub assets_file: PathBuf,
+    #[arg(long, default_value_t = 500)]
+    pub chunk_size: usize,
+    #[arg(long, default_value_t = 10)]
+    pub ping_secs: u64,
     #[arg(long)]
     pub once: bool,
 }

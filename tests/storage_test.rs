@@ -1,7 +1,7 @@
 use chrono::TimeZone;
 use oktrader_alpha::model::{FillEvent, LiquidityRole, TradeSide};
 use oktrader_alpha::storage::Storage;
-use oktrader_alpha::storage_types::RawEvmLogRecord;
+use oktrader_alpha::storage_types::{RawClobEventRecord, RawEvmLogRecord};
 use rust_decimal_macros::dec;
 
 #[test]
@@ -24,6 +24,25 @@ fn stores_state_and_dedupes_raw_logs() {
 
     assert_eq!(storage.insert_raw_evm_logs(&[log]).expect("insert"), 1);
     assert_eq!(storage.stats().expect("stats").raw_evm_logs, 1);
+}
+
+#[test]
+fn stores_and_dedupes_raw_clob_events() {
+    let storage = Storage::open(":memory:").expect("open");
+    storage.init().expect("init");
+
+    let event = RawClobEventRecord {
+        channel: "market".to_string(),
+        event_type: Some("book".to_string()),
+        asset_id: Some("123".to_string()),
+        payload: r#"{"event_type":"book","asset_id":"123"}"#.to_string(),
+        received_at: "2026-01-01T00:00:00Z".to_string(),
+        stable_key: "clob-test-key".to_string(),
+    };
+
+    assert!(storage.insert_raw_clob_event(&event).expect("insert"));
+    assert!(!storage.insert_raw_clob_event(&event).expect("dedupe"));
+    assert_eq!(storage.stats().expect("stats").raw_clob_events, 1);
 }
 
 #[test]

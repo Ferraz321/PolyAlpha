@@ -5,6 +5,8 @@
 One Rust CLI project with three long-running roles:
 
 - `collector-data-api`: collects recent public Polymarket trades into SQLite.
+- `watch-live`: polls Polygon settlement logs and appends decoded fills.
+- `watch-clob`: subscribes to Polymarket CLOB market websocket events for selected asset pools.
 - `analyzer`: reads fills from SQLite, computes account metrics, classifies wallets, and maintains the matched smart-money pool.
 - `monitor`: reads matched accounts and prints or exports the current key-wallet set.
 
@@ -45,6 +47,7 @@ SQLite tables:
 - `matched_accounts`: currently selected smart-money pool
 - `scanner_state`: collector/analyzer/live/backfill checkpoints
 - `raw_evm_logs`: deduped raw Polygon logs for replay and decoder audits
+- `raw_clob_events`: deduped market websocket payload archive
 - `dirty_wallets`: incremental analysis queue
 - `market_tokens`: token to market/event metadata mapping
 
@@ -62,6 +65,7 @@ Implemented:
 - `analyze-csv`
 - `list-taxonomy`
 - `watch-live`
+- `watch-clob`
 
 Partially implemented:
 
@@ -96,9 +100,11 @@ Partially implemented:
    - [x] Persist raw live EVM logs into `raw_evm_logs`.
    - [x] Merge live decoded fills through the same SQLite storage boundary.
    - [x] Mark newly touched wallets dirty for incremental analyzer refresh.
-   - [ ] Add Polymarket CLOB websocket trade/book ingestion.
-   - [ ] Add websocket reconnect, heartbeat, and backoff handling.
-   - [ ] Add CLOB order-book feature extraction for maker behavior and BBO placement.
+   - [x] Add Polymarket CLOB market websocket subscription by asset token pool.
+   - [x] Add market websocket `PING` heartbeat.
+   - [x] Persist raw CLOB book/price/trade payloads into `raw_clob_events`.
+   - [ ] Add websocket reconnect and exponential backoff handling.
+   - [ ] Add CLOB order-book feature extraction for OFI, maker behavior, and BBO placement.
 
 3. Incremental analysis
    - Status: partial implementation.

@@ -199,6 +199,7 @@ impl Storage {
             account_metrics: count(&self.conn, "account_metrics")?,
             matched_accounts: count(&self.conn, "matched_accounts")?,
             raw_evm_logs: count(&self.conn, "raw_evm_logs")?,
+            raw_clob_events: count(&self.conn, "raw_clob_events")?,
             dirty_wallets: count(&self.conn, "dirty_wallets")?,
         })
     }

@@ -19,6 +19,7 @@ pub struct DbStats {
     pub account_metrics: usize,
     pub matched_accounts: usize,
     pub raw_evm_logs: usize,
+    pub raw_clob_events: usize,
     pub dirty_wallets: usize,
 }
 
@@ -29,6 +30,15 @@ pub struct RawEvmLogRecord {
     pub log_index: u64,
     pub topic0: Option<String>,
     pub data: String,
+}
+
+pub struct RawClobEventRecord {
+    pub channel: String,
+    pub event_type: Option<String>,
+    pub asset_id: Option<String>,
+    pub payload: String,
+    pub received_at: String,
+    pub stable_key: String,
 }
 
 pub fn metric_parts(

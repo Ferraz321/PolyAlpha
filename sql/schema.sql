@@ -67,6 +67,20 @@ CREATE TABLE IF NOT EXISTS raw_evm_logs (
     UNIQUE(transaction_hash, log_index)
 );
 
+CREATE TABLE IF NOT EXISTS raw_clob_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    channel TEXT NOT NULL,
+    event_type TEXT,
+    asset_id TEXT,
+    payload TEXT NOT NULL,
+    received_at TEXT NOT NULL,
+    stable_key TEXT NOT NULL UNIQUE,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_raw_clob_events_asset ON raw_clob_events(asset_id);
+CREATE INDEX IF NOT EXISTS idx_raw_clob_events_received ON raw_clob_events(received_at);
+
 CREATE TABLE IF NOT EXISTS market_tokens (
     token_id TEXT PRIMARY KEY,
     condition_id TEXT,
