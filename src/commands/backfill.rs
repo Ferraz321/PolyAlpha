@@ -17,11 +17,8 @@ pub async fn backfill_polygon(args: BackfillPolygonArgs) -> Result<()> {
     storage.init()?;
     let rpc = EvmRpc::new(args.rpc_url.clone());
     let end_block = resolve_to_block(&rpc, &args.to_block).await?;
-    let topics = vec![
-        event_topic(ORDER_FILLED_SIG),
-        event_topic(ORDER_FILLED_V2_SIG),
-    ];
-    let exchanges = exchange_addresses(&args);
+    let topics = order_filled_topics();
+    let exchanges = exchange_addresses(&args.ctf_exchange, &args.exchanges, args.include_neg_risk);
     let mut block = args.from_block;
     let mut block_times = HashMap::new();
 
@@ -51,7 +48,7 @@ pub async fn backfill_polygon(args: BackfillPolygonArgs) -> Result<()> {
     Ok(())
 }
 
-async fn fetch_logs(
+pub(crate) async fn fetch_logs(
     rpc: &EvmRpc,
     exchanges: &[String],
     topics: &[String],
@@ -71,18 +68,29 @@ async fn fetch_logs(
     Ok(all_logs)
 }
 
-fn exchange_addresses(args: &BackfillPolygonArgs) -> Vec<String> {
-    let mut exchanges = if args.exchanges.is_empty() {
-        vec![args.ctf_exchange.clone()]
+pub(crate) fn exchange_addresses(
+    ctf_exchange: &str,
+    extra_exchanges: &[String],
+    include_neg_risk: bool,
+) -> Vec<String> {
+    let mut exchanges = if extra_exchanges.is_empty() {
+        vec![ctf_exchange.to_string()]
     } else {
-        args.exchanges.clone()
+        extra_exchanges.to_vec()
     };
-    if args.include_neg_risk {
+    if include_neg_risk {
         exchanges.push(NEG_RISK_EXCHANGE.to_string());
     }
     exchanges.sort();
     exchanges.dedup();
     exchanges
+}
+
+pub(crate) fn order_filled_topics() -> Vec<String> {
+    vec![
+        event_topic(ORDER_FILLED_SIG),
+        event_topic(ORDER_FILLED_V2_SIG),
+    ]
 }
 
 async fn resolve_to_block(rpc: &EvmRpc, to_block: &str) -> Result<u64> {
@@ -93,7 +101,7 @@ async fn resolve_to_block(rpc: &EvmRpc, to_block: &str) -> Result<u64> {
     }
 }
 
-async fn decode_logs(
+pub(crate) async fn decode_logs(
     rpc: &EvmRpc,
     logs: Vec<EvmLog>,
     block_times: &mut HashMap<u64, i64>,

@@ -27,6 +27,6 @@ async fn main() -> Result<()> {
             Ok(())
         }
         Commands::BackfillPolygon(args) => commands::backfill::backfill_polygon(args).await,
-        Commands::WatchLive(args) => commands::planned::watch_live(args),
+        Commands::WatchLive(args) => commands::planned::watch_live(args).await,
     }
 }

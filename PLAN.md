@@ -43,7 +43,10 @@ SQLite tables:
 - `wallets`: discovered wallet universe and activity state
 - `account_metrics`: latest account feature vectors and classifications
 - `matched_accounts`: currently selected smart-money pool
-- `scanner_state`: reserved for collector/analyzer checkpoints
+- `scanner_state`: collector/analyzer/live/backfill checkpoints
+- `raw_evm_logs`: deduped raw Polygon logs for replay and decoder audits
+- `dirty_wallets`: incremental analysis queue
+- `market_tokens`: token to market/event metadata mapping
 
 ## Command Status
 
@@ -58,9 +61,6 @@ Implemented:
 - `scan-data-api`
 - `analyze-csv`
 - `list-taxonomy`
-
-Interface reserved, implementation pending:
-
 - `watch-live`
 
 Partially implemented:
@@ -88,10 +88,17 @@ Partially implemented:
    - [x] Add integration test fixture for historical-log-shaped V2 `OrderFilled`.
 
 2. Live collector
-   - Status: pending implementation.
-   - Subscribe to Polygon new blocks or poll recent block ranges.
-   - Add Polymarket CLOB websocket trade/book ingestion.
-   - Merge live events through the same storage boundary.
+   - Status: partial implementation.
+   - [x] Add live CLI args for RPC URL, exchange set, polling cadence, and lookback window.
+   - [x] Poll Polygon latest block by JSON-RPC.
+   - [x] Maintain `watch_live.next_block` and `watch_live.last_block` scanner state.
+   - [x] Reuse V1/V2 `OrderFilled` decoder from historical backfill.
+   - [x] Persist raw live EVM logs into `raw_evm_logs`.
+   - [x] Merge live decoded fills through the same SQLite storage boundary.
+   - [x] Mark newly touched wallets dirty for incremental analyzer refresh.
+   - [ ] Add Polymarket CLOB websocket trade/book ingestion.
+   - [ ] Add websocket reconnect, heartbeat, and backoff handling.
+   - [ ] Add CLOB order-book feature extraction for maker behavior and BBO placement.
 
 3. Incremental analysis
    - Status: partial implementation.

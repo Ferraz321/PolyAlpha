@@ -22,7 +22,7 @@ pub enum Commands {
     ScanDataApi(ScanDataApiArgs),
     ListTaxonomy,
     BackfillPolygon(BackfillPolygonArgs),
-    WatchLive(DbArgs),
+    WatchLive(WatchLiveArgs),
 }
 
 #[derive(Debug, Clone, Args)]
@@ -153,6 +153,28 @@ pub struct BackfillPolygonArgs {
     pub to_block: String,
     #[arg(long, default_value_t = 5000)]
     pub batch_blocks: u64,
+    #[arg(long)]
+    pub once: bool,
+}
+
+#[derive(Debug, Clone, Args)]
+pub struct WatchLiveArgs {
+    #[arg(long, default_value = "data/oktrader.sqlite")]
+    pub db: PathBuf,
+    #[arg(long)]
+    pub rpc_url: String,
+    #[arg(long, default_value = "0xE111180000d2663C0091e4f400237545B87B996B")]
+    pub ctf_exchange: String,
+    #[arg(long = "exchange")]
+    pub exchanges: Vec<String>,
+    #[arg(long)]
+    pub include_neg_risk: bool,
+    #[arg(long, default_value_t = 15)]
+    pub interval_secs: u64,
+    #[arg(long, default_value_t = 25)]
+    pub lookback_blocks: u64,
+    #[arg(long, default_value_t = 2000)]
+    pub max_blocks_per_cycle: u64,
     #[arg(long)]
     pub once: bool,
 }
