@@ -197,6 +197,20 @@ extracts spread, OFI, depth imbalance, price momentum, and time-to-resolution
 features, and emits human-readable per-wallet threshold rules, a Parquet factor
 table, a reproducibility/coverage report, and a Rust-readable strategy config.
 
+Factor mining is split into small modules:
+
+```text
+profiler/okprofiler/factor_library.py   candidate factor registry
+profiler/okprofiler/miner.py            single/pair factor search and scoring
+profiler/okprofiler/researcher.py       agent-style interpretation and next experiments
+profiler/okprofiler/strategy.py         live-compatible strategy export
+```
+
+`rules.json` keeps both `best_rule` for offline explanation and
+`best_live_rule` for monitor-compatible alerts. This matters because some
+strong research factors, such as distance to BBO, may not yet exist in Rust's
+real-time feature snapshot.
+
 Validate the generated strategy config before using it in monitoring:
 
 ```bash

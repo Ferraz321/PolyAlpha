@@ -3,9 +3,11 @@ from pathlib import Path
 
 import polars as pl
 
+from .factor_library import add_derived_factors
 from .features import extract_clob_features
 from .report import write_reports
-from .rules import infer_wallet_rules, strategy_config_from_rules
+from .rules import infer_wallet_rules
+from .strategy import strategy_config_from_rules
 
 
 @dataclass(frozen=True)
@@ -31,7 +33,7 @@ def run_profiler(config: ProfilerConfig) -> dict:
     joined = join_market_state(fills, features, config.lookback_secs)
     joined = attach_news(joined, config.news_path)
     joined = attach_market_metadata(joined, config.markets_path)
-    factor_table = build_factor_table(joined)
+    factor_table = add_derived_factors(build_factor_table(joined))
     if config.factor_out is not None:
         config.factor_out.parent.mkdir(parents=True, exist_ok=True)
         factor_table.write_parquet(config.factor_out)
