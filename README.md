@@ -316,9 +316,9 @@ For a real overnight run, use the release binary and background scripts:
 
 ```bash
 cp .env.example .env
-scripts/build-release.sh
-scripts/run-vps-stack.sh
-scripts/status.sh
+python scripts/build_release.py
+python scripts/run_vps_stack.py
+python scripts/status.py
 ```
 
 Logs are written to `logs/*.log`, and process ids are written to `run/*.pid`.
@@ -326,7 +326,7 @@ Logs are written to `logs/*.log`, and process ids are written to `run/*.pid`.
 Stop everything:
 
 ```bash
-scripts/stop-vps-stack.sh
+python scripts/stop_vps_stack.py
 ```
 
 If you have a real Polygon RPC URL, edit `.env`:
@@ -371,7 +371,7 @@ gate passes.
 Basic one-wallet workflow:
 
 ```bash
-scripts/profile-wallet.sh 0xYourWallet data/oktrader.sqlite
+python scripts/profile_wallet.py 0xYourWallet data/oktrader.sqlite
 ```
 
 This writes `data/profiler/readiness.json`, `diagnostics.json`, `rules.json`,
@@ -497,7 +497,7 @@ or fetching Gamma markets.
 To start collecting CLOB for a wallet's traded assets:
 
 ```bash
-scripts/watch-wallet-clob.sh 0xYourWallet data/oktrader.sqlite
+python scripts/watch_wallet_clob.py 0xYourWallet data/oktrader.sqlite
 ```
 
 This first profiles the wallet, writes `clob_assets.txt`, then starts
@@ -526,7 +526,7 @@ have reviewed in `strategy_config.json`; monitor runs in alert-only mode.
 Run the local research agent over a completed profile:
 
 ```bash
-OKTRADER_PROFILE_DIR=data/profiler_beefslayer scripts/agent-research.sh
+OKTRADER_PROFILE_DIR=data/profiler_beefslayer python scripts/agent_research.py
 ```
 
 This reads `rules.json` and `diagnostics.json`, then writes
@@ -534,7 +534,7 @@ This reads `rules.json` and `diagnostics.json`, then writes
 profiling pass before the agent reads the artifacts:
 
 ```bash
-OKTRADER_PROFILE_DIR=data/profiler_beefslayer scripts/agent-research.sh --rerun-profile
+OKTRADER_PROFILE_DIR=data/profiler_beefslayer python scripts/agent_research.py --rerun-profile
 ```
 
 The agent is deterministic: it consumes profiler artifacts, market-category
@@ -544,7 +544,7 @@ missing data and the next factors to implement or collect.
 Run the full Rust + Python agent tool loop for a wallet:
 
 ```bash
-OKTRADER_PROFILE_DIR=data/profiler_beefslayer scripts/agent-research.sh \
+OKTRADER_PROFILE_DIR=data/profiler_beefslayer python scripts/agent_research.py \
   --wallet 0x331bf91c132af9d921e1908ca0979363fc47193f \
   --db data/oktrader.sqlite \
   --run-tools \
@@ -567,12 +567,15 @@ python profiler/profile_wallets.py fetch-weather-open-meteo \
 Fast username workflow:
 
 ```bash
-scripts/research-user.sh @beefslayer data/oktrader.sqlite
+python scripts/research_user.py @beefslayer data/oktrader.sqlite
 ```
 
 This resolves the Polymarket profile to a proxy wallet, runs the Rust + Python
 agent tool loop, and writes the usual profile outputs under
 `data/profiler_<username>/`.
+
+Shell scripts are kept as Linux-compatible wrappers, but Python scripts are the
+portable standard entrypoints.
 
 Market semantic parsing is deterministic first. For long-tail titles that do
 not match a stable parser, the semantic layer can call an LLM provider and ask
