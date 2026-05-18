@@ -35,6 +35,20 @@ cargo run -- export-profiler \
   --out-fills "$OUT_DIR/fills.csv" \
   --out-clob "$OUT_DIR/clob_events.csv"
 
+FILL_ROWS=$(( $(wc -l < "$OUT_DIR/fills.csv") - 1 ))
+if [[ "$FILL_ROWS" -le 0 && "${OKTRADER_FETCH_REMOTE_TRADES:-1}" == "1" ]]; then
+  echo "[2b/5] local fills empty; fetch-user-trades from Data API"
+  PYTHON_BIN="${OKTRADER_PYTHON:-.venv/bin/python}"
+  if [[ ! -x "$PYTHON_BIN" ]]; then
+    PYTHON_BIN="python3"
+  fi
+  "$PYTHON_BIN" profiler/profile_wallets.py fetch-user-trades \
+    --wallet "$WALLET" \
+    --out "$OUT_DIR/fills.csv" \
+    --limit "${OKTRADER_TRADES_LIMIT:-500}" \
+    --max-offset "${OKTRADER_TRADES_MAX_OFFSET:-5000}"
+fi
+
 echo "[3/5] fetch-gamma-markets"
 PYTHON_BIN="${OKTRADER_PYTHON:-.venv/bin/python}"
 if [[ ! -x "$PYTHON_BIN" ]]; then

@@ -3,6 +3,7 @@ import json
 import xml.etree.ElementTree as ET
 from email.utils import parsedate_to_datetime
 from pathlib import Path
+from datetime import datetime, timezone
 from urllib.parse import urlencode, urljoin
 from urllib.request import Request, urlopen
 
@@ -52,6 +53,28 @@ def fetch_news_rss(out: Path, url: str) -> int:
     return len(rows)
 
 
+def fetch_user_trades(
+    wallet: str,
+    out: Path,
+    base_url: str = "https://data-api.polymarket.com/",
+    limit: int = 500,
+    max_offset: int = 5000,
+) -> int:
+    rows = []
+    for offset in range(0, max_offset + 1, limit):
+        params = {"user": wallet, "limit": limit, "offset": offset}
+        url = urljoin(base_url, "trades") + "?" + urlencode(params)
+        page = _get_json(url)
+        if not page:
+            break
+        rows.extend(_trade_rows(page))
+        if len(page) < limit:
+            break
+    out.parent.mkdir(parents=True, exist_ok=True)
+    _write_fills(out, rows)
+    return len(rows)
+
+
 def _get_json(url: str):
     request = Request(
         url,
@@ -62,6 +85,60 @@ def _get_json(url: str):
     )
     with urlopen(request, timeout=30) as response:
         return json.loads(response.read().decode("utf-8"))
+
+
+def _trade_rows(page: list[dict]) -> list[dict]:
+    rows = []
+    for trade in page:
+        wallet = trade.get("proxyWallet") or trade.get("user")
+        asset = trade.get("asset")
+        if not wallet or not asset:
+            continue
+        rows.append(
+            {
+                "account": str(wallet).lower(),
+                "market_id": str(asset),
+                "condition_id": trade.get("conditionId"),
+                "event_slug": trade.get("eventSlug"),
+                "sector": None,
+                "side": str(trade.get("side", "")).lower(),
+                "role": "taker",
+                "price": trade.get("price"),
+                "shares": trade.get("size"),
+                "timestamp": _unix_to_iso(trade.get("timestamp")),
+                "tx_hash": trade.get("transactionHash"),
+                "order_hash": None,
+            }
+        )
+    return rows
+
+
+def _write_fills(path: Path, rows: list[dict]) -> None:
+    fields = [
+        "account",
+        "market_id",
+        "condition_id",
+        "event_slug",
+        "sector",
+        "side",
+        "role",
+        "price",
+        "shares",
+        "timestamp",
+        "tx_hash",
+        "order_hash",
+    ]
+    with path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def _unix_to_iso(value) -> str | None:
+    try:
+        return datetime.fromtimestamp(int(value), tz=timezone.utc).isoformat()
+    except Exception:
+        return None
 
 
 def _market_rows(market: dict) -> list[dict]:

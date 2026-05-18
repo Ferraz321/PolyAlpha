@@ -6,8 +6,17 @@ from .factor_library import FactorSpec, available_specs
 from .statistics import numeric, quantile, spike_zscore
 
 
-def mine_wallet(wallet: pl.DataFrame, max_rules: int = 10) -> dict:
-    specs = [spec for spec in available_specs(wallet) if len(numeric(wallet, spec.column)) > 0]
+def mine_wallet(
+    wallet: pl.DataFrame,
+    max_rules: int = 10,
+    disabled_factors: set[str] | None = None,
+) -> dict:
+    disabled_factors = disabled_factors or set()
+    specs = [
+        spec
+        for spec in available_specs(wallet)
+        if spec.column not in disabled_factors and len(numeric(wallet, spec.column)) > 0
+    ]
     singles = [_score_rule(wallet, [spec]) for spec in specs]
     pairs = [_score_rule(wallet, list(pair)) for pair in itertools.combinations(specs, 2)]
     rules = [rule for rule in singles + pairs if rule["hits"] > 0]

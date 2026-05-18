@@ -214,6 +214,10 @@ python profiler/profile_wallets.py fetch-news-rss \
   --url "https://example.com/feed.xml" \
   --out data/profiler/news.csv
 
+python profiler/profile_wallets.py fetch-user-trades \
+  --wallet 0xYourWallet \
+  --out data/profiler/fills.csv
+
 python profiler/profile_wallets.py profile \
   --fills data/profiler/fills.csv \
   --clob data/profiler/clob_events.csv \

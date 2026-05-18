@@ -50,7 +50,8 @@ def run_profiler(config: ProfilerConfig) -> dict:
     )
     if config.diagnostics_out is not None:
         write_diagnostics(diagnostics, config.diagnostics_out)
-    rules = infer_wallet_rules(factor_table, config.min_samples)
+    disabled_factors = _disabled_factors(diagnostics)
+    rules = infer_wallet_rules(factor_table, config.min_samples, disabled_factors)
     rules["diagnostics"] = diagnostics
     rules["research_matrix"] = run_research_matrix(factor_table, config.research_engines)
     if config.report_out is not None or config.html_out is not None:
@@ -62,6 +63,14 @@ def run_profiler(config: ProfilerConfig) -> dict:
             encoding="utf-8",
         )
     return rules
+
+
+def _disabled_factors(diagnostics: dict) -> set[str]:
+    return {
+        row["factor"]
+        for row in diagnostics.get("factor_coverage", [])
+        if not row.get("available", False)
+    }
 
 
 def join_market_state(

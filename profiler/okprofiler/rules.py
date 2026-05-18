@@ -18,19 +18,23 @@ PROFILE_COLUMNS = [
 ]
 
 
-def infer_wallet_rules(joined: pl.DataFrame, min_samples: int) -> dict:
+def infer_wallet_rules(
+    joined: pl.DataFrame,
+    min_samples: int,
+    disabled_factors: set[str] | None = None,
+) -> dict:
     wallets = []
     for account in joined.get_column("account").unique().to_list():
         wallet = joined.filter(pl.col("account") == account)
         if wallet.height < min_samples:
             wallets.append(_small_sample(account, wallet.height))
             continue
-        wallets.append(_wallet_rule(account, wallet))
+        wallets.append(_wallet_rule(account, wallet, disabled_factors or set()))
     return {"version": 1, "rows": joined.height, "wallets": wallets}
 
 
-def _wallet_rule(account: str, wallet: pl.DataFrame) -> dict:
-    mining = mine_wallet(wallet)
+def _wallet_rule(account: str, wallet: pl.DataFrame, disabled_factors: set[str]) -> dict:
+    mining = mine_wallet(wallet, disabled_factors=disabled_factors)
     researcher = research_note(wallet, mining)
     buy = wallet.filter(pl.col("side").str.to_lowercase() == "buy")
     sell = wallet.filter(pl.col("side").str.to_lowercase() == "sell")

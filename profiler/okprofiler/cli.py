@@ -2,7 +2,7 @@ import argparse
 import json
 from pathlib import Path
 
-from .data_sources import fetch_gamma_markets, fetch_news_rss
+from .data_sources import fetch_gamma_markets, fetch_news_rss, fetch_user_trades
 from .pipeline import ProfilerConfig, run_profiler
 
 
@@ -20,6 +20,15 @@ def main() -> None:
     if args.command == "fetch-news-rss":
         rows = fetch_news_rss(out=Path(args.out), url=args.url)
         print(json.dumps({"news_rows": rows, "out": args.out}, indent=2))
+        return
+    if args.command == "fetch-user-trades":
+        rows = fetch_user_trades(
+            wallet=args.wallet,
+            out=Path(args.out),
+            limit=args.limit,
+            max_offset=args.max_offset,
+        )
+        print(json.dumps({"trade_rows": rows, "out": args.out}, indent=2))
         return
     if args.command == "profile":
         profile(args)
@@ -60,6 +69,11 @@ def parse_args():
     news = subparsers.add_parser("fetch-news-rss")
     news.add_argument("--url", required=True)
     news.add_argument("--out", default="data/profiler/news.csv")
+    trades = subparsers.add_parser("fetch-user-trades")
+    trades.add_argument("--wallet", required=True)
+    trades.add_argument("--out", default="data/profiler/fills.csv")
+    trades.add_argument("--limit", type=int, default=500)
+    trades.add_argument("--max-offset", type=int, default=5000)
     _add_profile_args(parser)
     args = parser.parse_args()
     if args.command is None:
