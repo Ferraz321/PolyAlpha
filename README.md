@@ -252,6 +252,17 @@ profiler/okprofiler/strategy.py         live-compatible strategy export
 profiler/okprofiler/research_matrix.py  professional research-engine matrix
 ```
 
+Add a new Python factor in four places:
+
+1. Implement extraction in `profiler/okprofiler/features/*.py`.
+2. Wire it through `profiler/okprofiler/features/derived.py`.
+3. Register the column, label, direction, quantile, and source requirements in `profiler/okprofiler/features/registry.py`.
+4. Document it in `docs/factors.md`.
+
+Per-run evidence is written to `factor_summary.md`, `factor_research_log.md`,
+and `rules.json`. A factor should only be promoted when it has non-null rows,
+an interpretable rule, and a clear note on whether Rust can evaluate it live.
+
 `rules.json` keeps both `best_rule` for offline explanation and
 `best_live_rule` for monitor-compatible alerts. This matters because some
 strong research factors, such as distance to BBO, may not yet exist in Rust's

@@ -19,12 +19,18 @@ a research idea into production.
 | `distance_to_ask` | CLOB | Best ask distance from fill price. | No | active |
 | `time_to_resolution_secs` | markets | Time from fill to market resolution/end. | No | active |
 | `pre_news_lag_secs` | news | Time from most recent news item to fill. | No | experimental |
+| `is_weather_market` | fills | Whether event slug matches weather temperature market grammar. | No | active |
+| `weather_market_ratio` | fills | Share of wallet fills in weather markets. | No | active |
+| `weather_city_concentration` | fills | Share of wallet fills concentrated in the same weather city. | No | active |
+| `temperature_mid_f` | fills | Parsed midpoint of temperature bucket in Fahrenheit. | No | active |
+| `temperature_bucket_width_f` | fills | Parsed temperature bucket width. | No | active |
 
 ## Candidate Factors To Add
 
 | Candidate | Required Data | Why It Matters |
 | --- | --- | --- |
 | `sector_concentration` | markets | Detect information edge limited to domains. |
+| `forecast_error_to_bucket` | external weather | Compare forecast temperature to traded bucket. |
 | `market_breadth_rate` | fills | Separate broad stat-arb from narrow sniping. |
 | `entry_before_move_secs` | CLOB/future price | Measures whether wallet enters before price moves. |
 | `exit_quality` | fills/CLOB | Measures whether unwind exits near favorable BBO. |

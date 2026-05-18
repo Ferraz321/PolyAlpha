@@ -25,6 +25,11 @@ FACTOR_SPECS = [
     FactorSpec("trade_notional", "ticket size", "high", 0.75, None, ("fills",)),
     FactorSpec("time_to_resolution_secs", "time to resolution", "high", 0.50, None, ("markets",)),
     FactorSpec("pre_news_lag_secs", "pre-news timing", "low", 0.25, None, ("news",)),
+    FactorSpec("is_weather_market", "weather market specialization", "high", 0.50, None, ("fills",)),
+    FactorSpec("weather_market_ratio", "weather trader specialization", "high", 0.50, None, ("fills",)),
+    FactorSpec("weather_city_concentration", "weather city concentration", "high", 0.75, None, ("fills",)),
+    FactorSpec("temperature_mid_f", "temperature bucket midpoint", "high", 0.50, None, ("fills",)),
+    FactorSpec("temperature_bucket_width_f", "temperature bucket width", "low", 0.50, None, ("fills",)),
 ]
 
 

@@ -1,5 +1,7 @@
 import polars as pl
 
+from .weather import add_weather_factors
+
 
 def add_derived_factors(df: pl.DataFrame) -> pl.DataFrame:
     out = df
@@ -11,6 +13,7 @@ def add_derived_factors(df: pl.DataFrame) -> pl.DataFrame:
         out = out.with_columns(pl.col("feature_lag_secs").fill_null(999999.0))
     if "published_at" in out.columns:
         out = out.with_columns(_pre_news_lag_expr())
+    out = add_weather_factors(out)
     return out
 
 

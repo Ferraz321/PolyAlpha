@@ -60,7 +60,7 @@ def _score_rule(wallet: pl.DataFrame, specs: list[FactorSpec]) -> dict:
 
 def _condition(wallet: pl.DataFrame, spec: FactorSpec) -> dict:
     values = numeric(wallet, spec.column)
-    threshold = quantile(values, spec.quantile)
+    threshold = _threshold(values, spec)
     op = ">=" if spec.direction == "high" else "<="
     return {
         "column": spec.column,
@@ -71,6 +71,15 @@ def _condition(wallet: pl.DataFrame, spec: FactorSpec) -> dict:
         "direction": spec.direction,
         "spike_zscore": spike_zscore(values),
     }
+
+
+def _threshold(values, spec: FactorSpec) -> float:
+    if len(values) == 0:
+        return 0.0
+    unique = set(float(value) for value in values)
+    if unique.issubset({0.0, 1.0}):
+        return 0.5
+    return quantile(values, spec.quantile)
 
 
 def _expr(condition: dict) -> pl.Expr:

@@ -15,6 +15,11 @@ PROFILE_COLUMNS = [
     "feature_lag_secs",
     "trade_notional",
     "abs_price_momentum",
+    "is_weather_market",
+    "weather_market_ratio",
+    "weather_city_concentration",
+    "temperature_mid_f",
+    "temperature_bucket_width_f",
 ]
 
 
