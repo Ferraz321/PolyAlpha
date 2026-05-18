@@ -19,6 +19,7 @@ def main() -> None:
             html_out=Path(args.html_out) if args.html_out else None,
             lookback_secs=args.lookback_secs,
             min_samples=args.min_samples,
+            research_engines=_parse_engines(args.research_engines),
         )
     )
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
@@ -39,4 +40,13 @@ def parse_args():
     parser.add_argument("--html-out", default="data/profiler/report.html")
     parser.add_argument("--lookback-secs", type=int, default=60)
     parser.add_argument("--min-samples", type=int, default=5)
+    parser.add_argument(
+        "--research-engines",
+        default="core,alphalens,shap,stumpy,agent",
+        help="comma-separated engines: core,alphalens,shap,stumpy,nautilus,agent",
+    )
     return parser.parse_args()
+
+
+def _parse_engines(raw: str) -> list[str]:
+    return [item.strip() for item in raw.split(",") if item.strip()]

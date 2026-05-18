@@ -168,7 +168,9 @@ Partially implemented:
    - [x] Add profiler Markdown/HTML report and agent-style research notes.
    - [x] Split profiler into factor registry, miner, researcher, and live strategy exporter.
    - [x] Add automatic single-factor and pair-factor search with best offline/live rules.
+   - [x] Add research matrix adapters for core, Alphalens-like IC, SHAP-like feature importance, STUMPY-like motifs, Nautilus replay manifest, and agent suggestions.
    - [ ] Add true negative-set backtests across non-wallet fills for real precision/recall.
+   - [ ] Replace lightweight adapters with full optional Qlib/Alphalens/STUMPY/SHAP/Nautilus integrations when data format and dependencies are ready.
    - [ ] Add richer factor library: time-of-day, market sector, pre-news lead time, exit quality.
 
 6. Production storage option

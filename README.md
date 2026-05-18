@@ -187,7 +187,8 @@ python profiler/profile_wallets.py \
   --factor-out data/profiler/factor_table.parquet \
   --strategy-out data/profiler/strategy_config.json \
   --report-out data/profiler/report.md \
-  --html-out data/profiler/report.html
+  --html-out data/profiler/report.html \
+  --research-engines core,alphalens,shap,stumpy,agent
 ```
 
 The profiler is a separate Python research package under `profiler/okprofiler/`.
@@ -204,12 +205,22 @@ profiler/okprofiler/factor_library.py   candidate factor registry
 profiler/okprofiler/miner.py            single/pair factor search and scoring
 profiler/okprofiler/researcher.py       agent-style interpretation and next experiments
 profiler/okprofiler/strategy.py         live-compatible strategy export
+profiler/okprofiler/research_matrix.py  professional research-engine matrix
 ```
 
 `rules.json` keeps both `best_rule` for offline explanation and
 `best_live_rule` for monitor-compatible alerts. This matters because some
 strong research factors, such as distance to BBO, may not yet exist in Rust's
 real-time feature snapshot.
+
+The research matrix keeps professional engines behind explicit adapters. Core
+runtime stays light, while `rules.json` can include Alphalens-like IC evidence,
+SHAP-compatible model importance, STUMPY-style motif search, a Nautilus replay
+manifest, and agent suggestions. Heavy packages can be installed separately:
+
+```bash
+pip install -r profiler/requirements-optional.txt
+```
 
 Validate the generated strategy config before using it in monitoring:
 

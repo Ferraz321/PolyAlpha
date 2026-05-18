@@ -6,6 +6,7 @@ import polars as pl
 from .factor_library import add_derived_factors
 from .features import extract_clob_features
 from .report import write_reports
+from .research_matrix import run_research_matrix
 from .rules import infer_wallet_rules
 from .strategy import strategy_config_from_rules
 
@@ -22,6 +23,7 @@ class ProfilerConfig:
     html_out: Path | None
     lookback_secs: int
     min_samples: int
+    research_engines: list[str]
 
 
 def run_profiler(config: ProfilerConfig) -> dict:
@@ -38,6 +40,7 @@ def run_profiler(config: ProfilerConfig) -> dict:
         config.factor_out.parent.mkdir(parents=True, exist_ok=True)
         factor_table.write_parquet(config.factor_out)
     rules = infer_wallet_rules(factor_table, config.min_samples)
+    rules["research_matrix"] = run_research_matrix(factor_table, config.research_engines)
     if config.report_out is not None or config.html_out is not None:
         write_reports(rules, config.report_out, config.html_out)
     if config.strategy_out is not None:

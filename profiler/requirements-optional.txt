@@ -1,0 +1,7 @@
+# Optional professional research engines.
+# The core profiler does not require these packages to run.
+shap>=0.45
+stumpy>=1.12
+alphalens-reloaded>=0.4
+qlib>=0.9
+nautilus-trader>=1.200
