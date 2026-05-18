@@ -30,7 +30,7 @@ Unified Storage
         |
         v
 Wallet Intelligence Layer
-  PnL audit, positions, wallet metrics, clustering, risk tags
+  estimated PnL, positions, wallet metrics, clustering, risk tags
         |
         v
 Strategy Reverse Engineering Layer
@@ -78,7 +78,8 @@ Python remains the research intelligence engine:
 Existing tables remain valid. The platform adds lifecycle-oriented tables:
 
 - `markets`, `outcomes`: normalized market context and resolution state
-- `positions`, `wallet_pnl`: audited wallet exposure and PnL surfaces
+- `positions`, `wallet_pnl`: estimated wallet exposure and PnL surfaces from
+  fills today; settlement/redemption-grade audit is a future hardening step
 - `wallet_clusters`: behavioral grouping
 - `factor_values`: normalized factor observations
 - `factor_candidates`: factor backlog and lifecycle state
@@ -138,7 +139,8 @@ Promotion gates:
    improve fill dedupe keys, CLOB event indexing, and settlement-grade PnL.
 
 2. Build wallet intelligence:
-   audited positions, wallet PnL, clustering, and risk labels.
+   estimated positions, wallet PnL, clustering, and risk labels; then harden
+   PnL with settlement/redemption evidence.
 
 3. Formalize reverse engineering:
    entry/exit hypotheses, category playbooks, timing profiles, and repeated

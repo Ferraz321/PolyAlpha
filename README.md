@@ -563,8 +563,14 @@ from this websocket; this records live evidence from now onward.
 Validate the generated strategy config before using it in monitoring:
 
 ```bash
-cargo run -- validate-strategy-config --input data/profiler/strategy_config.json
+cargo run -- validate-strategy-config \
+  --input data/profiler/strategy_config.json \
+  --db data/oktrader.sqlite
 ```
+
+The `--db` flag is optional; when supplied, validated strategy definitions are
+persisted into the `strategies` table. Live alert triggers created with
+`--strategy-config` are persisted into `signals`.
 
 Use the generated strategy rules in live alerts:
 

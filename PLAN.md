@@ -85,6 +85,15 @@ SQLite tables:
 - `wallet_microstructure_metrics`: wallet-level fill-to-CLOB timing joins and OFI quality metrics
 - `dirty_wallets`: incremental analysis queue
 - `market_tokens`: token to market/event metadata mapping
+- `markets` / `outcomes`: normalized market context and resolution state
+- `positions`: estimated open exposure from normalized fills
+- `wallet_pnl`: estimated wallet PnL from fills; settlement-grade audit remains a hardening item
+- `wallet_clusters`: future behavioral grouping surface
+- `factor_values`: normalized factor observation surface
+- `factor_candidates`: factor backlog and lifecycle state
+- `factor_validations`: walk-forward / negative-control validation results
+- `strategies`: strategy builder outputs and lifecycle state
+- `signals`: persisted live strategy triggers
 
 ## Command Status
 
@@ -99,6 +108,8 @@ Implemented:
 - `export-profiler`
 - `profile-readiness`
 - `validate-strategy-config`
+- `research-status`
+- `build-wallet-intelligence`
 - `summary`
 - `export`
 - `sync-metadata`
@@ -175,7 +186,11 @@ Partially implemented:
    - [x] Add summary command for full tier/tag distribution across all analyzed wallets.
    - [x] Move account type judgment rules into configurable profile files.
    - [x] Add strategy reconstruction features: market breadth, time-of-day, same-market reentry, weather specialization, and weather bucket semantics.
+   - [x] Add estimated wallet positions and wallet PnL rebuilt from fills.
+   - [x] Persist validated strategy definitions into `strategies`.
+   - [x] Persist live strategy trigger events into `signals`.
    - [ ] Add strategy reconstruction features: entry-before-move, exit quality, sector-specific PnL, and stronger lead-time evidence.
+   - [ ] Harden wallet PnL with settlement/redemption events.
 
 5. Python Profiler
    - Status: core reverse-engineering loop implemented; expanding factor library.
@@ -212,6 +227,8 @@ Partially implemented:
    - [x] Add Open-Meteo historical forecast adapter.
    - [x] Add forecast factors: `forecast_temp_f`, `forecast_error_to_bucket`, `forecast_inside_bucket`, `forecast_delta_1h`, `forecast_delta_6h`, and `forecast_volatility`.
    - [x] Add LLM semantic parser hook behind explicit opt-in.
+   - [x] Add first-pass factor validation output with walk-forward, negative-control lift, and stability scoring.
+   - [x] Persist agent candidate factors and validation rows into SQLite lifecycle tables.
    - [ ] Add true negative-set backtests across non-wallet fills for real precision/recall.
    - [ ] Replace lightweight adapters with full optional Qlib/Alphalens/STUMPY/SHAP/Nautilus integrations when data format and dependencies are ready.
    - [ ] Add multi-model forecast adapter for `model_disagreement`.
