@@ -316,6 +316,24 @@ cargo run -- alerts \
 Generated strategies are disabled by default. Enable only the strategies you
 have reviewed in `strategy_config.json`; monitor runs in alert-only mode.
 
+Run the local research agent over a completed profile:
+
+```bash
+OKTRADER_PROFILE_DIR=data/profiler_beefslayer scripts/agent-research.sh
+```
+
+This reads `rules.json` and `diagnostics.json`, then writes
+`research_report.md` and `candidate_factors.json`. To force a fresh Python
+profiling pass before the agent reads the artifacts:
+
+```bash
+OKTRADER_PROFILE_DIR=data/profiler_beefslayer scripts/agent-research.sh --rerun-profile
+```
+
+The agent is deterministic: it consumes profiler artifacts, market-category
+playbooks, and candidate factor lists. It does not invent evidence; it records
+missing data and the next factors to implement or collect.
+
 ## Core Engine
 
 The implementation focuses on the deterministic quant core:

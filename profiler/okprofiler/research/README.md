@@ -10,10 +10,18 @@ It must not claim a strategy is real unless the data pipeline provides:
 - a mined rule with non-trivial coverage
 - stability across time splits
 
-The current local researcher is deterministic and lives in
-`okprofiler/researcher.py`. A future LLM agent should consume only structured
-artifacts such as `rules.json`, `factor_table.parquet` summaries, and
-`report.md`; it should propose new experiments, not invent evidence.
+The current local researcher is deterministic. Per-wallet notes live in
+`okprofiler/researcher.py`; the formal artifact-reading agent lives in
+`okprofiler/agent.py` and is exposed through:
+
+```bash
+python profiler/profile_wallets.py agent --profile-dir data/profiler
+```
+
+The agent consumes only structured artifacts such as `rules.json`,
+`diagnostics.json`, `factor_summary.md`, and market-category playbooks. It
+proposes new experiments, writes `research_report.md`, and writes a structured
+`candidate_factors.json` backlog.
 
 Research matrix engines are coordinated by `okprofiler/research_matrix.py`:
 

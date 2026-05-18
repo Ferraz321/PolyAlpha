@@ -2,6 +2,7 @@ import argparse
 import json
 from pathlib import Path
 
+from .agent import AgentConfig, run_agent
 from .data_sources import assets_from_fills, fetch_gamma_markets, fetch_news_rss, fetch_user_trades
 from .pipeline import ProfilerConfig, run_profiler
 
@@ -38,6 +39,9 @@ def main() -> None:
         )
         print(json.dumps({"asset_rows": rows, "out": args.out}, indent=2))
         return
+    if args.command == "agent":
+        agent(args)
+        return
     if args.command == "profile":
         profile(args)
 
@@ -66,6 +70,23 @@ def profile(args) -> None:
     print(json.dumps(result, indent=2))
 
 
+def agent(args) -> None:
+    profile_dir = Path(args.profile_dir)
+    result = run_agent(
+        AgentConfig(
+            profile_dir=profile_dir,
+            rules_path=Path(args.rules) if args.rules else profile_dir / "rules.json",
+            diagnostics_path=Path(args.diagnostics) if args.diagnostics else profile_dir / "diagnostics.json",
+            report_out=Path(args.report_out) if args.report_out else profile_dir / "research_report.md",
+            candidates_out=Path(args.candidates_out) if args.candidates_out else profile_dir / "candidate_factors.json",
+            rerun_profile=args.rerun_profile,
+            research_engines=_parse_engines(args.research_engines),
+            min_samples=args.min_samples,
+        )
+    )
+    print(json.dumps(result, indent=2))
+
+
 def parse_args():
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest="command")
@@ -88,6 +109,19 @@ def parse_args():
     assets.add_argument("--fills", default="data/profiler/fills.csv")
     assets.add_argument("--out", default="data/clob_assets.txt")
     assets.add_argument("--limit", type=int)
+    agent_parser = subparsers.add_parser("agent")
+    agent_parser.add_argument("--profile-dir", default="data/profiler")
+    agent_parser.add_argument("--rules")
+    agent_parser.add_argument("--diagnostics")
+    agent_parser.add_argument("--report-out")
+    agent_parser.add_argument("--candidates-out")
+    agent_parser.add_argument("--rerun-profile", action="store_true")
+    agent_parser.add_argument("--min-samples", type=int, default=5)
+    agent_parser.add_argument(
+        "--research-engines",
+        default="core,alphalens,shap,stumpy,agent",
+        help="comma-separated engines used when --rerun-profile is set",
+    )
     _add_profile_args(parser)
     args = parser.parse_args()
     if args.command is None:
