@@ -20,6 +20,7 @@ pub struct DbStats {
     pub matched_accounts: usize,
     pub raw_evm_logs: usize,
     pub raw_clob_events: usize,
+    pub clob_asset_features: usize,
     pub dirty_wallets: usize,
 }
 
@@ -39,6 +40,23 @@ pub struct RawClobEventRecord {
     pub payload: String,
     pub received_at: String,
     pub stable_key: String,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct ClobAssetFeature {
+    pub asset_id: String,
+    pub market: Option<String>,
+    pub best_bid: Option<String>,
+    pub best_ask: Option<String>,
+    pub spread: Option<String>,
+    pub bid_depth: Option<String>,
+    pub ask_depth: Option<String>,
+    pub ofi: Option<String>,
+    pub last_trade_price: Option<String>,
+    pub last_trade_size: Option<String>,
+    pub last_trade_side: Option<String>,
+    pub last_event_type: String,
+    pub updated_at: String,
 }
 
 pub fn metric_parts(

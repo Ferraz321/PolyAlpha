@@ -81,6 +81,22 @@ CREATE TABLE IF NOT EXISTS raw_clob_events (
 CREATE INDEX IF NOT EXISTS idx_raw_clob_events_asset ON raw_clob_events(asset_id);
 CREATE INDEX IF NOT EXISTS idx_raw_clob_events_received ON raw_clob_events(received_at);
 
+CREATE TABLE IF NOT EXISTS clob_asset_features (
+    asset_id TEXT PRIMARY KEY,
+    market TEXT,
+    best_bid TEXT,
+    best_ask TEXT,
+    spread TEXT,
+    bid_depth TEXT,
+    ask_depth TEXT,
+    ofi TEXT,
+    last_trade_price TEXT,
+    last_trade_size TEXT,
+    last_trade_side TEXT,
+    last_event_type TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS market_tokens (
     token_id TEXT PRIMARY KEY,
     condition_id TEXT,

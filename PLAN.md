@@ -48,6 +48,7 @@ SQLite tables:
 - `scanner_state`: collector/analyzer/live/backfill checkpoints
 - `raw_evm_logs`: deduped raw Polygon logs for replay and decoder audits
 - `raw_clob_events`: deduped market websocket payload archive
+- `clob_asset_features`: latest BBO, spread, depth, OFI, and last-trade microstructure state
 - `dirty_wallets`: incremental analysis queue
 - `market_tokens`: token to market/event metadata mapping
 
@@ -104,7 +105,8 @@ Partially implemented:
    - [x] Add market websocket `PING` heartbeat.
    - [x] Persist raw CLOB book/price/trade payloads into `raw_clob_events`.
    - [x] Add websocket reconnect and exponential backoff handling.
-   - [ ] Add CLOB order-book feature extraction for OFI, maker behavior, and BBO placement.
+   - [x] Add CLOB order-book feature extraction for BBO, spread, book depth, OFI, and last trade state.
+   - [ ] Add address-level maker behavior joins where wallet attribution is available from settlement logs.
 
 3. Incremental analysis
    - Status: partial implementation.

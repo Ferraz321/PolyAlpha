@@ -46,6 +46,24 @@ fn stores_and_dedupes_raw_clob_events() {
 }
 
 #[test]
+fn stores_clob_asset_features() {
+    let storage = Storage::open(":memory:").expect("open");
+    storage.init().expect("init");
+    let feature = oktrader_alpha::storage_types::ClobAssetFeature {
+        asset_id: "123".to_string(),
+        best_bid: Some("0.49".to_string()),
+        best_ask: Some("0.51".to_string()),
+        spread: Some("0.02".to_string()),
+        last_event_type: "best_bid_ask".to_string(),
+        updated_at: "2026-01-01T00:00:00Z".to_string(),
+        ..Default::default()
+    };
+
+    storage.upsert_clob_feature(&feature).expect("feature");
+    assert_eq!(storage.stats().expect("stats").clob_asset_features, 1);
+}
+
+#[test]
 fn insert_fills_marks_wallet_dirty() {
     let mut storage = Storage::open(":memory:").expect("storage");
     storage

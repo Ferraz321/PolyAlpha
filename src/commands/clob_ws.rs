@@ -4,6 +4,7 @@ use std::time::Duration;
 use anyhow::{Context, Result, bail};
 use chrono::Utc;
 use futures_util::{SinkExt, StreamExt};
+use oktrader_alpha::clob_features::features_from_payload;
 use oktrader_alpha::storage::Storage;
 use oktrader_alpha::storage_types::RawClobEventRecord;
 use serde_json::{Value, json};
@@ -76,6 +77,9 @@ async fn run_connection(
                     for record in records_from_payload(&payload)? {
                         if storage.insert_raw_clob_event(&record)? {
                             inserted += 1;
+                        }
+                        for feature in features_from_payload(&record.payload, &record.received_at)? {
+                            storage.upsert_clob_feature(&feature)?;
                         }
                     }
                     println!("watch-clob: inserted_raw_events={inserted}");

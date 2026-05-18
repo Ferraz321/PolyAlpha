@@ -1,3 +1,4 @@
+pub mod clob_features;
 pub mod filter;
 pub mod ingestion;
 pub mod metrics;
