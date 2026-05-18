@@ -47,6 +47,12 @@ impl ReportFilterArgs {
     }
 }
 
+impl ReportFilter {
+    fn is_empty(&self) -> bool {
+        self.tiers.is_empty() && self.tags.is_empty() && self.wallet_pool.is_none()
+    }
+}
+
 pub fn build_reports(
     fills: Vec<FillEvent>,
     passed_only: bool,
@@ -98,6 +104,7 @@ pub fn filter_reports<'a>(
 ) -> Vec<&'a AccountReport> {
     reports
         .iter()
+        .filter(|report| !filters.is_empty() || report.passed_funnel)
         .filter(|report| {
             filters.tiers.is_empty()
                 || filters
