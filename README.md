@@ -1,8 +1,97 @@
 # OKTRADER Alpha
 
-Rust toolkit for cross-market Polymarket smart-money mining.
+Rust + Python toolkit for cross-market Polymarket smart-money mining,
+strategy reverse engineering, and live tracking.
 
-The project is a single Rust CLI with three production roles:
+OKTRADER uses a dual-engine architecture:
+
+- Rust is the execution layer for long-running collectors, SQLite storage,
+  on-chain/CLOB ingestion, account scoring, alerting, and strategy validation.
+- Python is the research layer for feature mining, market-category playbooks,
+  profiler reports, and the deterministic Agent CLI.
+- SQLite, CSV, Parquet, JSON, and Markdown are the handoff artifacts between
+  the two engines.
+
+## Architecture
+
+```text
+                    Polymarket Data API
+                           |
+                           v
+                 Rust collector-data-api
+                           |
+Polygon RPC/WSS ---> Rust watch-live/backfill-polygon
+                           |
+Polymarket CLOB WS -> Rust watch-clob -> build-microstructure
+                           |
+                           v
+                  SQLite data/oktrader.sqlite
+                           |
+          +----------------+----------------+
+          |                                 |
+          v                                 v
+ Rust analyzer/monitor/alerts       Rust export-profiler
+          |                                 |
+          v                                 v
+ matched_accounts / alerts     fills.csv + clob_events.csv
+                                            |
+                                  Python fetch-gamma/news
+                                            |
+                                            v
+                                   Python profiler
+                                            |
+                +---------------------------+--------------------------+
+                |                           |                          |
+                v                           v                          v
+        factor_table.parquet            rules.json              diagnostics.json
+                |                           |                          |
+                +---------------------------+--------------------------+
+                                            |
+                                            v
+                                   Agent CLI orchestrator
+                                            |
+        +----------------+------------------+-------------------+
+        |                |                  |                   |
+        v                v                  v                   v
+ research_report.md candidate_factors.json next_commands.json strategy_config.json
+        |                |                  |                   |
+        v                v                  v                   v
+ human review     factor backlog    next Rust/Python run   Rust validate/alerts
+```
+
+The intended agent loop is:
+
+```text
+wallet/profile request
+  -> Rust profile-readiness
+  -> Rust export-profiler
+  -> Python remote trade fallback if local fills are empty
+  -> Python Gamma metadata fetch
+  -> Python profiler and factor mining
+  -> Rust validate-strategy-config
+  -> Agent research_report + candidate_factors + next_commands
+  -> next data/factor collection cycle
+```
+
+## Implementation Status
+
+| Area | Status |
+| --- | --- |
+| Rust SQLite schema, collectors, analyzer, monitor, alerts | Implemented |
+| Recent public trade ingestion via Data API | Implemented |
+| Polygon RPC backfill/live scanner foundation | Implemented, requires real RPC |
+| CLOB websocket recorder and microstructure builder | Implemented for live/recorded data |
+| Python profiler, factor table, reports, rules, strategy config | Implemented |
+| Factor library structure and weather market playbook | Implemented |
+| Agent CLI reading artifacts and writing research outputs | Implemented |
+| Agent CLI orchestrating Rust + Python tools | Implemented |
+| Agent `next_commands.json` planner and candidate factor backlog | Implemented |
+| Open-Meteo archive fetch entrypoint | Implemented as data adapter |
+| Weather forecast/observation factors in `factor_table` | Planned next |
+| Full audit-grade realized PnL from settlement/redemption events | In progress/future hardening |
+| Automatic trading/execution | Not enabled; alert/strategy validation only |
+
+The project has several Rust production roles:
 
 - `collector-data-api`: continuously collects recent public Polymarket trades.
 - `watch-live`: continuously polls Polygon settlement logs for verified fills.
