@@ -16,6 +16,12 @@ from .features import factor_library_rows
 from .pipeline import ProfilerConfig, run_profiler
 from .research_agenda import build_research_agenda, render_research_agenda
 from .validation_summary import render_summary, summarize_validations
+from .validation_cycles import (
+    load_factor_table,
+    render_validation_cycles,
+    run_validation_cycles,
+    write_validation_cycles,
+)
 from .weather_sources import fetch_open_meteo_archive
 from .weather_sources import fetch_open_meteo_forecast_history
 
@@ -131,6 +137,18 @@ def main() -> None:
             print(json.dumps(agenda, indent=2))
         else:
             print(render_research_agenda(agenda), end="")
+        return
+    if args.command == "validation-cycles":
+        result = run_validation_cycles(
+            load_factor_table(Path(args.factor_table)),
+            factors=_parse_factor_list(args.factor),
+        )
+        if args.out:
+            write_validation_cycles(result, Path(args.out))
+        if args.json:
+            print(json.dumps(result, indent=2))
+        else:
+            print(render_validation_cycles(result), end="")
         return
     if args.command == "profile":
         profile(args)
@@ -334,6 +352,11 @@ def parse_args():
     agenda_parser.add_argument("--limit", type=int, default=20)
     agenda_parser.add_argument("--out")
     agenda_parser.add_argument("--json", action="store_true")
+    cycles_parser = subparsers.add_parser("validation-cycles")
+    cycles_parser.add_argument("--factor-table", default="data/profiler/factor_table.parquet")
+    cycles_parser.add_argument("--factor", action="append", help="factor id to validate; repeatable or comma-separated")
+    cycles_parser.add_argument("--out", default="data/profiler/factor_validation_cycles.json")
+    cycles_parser.add_argument("--json", action="store_true")
     _add_profile_args(parser)
     args = parser.parse_args()
     if args.command is None:
@@ -398,6 +421,15 @@ def _add_profile_args(parser):
 
 def _parse_engines(raw: str) -> list[str]:
     return [item.strip() for item in raw.split(",") if item.strip()]
+
+
+def _parse_factor_list(raw: list[str] | None) -> list[str] | None:
+    if not raw:
+        return None
+    factors = []
+    for item in raw:
+        factors.extend(part.strip() for part in item.split(",") if part.strip())
+    return factors
 
 
 def _parse_wallets(raw_wallets: list[str], wallet_pool: str | None) -> list[str]:

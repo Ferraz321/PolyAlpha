@@ -546,6 +546,15 @@ python profiler/profile_wallets.py research-agenda \
   --candidates docs/candidate_factors.json
 ```
 
+Repeatedly confirm factor effectiveness across multiple validation bars:
+
+```bash
+python profiler/profile_wallets.py validation-cycles \
+  --factor-table data/profiler/factor_table.parquet \
+  --factor microstructure_pressure_edge \
+  --factor news_recency_decay_edge
+```
+
 Per-run evidence is written to `factor_summary.md`, `factor_research_log.md`,
 and `rules.json`. A factor should only be promoted when it has non-null rows,
 an interpretable rule, and a clear note on whether Rust can evaluate it live.

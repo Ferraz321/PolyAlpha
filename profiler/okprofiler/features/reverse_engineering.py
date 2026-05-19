@@ -151,12 +151,27 @@ def _add_cross_category_edge_factors(df: pl.DataFrame) -> pl.DataFrame:
                 * positive_edge
             ).alias("news_lead_entry_edge")
         )
+    if "news_recency_hours" in columns:
+        expressions.append(
+            (
+                positive_edge
+                / (1.0 + pl.col("news_recency_hours").cast(pl.Float64).clip(0.0, None).fill_null(999.0))
+            ).alias("news_recency_decay_edge")
+        )
     if "is_last_24h" in columns:
         expressions.append(
             (
                 pl.col("is_last_24h").cast(pl.Float64).fill_null(0.0)
                 * positive_edge
             ).alias("settlement_window_edge")
+        )
+    if {"is_last_24h", "resolution_lead_time_hours"}.issubset(columns):
+        expressions.append(
+            (
+                pl.col("is_last_24h").cast(pl.Float64).fill_null(0.0)
+                * positive_edge
+                / (1.0 + pl.col("resolution_lead_time_hours").cast(pl.Float64).clip(0.0, None).fill_null(999.0))
+            ).alias("settlement_urgency_edge")
         )
     microstructure_columns = {
         "ofi_filled",
@@ -175,6 +190,13 @@ def _add_cross_category_edge_factors(df: pl.DataFrame) -> pl.DataFrame:
         if "spread_filled" in columns:
             signal = signal - pl.col("spread_filled").cast(pl.Float64).fill_null(0.0)
         expressions.append((positive_edge * signal).alias("microstructure_entry_edge"))
+        pressure = pl.max_horizontal(signal, pl.lit(0.0))
+        expressions.extend(
+            [
+                pressure.alias("microstructure_pressure_score"),
+                (positive_edge * pressure).alias("microstructure_pressure_edge"),
+            ]
+        )
     if {"repeat_hour_motif_score", "repeat_entry_motif_count"}.issubset(columns):
         expressions.append(
             (
@@ -182,6 +204,14 @@ def _add_cross_category_edge_factors(df: pl.DataFrame) -> pl.DataFrame:
                 * pl.col("repeat_entry_motif_count").cast(pl.Float64).fill_null(0.0)
                 * positive_edge
             ).alias("event_motif_recurrence")
+        )
+    if {"sector_concentration", "repeat_hour_motif_score"}.issubset(columns):
+        expressions.append(
+            (
+                pl.col("sector_concentration").cast(pl.Float64).fill_null(0.0)
+                * pl.col("repeat_hour_motif_score").cast(pl.Float64).fill_null(0.0)
+                * positive_edge
+            ).alias("sector_motif_consistency_edge")
         )
     return out.with_columns(expressions) if expressions else out
 

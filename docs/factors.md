@@ -44,13 +44,18 @@ python profiler/profile_wallets.py list-factors --category sector
 | `sector_pnl_proxy` | markets | Signed notional proxy aggregated by wallet and sector. | No | active |
 | `sector_entry_edge` | markets + fills | Mean direction-adjusted next-fill edge for the same wallet and sector. | No | active-unvalidated |
 | `sector_repeat_edge_score` | markets + fills | Sector concentration multiplied by positive entry-forward edge. | No | active-unvalidated |
+| `sector_motif_consistency_edge` | markets + fills | Sector concentration and repeated entry-hour behavior weighted by positive entry-forward edge. | No | active-unvalidated |
 | `cross_sector_breadth` | markets | One minus sector concentration; identifies broad scanners instead of narrow specialists. | No | active-unvalidated |
 | `resolution_lead_time_hours` | markets | Hours from fill to market resolution/end. | No | active |
 | `settlement_window_edge` | markets + fills | Positive entry-forward edge gated to final-24h settlement-window entries. | No | active-unvalidated |
+| `settlement_urgency_edge` | markets + fills | Final-24h positive entry-forward edge divided by hours remaining to resolution. | No | active-unvalidated |
 | `news_recency_hours` | news | Hours between latest news item and wallet fill. | No | experimental |
 | `news_reaction_window` | news | Whether fill occurred within six hours after latest news. | No | experimental |
 | `news_lead_entry_edge` | news + fills | Positive entry-forward edge gated to post-news reaction windows. | No | active-unvalidated |
+| `news_recency_decay_edge` | news + fills | Positive entry-forward edge decayed by hours since the latest news item. | No | active-unvalidated |
 | `microstructure_entry_edge` | CLOB + fills | Entry-forward edge weighted by order-flow, depth, momentum, and spread context. | No | active-unvalidated |
+| `microstructure_pressure_score` | CLOB | Positive CLOB pressure from order flow, depth, momentum, and spread. | No | active-unvalidated |
+| `microstructure_pressure_edge` | CLOB + fills | Positive entry-forward edge multiplied by positive CLOB pressure. | No | active-unvalidated |
 | `repeat_hour_motif_score` | fills | Share of wallet activity recurring in the same UTC entry hour. | No | active |
 | `repeat_entry_motif_count` | fills | Count of repeated account/market/side/hour motifs. | No | active |
 | `repeat_market_add_rate` | fills | Same-market re-entry count normalized by wallet activity. | No | active |
@@ -104,6 +109,10 @@ python profiler/profile_wallets.py list-factors --category sector
 | `news_lead_entry_edge` | fills + news timeline | Tests whether a wallet consistently enters soon after external information before market repricing. |
 | `settlement_window_edge` | fills + market resolution time | Tests whether late entries before resolution have repeatable positive edge. |
 | `microstructure_entry_edge` | fills + CLOB state | Tests whether CLOB pressure explains profitable timing beyond wallet identity. |
+| `microstructure_pressure_edge` | fills + CLOB state | Tests only positive CLOB pressure regimes instead of subtracting spread inside the edge score. |
+| `news_recency_decay_edge` | fills + news timeline | Tests whether information edge decays smoothly with elapsed news time. |
+| `settlement_urgency_edge` | fills + market resolution time | Tests whether late entries become stronger as resolution approaches. |
+| `sector_motif_consistency_edge` | fills + market sectors | Tests repeated sector/time motifs after requiring favorable follow-through. |
 
 ## Promotion Rule
 

@@ -44,6 +44,7 @@ SECTOR_ACTIVE_FACTORS = [
     "sector_pnl_proxy",
     "sector_entry_edge",
     "sector_repeat_edge_score",
+    "sector_motif_consistency_edge",
     "cross_sector_breadth",
     "entry_forward_edge",
     "entry_price_advantage",
@@ -54,6 +55,7 @@ SECTOR_ACTIVE_FACTORS = [
 SECTOR_CANDIDATE_FACTORS = [
     "sector_entry_edge",
     "sector_repeat_edge_score",
+    "sector_motif_consistency_edge",
     "cross_sector_breadth",
     "event_motif_recurrence",
     "sector_pnl_proxy",
@@ -65,6 +67,7 @@ NEWS_ACTIVE_FACTORS = [
     "news_recency_hours",
     "news_reaction_window",
     "news_lead_entry_edge",
+    "news_recency_decay_edge",
     "entry_before_move_secs",
     "lead_time_evidence",
     "entry_forward_edge",
@@ -73,6 +76,7 @@ NEWS_ACTIVE_FACTORS = [
 
 NEWS_CANDIDATE_FACTORS = [
     "news_lead_entry_edge",
+    "news_recency_decay_edge",
     "lead_time_evidence",
     "entry_before_move_secs",
     "event_motif_recurrence",
@@ -89,11 +93,15 @@ MICROSTRUCTURE_ACTIVE_FACTORS = [
     "distance_to_bid",
     "distance_to_ask",
     "microstructure_entry_edge",
+    "microstructure_pressure_score",
+    "microstructure_pressure_edge",
 ]
 
 
 MICROSTRUCTURE_CANDIDATE_FACTORS = [
     "microstructure_entry_edge",
+    "microstructure_pressure_edge",
+    "microstructure_pressure_score",
     "spread_filled",
     "depth_imbalance_filled",
     "price_momentum",
@@ -108,6 +116,7 @@ SETTLEMENT_ACTIVE_FACTORS = [
     "is_last_24h",
     "is_last_6h",
     "settlement_window_edge",
+    "settlement_urgency_edge",
     "entry_forward_edge",
     "exit_quality_proxy",
 ]
@@ -115,6 +124,7 @@ SETTLEMENT_ACTIVE_FACTORS = [
 
 SETTLEMENT_CANDIDATE_FACTORS = [
     "settlement_window_edge",
+    "settlement_urgency_edge",
     "is_last_6h",
     "exit_quality_proxy",
     "strategy_capacity_usd",

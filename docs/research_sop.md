@@ -208,6 +208,8 @@ Promotion checklist:
 - Re-run the target profile and confirm non-null factor coverage.
 - Confirm the factor appears in `factor_react_loop` with a validation verdict
   and next action.
+- Run `validation-cycles` for promoted candidates and require a stable
+  consensus before strategy use.
 - Mark whether the factor is offline-only or live-ready.
 
 ## Stage 8: Evidence Expansion

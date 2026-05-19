@@ -377,6 +377,76 @@
       ],
       "validation_status": "active_unvalidated",
       "latest_validation": "Implemented as repeated motif strength weighted by positive entry-forward edge and included as a candidate in non-weather playbooks."
+    },
+    {
+      "factor": "microstructure_pressure_edge",
+      "status": "active_unvalidated",
+      "priority": 1,
+      "required_data": "fills_and_clob_features",
+      "market_categories": [
+        "microstructure_liquidity_timing"
+      ],
+      "wallets": [],
+      "reason": "variant of microstructure_entry_edge that only rewards positive combined CLOB pressure before validating spread/slippage robustness",
+      "implementation_status": "implemented",
+      "implementation_columns": [
+        "microstructure_pressure_score",
+        "microstructure_pressure_edge"
+      ],
+      "validation_status": "active_unvalidated",
+      "latest_validation": "Implemented as positive CLOB pressure multiplied by positive entry-forward edge. Must pass ReAct and validation-cycles before promotion."
+    },
+    {
+      "factor": "news_recency_decay_edge",
+      "status": "active_unvalidated",
+      "priority": 1,
+      "required_data": "fills_and_news_timeline",
+      "market_categories": [
+        "event_news_information_edge"
+      ],
+      "wallets": [],
+      "reason": "tests whether news information edge decays smoothly with elapsed time instead of relying on a hard six-hour window",
+      "implementation_status": "implemented",
+      "implementation_columns": [
+        "news_recency_decay_edge"
+      ],
+      "validation_status": "active_unvalidated",
+      "latest_validation": "Implemented as positive entry-forward edge divided by one plus news recency hours. Must pass repeated validation cycles."
+    },
+    {
+      "factor": "settlement_urgency_edge",
+      "status": "active_unvalidated",
+      "priority": 1,
+      "required_data": "fills_and_market_resolution_times",
+      "market_categories": [
+        "settlement_timing"
+      ],
+      "wallets": [],
+      "reason": "tests whether late-entry edge strengthens as resolution approaches rather than merely occurring inside the last 24h",
+      "implementation_status": "implemented",
+      "implementation_columns": [
+        "settlement_urgency_edge"
+      ],
+      "validation_status": "active_unvalidated",
+      "latest_validation": "Implemented as final-24h positive entry-forward edge divided by one plus resolution lead-time hours."
+    },
+    {
+      "factor": "sector_motif_consistency_edge",
+      "status": "active_unvalidated",
+      "priority": 2,
+      "required_data": "fills_and_market_sectors",
+      "market_categories": [
+        "sector_information_edge",
+        "cross_sector_scanner"
+      ],
+      "wallets": [],
+      "reason": "tests whether repeated sector/time motifs carry edge after requiring positive follow-through",
+      "implementation_status": "implemented",
+      "implementation_columns": [
+        "sector_motif_consistency_edge"
+      ],
+      "validation_status": "active_unvalidated",
+      "latest_validation": "Implemented as sector concentration times repeated-hour motif strength times positive entry-forward edge."
     }
   ]
 }
