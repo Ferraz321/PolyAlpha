@@ -19,6 +19,8 @@ async fn main() -> Result<()> {
         Commands::Analyzer(args) => commands::processes::analyzer(args).await,
         Commands::Monitor(args) => commands::processes::monitor(args).await,
         Commands::Alerts(args) => commands::alerts::alerts(args).await,
+        Commands::FollowWatch(args) => commands::follow::follow_watch(args).await,
+        Commands::FollowClosePaper(args) => commands::follow::follow_close_paper(args),
         Commands::ImportWatchlist(args) => commands::watchlist::import_watchlist(args),
         Commands::ExportProfiler(args) => commands::profiler_export::export_profiler(args),
         Commands::ProfileReadiness(args) => commands::profiler_readiness::profile_readiness(args),

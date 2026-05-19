@@ -563,6 +563,37 @@ python profiler/profile_wallets.py follow-evaluate \
   --wallet 0x331bf91c132af9d921e1908ca0979363fc47193f
 ```
 
+Run the live/paper follow loop for watchlist wallets. This does not place real
+orders; it records wallet event latency, depth-gated paper signals, and open
+paper fills:
+
+```bash
+cargo run -- follow-watch \
+  --db data/follow.sqlite \
+  --interval-secs 5 \
+  --max-latency-secs 30 \
+  --copy-fraction 0.1 \
+  --max-notional 100
+```
+
+Close paper-follow fills after an evaluation horizon using the next observed
+same-market trade as the exit mark:
+
+```bash
+cargo run -- follow-close-paper \
+  --db data/follow.sqlite \
+  --horizon-secs 3600
+```
+
+Then fold the live/paper evidence back into the four followability checks:
+
+```bash
+python profiler/profile_wallets.py follow-evaluate \
+  --profile-dir data/profiler_real_beefslayer \
+  --wallet 0x331bf91c132af9d921e1908ca0979363fc47193f \
+  --db data/follow.sqlite
+```
+
 Per-run evidence is written to `factor_summary.md`, `factor_research_log.md`,
 and `rules.json`. A factor should only be promoted when it has non-null rows,
 an interpretable rule, and a clear note on whether Rust can evaluate it live.

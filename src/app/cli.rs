@@ -16,6 +16,8 @@ pub enum Commands {
     Analyzer(AnalyzerArgs),
     Monitor(MonitorArgs),
     Alerts(AlertArgs),
+    FollowWatch(FollowWatchArgs),
+    FollowClosePaper(FollowClosePaperArgs),
     ImportWatchlist(ImportWatchlistArgs),
     ExportProfiler(ExportProfilerArgs),
     ProfileReadiness(ProfileReadinessArgs),

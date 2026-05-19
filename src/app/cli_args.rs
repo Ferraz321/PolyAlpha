@@ -76,6 +76,38 @@ pub struct AlertArgs {
 }
 
 #[derive(Debug, Clone, Args)]
+pub struct FollowWatchArgs {
+    #[arg(long, default_value = "data/follow.sqlite")]
+    pub db: PathBuf,
+    #[arg(long, default_value_t = 5)]
+    pub interval_secs: u64,
+    #[arg(long, default_value_t = 100)]
+    pub limit: usize,
+    #[arg(long, default_value_t = 30)]
+    pub max_latency_secs: i64,
+    #[arg(long, default_value = "0.1")]
+    pub copy_fraction: rust_decimal::Decimal,
+    #[arg(long, default_value = "100")]
+    pub max_notional: rust_decimal::Decimal,
+    #[arg(long, default_value = "0")]
+    pub min_depth_shares: rust_decimal::Decimal,
+    #[arg(long, default_value = "50")]
+    pub slippage_bps: rust_decimal::Decimal,
+    #[arg(long)]
+    pub once: bool,
+}
+
+#[derive(Debug, Clone, Args)]
+pub struct FollowClosePaperArgs {
+    #[arg(long, default_value = "data/follow.sqlite")]
+    pub db: PathBuf,
+    #[arg(long, default_value_t = 3600)]
+    pub horizon_secs: i64,
+    #[arg(long, default_value_t = 1000)]
+    pub limit: usize,
+}
+
+#[derive(Debug, Clone, Args)]
 pub struct ImportWatchlistArgs {
     #[arg(long, default_value = "data/oktrader.sqlite")]
     pub db: PathBuf,

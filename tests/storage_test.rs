@@ -2,6 +2,9 @@ use chrono::TimeZone;
 use oktrader_alpha::microstructure::{JoinConfig, build_wallet_microstructure};
 use oktrader_alpha::model::{FillEvent, LiquidityRole, TradeSide};
 use oktrader_alpha::storage::Storage;
+use oktrader_alpha::storage_follow::{
+    FollowSignalRecord, PaperFollowFillRecord, WalletFollowScoreRecord, WalletTradeEventRecord,
+};
 use oktrader_alpha::storage_research::{SignalRecord, StrategyRecord};
 use oktrader_alpha::storage_types::{RawClobEventRecord, RawEvmLogRecord};
 use oktrader_alpha::wallet_intelligence::{SettlementEvent, build_wallet_intelligence};
@@ -221,6 +224,92 @@ fn stores_settlement_events() {
     assert_eq!(loaded[0].payout, dec!(100));
     assert_eq!(
         storage.research_stats().expect("stats").settlement_events,
+        1
+    );
+}
+
+#[test]
+fn stores_followability_records() {
+    let storage = Storage::open(":memory:").expect("storage");
+    storage
+        .upsert_wallet_trade_event(&WalletTradeEventRecord {
+            event_id: "wallet_event:fill:1".to_string(),
+            fill_id: Some(1),
+            account: "0xabc".to_string(),
+            market_id: "m1".to_string(),
+            outcome_id: Some("yes".to_string()),
+            side: "buy".to_string(),
+            price: dec!(0.50),
+            shares: dec!(10),
+            source_timestamp: "2026-01-01T00:00:00Z".to_string(),
+            observed_at: "2026-01-01T00:00:02Z".to_string(),
+            received_at: "2026-01-01T00:00:02Z".to_string(),
+            latency_ms: 2000,
+            source: "test".to_string(),
+            payload_json: "{}".to_string(),
+        })
+        .expect("event");
+    storage
+        .insert_follow_signal(&FollowSignalRecord {
+            signal_id: "follow_signal:1".to_string(),
+            wallet_event_id: "wallet_event:fill:1".to_string(),
+            account: "0xabc".to_string(),
+            market_id: "m1".to_string(),
+            outcome_id: Some("yes".to_string()),
+            side: "buy".to_string(),
+            target_price: dec!(0.505),
+            copied_shares: dec!(1),
+            max_notional: dec!(100),
+            score: dec!(0.9),
+            verdict: "paper".to_string(),
+            reasons_json: "[]".to_string(),
+            emitted_at: "2026-01-01T00:00:02Z".to_string(),
+            status: "paper".to_string(),
+        })
+        .expect("signal");
+    storage
+        .insert_paper_follow_fill(&PaperFollowFillRecord {
+            paper_fill_id: "paper_follow:1".to_string(),
+            signal_id: "follow_signal:1".to_string(),
+            wallet_event_id: "wallet_event:fill:1".to_string(),
+            entry_price: dec!(0.505),
+            shares: dec!(1),
+            notional: dec!(0.505),
+            slippage_bps: dec!(50),
+            depth_snapshot_json: "{}".to_string(),
+            depth_status: "pass".to_string(),
+            entry_at: "2026-01-01T00:00:02Z".to_string(),
+            exit_price: Some(dec!(0.60)),
+            exit_at: Some("2026-01-01T01:00:02Z".to_string()),
+            pnl: Some(dec!(0.095)),
+            pnl_bps: Some(dec!(1881.1881)),
+            status: "closed".to_string(),
+        })
+        .expect("paper fill");
+    storage
+        .upsert_wallet_follow_score(&WalletFollowScoreRecord {
+            account: "0xabc".to_string(),
+            worth_following: "paper_watch".to_string(),
+            latency_verdict: "approved".to_string(),
+            depth_verdict: "approved".to_string(),
+            edge_verdict: "approved".to_string(),
+            overall_verdict: "paper_only".to_string(),
+            score: dec!(0.9),
+            metrics_json: "{}".to_string(),
+        })
+        .expect("score");
+
+    let counts = storage
+        .follow_counts_for_wallet("0xabc")
+        .expect("follow counts");
+    assert_eq!(counts.events, 1);
+    assert_eq!(counts.signals, 1);
+    assert_eq!(counts.paper_fills, 1);
+    assert_eq!(
+        storage
+            .research_stats()
+            .expect("stats")
+            .wallet_follow_scores,
         1
     );
 }

@@ -70,7 +70,19 @@ cargo run -- watch-clob \
   --db data/follow.sqlite \
   --assets-file data/profiler_real_beefslayer/clob_assets.txt
 
+cargo run -- follow-watch \
+  --db data/follow.sqlite \
+  --interval-secs 5 \
+  --max-latency-secs 30 \
+  --copy-fraction 0.1 \
+  --max-notional 100
+
+cargo run -- follow-close-paper \
+  --db data/follow.sqlite \
+  --horizon-secs 3600
+
 python profiler/profile_wallets.py follow-evaluate \
   --profile-dir data/profiler_real_beefslayer \
-  --wallet 0x331bf91c132af9d921e1908ca0979363fc47193f
+  --wallet 0x331bf91c132af9d921e1908ca0979363fc47193f \
+  --db data/follow.sqlite
 ```

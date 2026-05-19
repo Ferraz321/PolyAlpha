@@ -19,6 +19,10 @@ pub struct ResearchStats {
     pub factor_validations: usize,
     pub strategies: usize,
     pub signals: usize,
+    pub wallet_trade_events: usize,
+    pub follow_signals: usize,
+    pub paper_follow_fills: usize,
+    pub wallet_follow_scores: usize,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -86,6 +90,10 @@ impl Storage {
             factor_validations: count(self, "factor_validations")?,
             strategies: count(self, "strategies")?,
             signals: count(self, "signals")?,
+            wallet_trade_events: count(self, "wallet_trade_events")?,
+            follow_signals: count(self, "follow_signals")?,
+            paper_follow_fills: count(self, "paper_follow_fills")?,
+            wallet_follow_scores: count(self, "wallet_follow_scores")?,
         })
     }
 

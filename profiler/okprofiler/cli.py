@@ -160,6 +160,11 @@ def main() -> None:
             max_wait_secs=args.max_wait_secs,
             slippage_bps=args.slippage_bps,
             min_proxy_trades=args.min_proxy_trades,
+            db=Path(args.db) if args.db else None,
+            max_latency_secs=args.max_latency_secs,
+            min_live_events=args.min_live_events,
+            min_depth_pass_rate=args.min_depth_pass_rate,
+            min_paper_fills=args.min_paper_fills,
         )
         if args.out:
             write_followability(result, Path(args.out))
@@ -386,6 +391,11 @@ def parse_args():
     follow_parser.add_argument("--max-wait-secs", type=int, default=300)
     follow_parser.add_argument("--slippage-bps", type=float, default=50.0)
     follow_parser.add_argument("--min-proxy-trades", type=int, default=30)
+    follow_parser.add_argument("--db")
+    follow_parser.add_argument("--max-latency-secs", type=int, default=30)
+    follow_parser.add_argument("--min-live-events", type=int, default=20)
+    follow_parser.add_argument("--min-depth-pass-rate", type=float, default=0.8)
+    follow_parser.add_argument("--min-paper-fills", type=int, default=30)
     follow_parser.add_argument("--out", default="data/profiler/followability.json")
     follow_parser.add_argument("--report-out", default="data/profiler/followability.md")
     follow_parser.add_argument("--json", action="store_true")

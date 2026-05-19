@@ -1,5 +1,6 @@
 import csv
 import json
+import sqlite3
 from bisect import bisect_left
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -14,6 +15,11 @@ def evaluate_followability(
     max_wait_secs: int = 300,
     slippage_bps: float = 50.0,
     min_proxy_trades: int = 30,
+    db: Path | None = None,
+    max_latency_secs: int = 30,
+    min_live_events: int = 20,
+    min_depth_pass_rate: float = 0.8,
+    min_paper_fills: int = 30,
 ) -> dict:
     delays = delays or [5, 15, 60]
     fills = _read_fills(profile_dir / "fills.csv", wallet)
@@ -31,6 +37,14 @@ def evaluate_followability(
         )
         for delay in delays
     }
+    live = _read_live_follow_evidence(
+        db=db,
+        wallet=wallet or _single_wallet(fills),
+        max_latency_secs=max_latency_secs,
+        min_live_events=min_live_events,
+        min_depth_pass_rate=min_depth_pass_rate,
+        min_paper_fills=min_paper_fills,
+    )
     verdicts = _verdicts(
         fills=fills,
         clob_rows=clob_rows,
@@ -39,6 +53,7 @@ def evaluate_followability(
         focused_cycles=focused_cycles,
         proxy=proxy,
         min_proxy_trades=min_proxy_trades,
+        live=live,
     )
     return {
         "version": 1,
@@ -50,6 +65,11 @@ def evaluate_followability(
             "max_wait_secs": max_wait_secs,
             "slippage_bps": slippage_bps,
             "min_proxy_trades": min_proxy_trades,
+            "db": str(db) if db else None,
+            "max_latency_secs": max_latency_secs,
+            "min_live_events": min_live_events,
+            "min_depth_pass_rate": min_depth_pass_rate,
+            "min_paper_fills": min_paper_fills,
         },
         "data_readiness": {
             "fills": len(fills),
@@ -63,6 +83,7 @@ def evaluate_followability(
         },
         "verdicts": verdicts,
         "own_repeat_proxy": proxy,
+        "live_follow_evidence": live,
         "follow_commands": _follow_commands(profile_dir),
     }
 
@@ -113,6 +134,22 @@ def render_followability(result: dict) -> str:
             f"| {delay}s | {row['samples']} | {row['win_rate']:.2%} | "
             f"{row['avg_edge_after_cost']:.6f} | {row['median_wait_secs']}s | {row['verdict_hint']} |"
         )
+    live = result.get("live_follow_evidence", {})
+    lines.extend(
+        [
+            "",
+            "## Live/Paper Follow Evidence",
+            "",
+            f"- db: `{live.get('db')}`",
+            f"- ready: {live.get('ready')}",
+            f"- wallet_trade_events: {live.get('latency', {}).get('samples', 0)}",
+            f"- latency_p50_secs: {live.get('latency', {}).get('p50_secs')}",
+            f"- latency_p95_secs: {live.get('latency', {}).get('p95_secs')}",
+            f"- depth_pass_rate: {live.get('depth', {}).get('pass_rate')}",
+            f"- closed_paper_fills: {live.get('paper_edge', {}).get('closed_fills', 0)}",
+            f"- avg_pnl: {live.get('paper_edge', {}).get('avg_pnl')}",
+        ]
+    )
     lines.extend(["", "## Next Commands", ""])
     for command in result["follow_commands"]:
         lines.append(f"- {command['reason']}: `{' '.join(command['command'])}`")
@@ -224,7 +261,10 @@ def _verdicts(
     focused_cycles: dict,
     proxy: dict,
     min_proxy_trades: int,
+    live: dict | None = None,
 ) -> dict:
+    live = live or {}
+    live_verdicts = live.get("verdicts", {})
     best_proxy = _best_proxy(proxy)
     approved = [
         factor
@@ -238,21 +278,47 @@ def _verdicts(
     }
     wallet_verdict = "blocked"
     wallet_reason = "no approved factors or live paper-follow record yet"
-    if best_proxy and best_proxy["samples"] >= min_proxy_trades and best_proxy["avg_edge_after_cost"] <= 0:
+    live_wallet = live_verdicts.get("wallet_worth_following")
+    if live_wallet and live_wallet["verdict"] != "blocked":
+        wallet_verdict = live_wallet["verdict"]
+        wallet_reason = live_wallet["reason"]
+    elif best_proxy and best_proxy["samples"] >= min_proxy_trades and best_proxy["avg_edge_after_cost"] <= 0:
         wallet_verdict = "rejected"
         wallet_reason = "own-repeat proxy is negative after delay/slippage and no approved factor offsets it"
+    elif live_wallet:
+        wallet_verdict = live_wallet["verdict"]
+        wallet_reason = live_wallet["reason"]
     elif approved:
         wallet_reason = f"has approved factors {approved}, but still needs paper-follow execution proof"
     latency_reason = "no live wallet_trade_events with observed_at/received_at latency; historical Data API fills cannot measure reaction delay"
+    latency_verdict = "blocked"
+    if live_verdicts.get("latency_acceptable"):
+        latency_verdict = live_verdicts["latency_acceptable"]["verdict"]
+        latency_reason = live_verdicts["latency_acceptable"]["reason"]
     depth_reason = "no historical CLOB book depth around wallet fills" if clob_rows == 0 else "CLOB rows exist; run depth/capacity paper-follow before live execution"
     depth_verdict = "blocked"
     if clob_rows > 0 and _source_ready(diagnostics, "clob_features"):
         depth_reason = "CLOB features available, but capacity model is not approved yet"
+    if live_verdicts.get("depth_can_eat"):
+        depth_verdict = live_verdicts["depth_can_eat"]["verdict"]
+        depth_reason = live_verdicts["depth_can_eat"]["reason"]
     edge_verdict = "blocked"
     edge_reason = "missing market-wide post-trade tape and settlement-audited follow PnL"
-    if best_proxy and best_proxy["samples"] >= min_proxy_trades and best_proxy["avg_edge_after_cost"] <= 0:
+    live_edge = live_verdicts.get("edge_after_follow")
+    if live_edge and live_edge["verdict"] != "blocked":
+        edge_verdict = live_edge["verdict"]
+        edge_reason = live_edge["reason"]
+    if (
+        (not live_edge or live_edge["verdict"] != "approved")
+        and best_proxy
+        and best_proxy["samples"] >= min_proxy_trades
+        and best_proxy["avg_edge_after_cost"] <= 0
+    ):
         edge_verdict = "rejected"
         edge_reason = "own-repeat proxy shows non-positive edge after delay/slippage"
+    elif live_edge:
+        edge_verdict = live_edge["verdict"]
+        edge_reason = live_edge["reason"]
     return {
         "wallet_worth_following": {
             "verdict": wallet_verdict,
@@ -261,7 +327,7 @@ def _verdicts(
             "focused_consensus": focused_summary,
         },
         "latency_acceptable": {
-            "verdict": "blocked",
+            "verdict": latency_verdict,
             "reason": latency_reason,
         },
         "depth_can_eat": {
@@ -280,6 +346,246 @@ def _best_proxy(proxy: dict) -> dict | None:
     if not rows:
         return None
     return max(rows, key=lambda row: (row["samples"], row["avg_edge_after_cost"]))
+
+
+def _read_live_follow_evidence(
+    db: Path | None,
+    wallet: str | None,
+    max_latency_secs: int,
+    min_live_events: int,
+    min_depth_pass_rate: float,
+    min_paper_fills: int,
+) -> dict:
+    result = {
+        "db": str(db) if db else None,
+        "ready": False,
+        "reason": "no follow database supplied",
+        "latency": {"samples": 0},
+        "depth": {"signals": 0},
+        "paper_edge": {"closed_fills": 0},
+        "verdicts": {},
+    }
+    if not db:
+        return result
+    if not db.exists():
+        result["reason"] = "follow database does not exist"
+        return result
+    account = wallet.lower() if wallet else None
+    with sqlite3.connect(db) as conn:
+        conn.row_factory = sqlite3.Row
+        required = ["wallet_trade_events", "follow_signals", "paper_follow_fills"]
+        missing = [table for table in required if not _table_exists(conn, table)]
+        if missing:
+            result["reason"] = f"missing follow tables: {', '.join(missing)}"
+            return result
+        latency = _latency_evidence(conn, account, max_latency_secs)
+        depth = _depth_evidence(conn, account)
+        paper = _paper_edge_evidence(conn, account)
+    verdicts = _live_verdicts(
+        latency=latency,
+        depth=depth,
+        paper=paper,
+        min_live_events=min_live_events,
+        max_latency_secs=max_latency_secs,
+        min_depth_pass_rate=min_depth_pass_rate,
+        min_paper_fills=min_paper_fills,
+    )
+    return {
+        **result,
+        "ready": True,
+        "reason": "loaded follow database",
+        "latency": latency,
+        "depth": depth,
+        "paper_edge": paper,
+        "verdicts": verdicts,
+    }
+
+
+def _latency_evidence(conn: sqlite3.Connection, account: str | None, max_latency_secs: int) -> dict:
+    rows = _select_wallet_rows(
+        conn,
+        "SELECT latency_ms FROM wallet_trade_events {where}",
+        account,
+    )
+    values = [max(0.0, row["latency_ms"] / 1000.0) for row in rows if row["latency_ms"] is not None]
+    return {
+        "samples": len(values),
+        "p50_secs": _percentile(values, 0.50),
+        "p95_secs": _percentile(values, 0.95),
+        "max_latency_secs": max_latency_secs,
+        "within_limit_rate": (
+            sum(1 for value in values if value <= max_latency_secs) / len(values)
+            if values
+            else 0.0
+        ),
+    }
+
+
+def _depth_evidence(conn: sqlite3.Connection, account: str | None) -> dict:
+    rows = _select_wallet_rows(
+        conn,
+        "SELECT verdict, reasons_json FROM follow_signals {where}",
+        account,
+    )
+    pass_count = sum(1 for row in rows if row["verdict"] == "paper")
+    blocked_count = sum(1 for row in rows if row["verdict"] != "paper")
+    missing_depth = 0
+    for row in rows:
+        try:
+            reasons = json.loads(row["reasons_json"] or "[]")
+        except json.JSONDecodeError:
+            reasons = []
+        if any("depth_status=missing" in reason for reason in reasons):
+            missing_depth += 1
+    total = pass_count + blocked_count
+    return {
+        "signals": total,
+        "pass_count": pass_count,
+        "blocked_count": blocked_count,
+        "missing_depth_count": missing_depth,
+        "pass_rate": pass_count / total if total else 0.0,
+    }
+
+
+def _paper_edge_evidence(conn: sqlite3.Connection, account: str | None) -> dict:
+    where = "WHERE p.pnl IS NOT NULL"
+    params: list[str] = []
+    if account:
+        where += " AND s.account = ?"
+        params.append(account)
+    rows = conn.execute(
+        f"""
+        SELECT CAST(p.pnl AS REAL) AS pnl, CAST(p.pnl_bps AS REAL) AS pnl_bps
+        FROM paper_follow_fills p
+        JOIN follow_signals s ON s.signal_id = p.signal_id
+        {where}
+        """,
+        params,
+    ).fetchall()
+    pnls = [float(row["pnl"]) for row in rows if row["pnl"] is not None]
+    pnl_bps = [float(row["pnl_bps"]) for row in rows if row["pnl_bps"] is not None]
+    return {
+        "closed_fills": len(pnls),
+        "avg_pnl": mean(pnls) if pnls else None,
+        "avg_pnl_bps": mean(pnl_bps) if pnl_bps else None,
+        "win_rate": sum(1 for value in pnls if value > 0) / len(pnls) if pnls else 0.0,
+    }
+
+
+def _live_verdicts(
+    latency: dict,
+    depth: dict,
+    paper: dict,
+    min_live_events: int,
+    max_latency_secs: int,
+    min_depth_pass_rate: float,
+    min_paper_fills: int,
+) -> dict:
+    latency_samples = latency.get("samples", 0)
+    if latency_samples < min_live_events:
+        latency_verdict = {
+            "verdict": "blocked",
+            "reason": f"only {latency_samples} live wallet events; need {min_live_events}",
+        }
+    elif (latency.get("p95_secs") or 0) <= max_latency_secs:
+        latency_verdict = {
+            "verdict": "approved",
+            "reason": f"p95 latency {latency.get('p95_secs')}s <= {max_latency_secs}s",
+        }
+    else:
+        latency_verdict = {
+            "verdict": "rejected",
+            "reason": f"p95 latency {latency.get('p95_secs')}s > {max_latency_secs}s",
+        }
+
+    signals = depth.get("signals", 0)
+    pass_rate = depth.get("pass_rate", 0.0)
+    if signals < min_live_events:
+        depth_verdict = {
+            "verdict": "blocked",
+            "reason": f"only {signals} follow depth checks; need {min_live_events}",
+        }
+    elif depth.get("missing_depth_count", 0) == signals:
+        depth_verdict = {
+            "verdict": "blocked",
+            "reason": "all follow checks are missing CLOB depth",
+        }
+    elif pass_rate >= min_depth_pass_rate:
+        depth_verdict = {
+            "verdict": "approved",
+            "reason": f"depth pass rate {pass_rate:.2%} >= {min_depth_pass_rate:.2%}",
+        }
+    else:
+        depth_verdict = {
+            "verdict": "rejected",
+            "reason": f"depth pass rate {pass_rate:.2%} < {min_depth_pass_rate:.2%}",
+        }
+
+    closed = paper.get("closed_fills", 0)
+    avg_pnl = paper.get("avg_pnl")
+    if closed < min_paper_fills:
+        edge_verdict = {
+            "verdict": "blocked",
+            "reason": f"only {closed} closed paper-follow fills; need {min_paper_fills}",
+        }
+    elif avg_pnl is not None and avg_pnl > 0 and paper.get("win_rate", 0.0) >= 0.5:
+        edge_verdict = {
+            "verdict": "approved",
+            "reason": f"paper-follow avg_pnl {avg_pnl:.6f}, win_rate {paper.get('win_rate'):.2%}",
+        }
+    else:
+        edge_verdict = {
+            "verdict": "rejected",
+            "reason": f"paper-follow avg_pnl {avg_pnl}, win_rate {paper.get('win_rate'):.2%}",
+        }
+
+    components = [latency_verdict, depth_verdict, edge_verdict]
+    if all(row["verdict"] == "approved" for row in components):
+        wallet = {
+            "verdict": "approved",
+            "reason": "latency, depth, and closed paper-follow PnL are all approved",
+        }
+    elif any(row["verdict"] == "rejected" for row in components):
+        wallet = {
+            "verdict": "rejected",
+            "reason": "at least one live followability component is rejected",
+        }
+    else:
+        wallet = {
+            "verdict": "blocked",
+            "reason": "live follow evidence is still incomplete",
+        }
+    return {
+        "wallet_worth_following": wallet,
+        "latency_acceptable": latency_verdict,
+        "depth_can_eat": depth_verdict,
+        "edge_after_follow": edge_verdict,
+    }
+
+
+def _select_wallet_rows(conn: sqlite3.Connection, query_template: str, account: str | None):
+    if account:
+        return conn.execute(
+            query_template.format(where="WHERE account = ?"),
+            [account],
+        ).fetchall()
+    return conn.execute(query_template.format(where="")).fetchall()
+
+
+def _table_exists(conn: sqlite3.Connection, table: str) -> bool:
+    row = conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?",
+        [table],
+    ).fetchone()
+    return row is not None
+
+
+def _percentile(values: list[float], quantile: float) -> float | None:
+    if not values:
+        return None
+    ordered = sorted(values)
+    index = min(len(ordered) - 1, max(0, round((len(ordered) - 1) * quantile)))
+    return round(ordered[index], 3)
 
 
 def _read_validations(path: Path) -> dict[str, dict]:
@@ -320,6 +626,32 @@ def _follow_commands(profile_dir: Path) -> list[dict]:
             ],
         },
         {
+            "reason": "record watchlist wallet events and paper-follow signals",
+            "command": [
+                "cargo",
+                "run",
+                "--",
+                "follow-watch",
+                "--db",
+                "data/follow.sqlite",
+                "--interval-secs",
+                "5",
+            ],
+        },
+        {
+            "reason": "close mature paper-follow fills for edge-after-follow evidence",
+            "command": [
+                "cargo",
+                "run",
+                "--",
+                "follow-close-paper",
+                "--db",
+                "data/follow.sqlite",
+                "--horizon-secs",
+                "3600",
+            ],
+        },
+        {
             "reason": "rerun followability after paper/live observation window",
             "command": [
                 "python",
@@ -327,6 +659,8 @@ def _follow_commands(profile_dir: Path) -> list[dict]:
                 "follow-evaluate",
                 "--profile-dir",
                 str(profile_dir),
+                "--db",
+                "data/follow.sqlite",
             ],
         },
     ]

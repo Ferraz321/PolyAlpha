@@ -304,3 +304,86 @@ CREATE TABLE IF NOT EXISTS signals (
 CREATE INDEX IF NOT EXISTS idx_signals_strategy ON signals(strategy_id);
 CREATE INDEX IF NOT EXISTS idx_signals_market ON signals(market_id);
 CREATE INDEX IF NOT EXISTS idx_signals_emitted ON signals(emitted_at);
+
+CREATE TABLE IF NOT EXISTS wallet_trade_events (
+    event_id TEXT PRIMARY KEY,
+    fill_id INTEGER,
+    account TEXT NOT NULL,
+    market_id TEXT NOT NULL,
+    outcome_id TEXT,
+    side TEXT NOT NULL,
+    price TEXT NOT NULL,
+    shares TEXT NOT NULL,
+    source_timestamp TEXT NOT NULL,
+    observed_at TEXT NOT NULL,
+    received_at TEXT NOT NULL,
+    latency_ms INTEGER NOT NULL,
+    source TEXT NOT NULL DEFAULT 'data_api',
+    payload_json TEXT NOT NULL DEFAULT '{}',
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(fill_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_wallet_trade_events_account ON wallet_trade_events(account);
+CREATE INDEX IF NOT EXISTS idx_wallet_trade_events_market ON wallet_trade_events(market_id);
+CREATE INDEX IF NOT EXISTS idx_wallet_trade_events_observed ON wallet_trade_events(observed_at);
+
+CREATE TABLE IF NOT EXISTS follow_signals (
+    signal_id TEXT PRIMARY KEY,
+    wallet_event_id TEXT NOT NULL,
+    account TEXT NOT NULL,
+    market_id TEXT NOT NULL,
+    outcome_id TEXT,
+    side TEXT NOT NULL,
+    target_price TEXT NOT NULL,
+    copied_shares TEXT NOT NULL,
+    max_notional TEXT NOT NULL,
+    score TEXT NOT NULL,
+    verdict TEXT NOT NULL,
+    reasons_json TEXT NOT NULL DEFAULT '[]',
+    emitted_at TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'paper',
+    FOREIGN KEY(wallet_event_id) REFERENCES wallet_trade_events(event_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_follow_signals_account ON follow_signals(account);
+CREATE INDEX IF NOT EXISTS idx_follow_signals_market ON follow_signals(market_id);
+CREATE INDEX IF NOT EXISTS idx_follow_signals_verdict ON follow_signals(verdict);
+
+CREATE TABLE IF NOT EXISTS paper_follow_fills (
+    paper_fill_id TEXT PRIMARY KEY,
+    signal_id TEXT NOT NULL,
+    wallet_event_id TEXT NOT NULL,
+    entry_price TEXT NOT NULL,
+    shares TEXT NOT NULL,
+    notional TEXT NOT NULL,
+    slippage_bps TEXT NOT NULL,
+    depth_snapshot_json TEXT NOT NULL DEFAULT '{}',
+    depth_status TEXT NOT NULL,
+    entry_at TEXT NOT NULL,
+    exit_price TEXT,
+    exit_at TEXT,
+    pnl TEXT,
+    pnl_bps TEXT,
+    status TEXT NOT NULL DEFAULT 'open',
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(signal_id) REFERENCES follow_signals(signal_id),
+    FOREIGN KEY(wallet_event_id) REFERENCES wallet_trade_events(event_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_paper_follow_fills_signal ON paper_follow_fills(signal_id);
+CREATE INDEX IF NOT EXISTS idx_paper_follow_fills_status ON paper_follow_fills(status);
+
+CREATE TABLE IF NOT EXISTS wallet_follow_scores (
+    account TEXT PRIMARY KEY,
+    worth_following TEXT NOT NULL,
+    latency_verdict TEXT NOT NULL,
+    depth_verdict TEXT NOT NULL,
+    edge_verdict TEXT NOT NULL,
+    overall_verdict TEXT NOT NULL,
+    score TEXT NOT NULL,
+    metrics_json TEXT NOT NULL DEFAULT '{}',
+    updated_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_wallet_follow_scores_overall ON wallet_follow_scores(overall_verdict);
