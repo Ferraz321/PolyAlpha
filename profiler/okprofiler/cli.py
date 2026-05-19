@@ -13,6 +13,7 @@ from .data_sources import (
     resolve_polymarket_user,
 )
 from .features import factor_library_rows
+from .follow_eval import evaluate_followability, render_followability, write_followability
 from .pipeline import ProfilerConfig, run_profiler
 from .research_agenda import build_research_agenda, render_research_agenda
 from .validation_summary import render_summary, summarize_validations
@@ -149,6 +150,26 @@ def main() -> None:
             print(json.dumps(result, indent=2))
         else:
             print(render_validation_cycles(result), end="")
+        return
+    if args.command == "follow-evaluate":
+        result = evaluate_followability(
+            profile_dir=Path(args.profile_dir),
+            wallet=args.wallet,
+            delays=_parse_int_list(args.delay),
+            horizon_secs=args.horizon_secs,
+            max_wait_secs=args.max_wait_secs,
+            slippage_bps=args.slippage_bps,
+            min_proxy_trades=args.min_proxy_trades,
+        )
+        if args.out:
+            write_followability(result, Path(args.out))
+        if args.report_out:
+            Path(args.report_out).parent.mkdir(parents=True, exist_ok=True)
+            Path(args.report_out).write_text(render_followability(result), encoding="utf-8")
+        if args.json:
+            print(json.dumps(result, indent=2))
+        else:
+            print(render_followability(result), end="")
         return
     if args.command == "profile":
         profile(args)
@@ -357,6 +378,17 @@ def parse_args():
     cycles_parser.add_argument("--factor", action="append", help="factor id to validate; repeatable or comma-separated")
     cycles_parser.add_argument("--out", default="data/profiler/factor_validation_cycles.json")
     cycles_parser.add_argument("--json", action="store_true")
+    follow_parser = subparsers.add_parser("follow-evaluate")
+    follow_parser.add_argument("--profile-dir", default="data/profiler")
+    follow_parser.add_argument("--wallet")
+    follow_parser.add_argument("--delay", action="append", default=["5", "15", "60"])
+    follow_parser.add_argument("--horizon-secs", type=int, default=3600)
+    follow_parser.add_argument("--max-wait-secs", type=int, default=300)
+    follow_parser.add_argument("--slippage-bps", type=float, default=50.0)
+    follow_parser.add_argument("--min-proxy-trades", type=int, default=30)
+    follow_parser.add_argument("--out", default="data/profiler/followability.json")
+    follow_parser.add_argument("--report-out", default="data/profiler/followability.md")
+    follow_parser.add_argument("--json", action="store_true")
     _add_profile_args(parser)
     args = parser.parse_args()
     if args.command is None:
@@ -430,6 +462,15 @@ def _parse_factor_list(raw: list[str] | None) -> list[str] | None:
     for item in raw:
         factors.extend(part.strip() for part in item.split(",") if part.strip())
     return factors
+
+
+def _parse_int_list(raw: list[str] | None) -> list[int]:
+    if not raw:
+        return []
+    values = []
+    for item in raw:
+        values.extend(int(part.strip()) for part in item.split(",") if part.strip())
+    return values
 
 
 def _parse_wallets(raw_wallets: list[str], wallet_pool: str | None) -> list[str]:

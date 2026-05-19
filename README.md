@@ -555,6 +555,14 @@ python profiler/profile_wallets.py validation-cycles \
   --factor news_recency_decay_edge
 ```
 
+Evaluate whether a wallet is worth following before building a live bot:
+
+```bash
+python profiler/profile_wallets.py follow-evaluate \
+  --profile-dir data/profiler_real_beefslayer \
+  --wallet 0x331bf91c132af9d921e1908ca0979363fc47193f
+```
+
 Per-run evidence is written to `factor_summary.md`, `factor_research_log.md`,
 and `rules.json`. A factor should only be promoted when it has non-null rows,
 an interpretable rule, and a clear note on whether Rust can evaluate it live.
