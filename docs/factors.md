@@ -58,21 +58,26 @@ a research idea into production.
 | `forecast_delta_1h` | weather forecast history | One-hour forecast temperature revision. | No | active |
 | `forecast_delta_6h` | weather forecast history | Six-hour forecast temperature revision. | No | active |
 | `forecast_volatility` | weather forecast history | Short-window forecast temperature volatility. | No | active |
+| `forecast_model_count` | weather forecast history | Number of distinct forecast sources/models available at the aligned forecast timestamp. | No | active |
+| `model_disagreement` | weather forecast history | Temperature range across aligned forecast sources/models. | No | active-unvalidated |
+| `forecast_bias_error_f` | weather forecast + observations | Ex-post realized temperature minus aligned forecast temperature. Used for research validation, not live entry by itself. | No | active-unvalidated |
+| `city_temperature_bias_edge` | weather forecast + observations | Absolute city-level mean forecast bias, used to test repeat city/model error. | No | active-unvalidated |
+| `bucket_distance_from_normal` | weather forecast history | Distance between traded bucket midpoint and city forecast normal/median in the sample. | No | active-unvalidated |
 | `weather_low_price_bucket_value` | fills | Weather temperature bucket fill priced below 20c. Used to test low-probability bucket value behavior. | No | active |
 | `nwp_node_lag_secs` | fills | Seconds since the latest 00Z/06Z/12Z/18Z weather model run node. | No | active |
 | `late_day_temperature_nowcast_edge` | fills | Whether fill occurred in the 18Z-22Z UTC window often relevant for same-day US temperature monitoring. | No | active |
 | `official_station_source_available` | weather event metadata | Whether the market's official station/source was parsed from Gamma event rules. | No | active |
 | `official_station_basis` | weather event metadata + official observations | Difference between official station high and generic/grid actual high. Non-null only when official observed high is available. | No | active-unvalidated |
+| `official_station_bucket_distance` | intraday official observations | Distance from official station high-to-date at fill time to the traded bucket. | No | active-unvalidated |
+| `official_station_inside_bucket_now` | intraday official observations | Whether official station high-to-date is already inside the traded bucket at fill time. | No | active-unvalidated |
+| `official_station_target_bucket_edge` | intraday official observations + sibling prices | Non-leaking proxy combining station high-to-date proximity, entry price, and ladder state. | No | active-unvalidated |
 | `temperature_bucket_ladder_mispricing` | weather event metadata / sibling prices | Absolute gap between entry price and same-bucket ladder reference price when live/open ladder prices are available. | No | active-unvalidated |
 
 ## Candidate Factors To Add
 
 | Candidate | Required Data | Why It Matters |
 | --- | --- | --- |
-| `model_disagreement` | external weather | Compare multiple forecast models for mispricing. |
 | `official_station_basis` | market rules + official weather station observations | Captures the gap between generic weather APIs and the exact station/source used for Polymarket settlement. |
-| `official_station_target_bucket_edge` | intraday official station observations + sibling prices | Combined weather entry factor: official station high-to-date / target bucket distance / sibling ladder state at fill time. |
-| `city_temperature_bias_edge` | official observations + forecast history | Measures persistent city/model forecast error that can explain repeat edge in specific cities. |
 | `temperature_bucket_ladder_mispricing` | sibling market prices + bucket semantics | Compares adjacent temperature buckets on the same city-day to find incoherent probability mass across the ladder. |
 | `market_breadth_rate` | fills | Separate broad stat-arb from narrow sniping. |
 | `time_of_day_bucket` | fills | Detect scheduled or timezone-driven execution. |

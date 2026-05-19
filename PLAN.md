@@ -238,7 +238,9 @@ Partially implemented:
    - [x] Advance factor candidate lifecycle from validation verdicts, including decayed factors.
    - [x] Add true negative-set backtests across non-wallet fills for real precision/recall.
    - [ ] Replace lightweight adapters with full optional Qlib/Alphalens/STUMPY/SHAP/Nautilus integrations when data format and dependencies are ready.
-   - [ ] Add multi-model forecast adapter for `model_disagreement`.
+   - [x] Add multi-model forecast aggregation and `model_disagreement` factor.
+   - [x] Add city-level forecast bias and bucket-distance-from-normal research factors.
+   - [x] Add non-leaking official-station target-bucket edge factor from intraday high-to-date.
    - [x] Add richer factor library: market sector PnL, pre-news lead time, and exit quality.
    - [x] Add richer validation metrics: non-wallet negative-set precision/recall, category replication, slippage, and capacity.
 

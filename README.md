@@ -714,6 +714,14 @@ observation rows and 41,400 forecast-history rows, then populated
 `actual_temp_error_to_mid_f`, `forecast_temp_f`,
 `forecast_error_to_bucket`, `forecast_inside_bucket`, `forecast_delta_1h`,
 `forecast_delta_6h`, and `forecast_volatility` in `factor_table.parquet`.
+The factor library also supports multi-source forecast aggregation and
+official-station intraday research columns:
+`forecast_model_count`, `model_disagreement`,
+`city_temperature_bias_edge`, `bucket_distance_from_normal`,
+`official_station_bucket_distance`, `official_station_inside_bucket_now`, and
+`official_station_target_bucket_edge`. These are offline research factors until
+real multi-model forecast history and high-to-date official station data are
+available before each fill.
 
 Python scripts under `scripts/` are the only portable workflow entrypoints.
 Legacy `.sh` wrappers were removed to avoid drift between Linux-only wrappers

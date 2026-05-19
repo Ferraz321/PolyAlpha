@@ -55,6 +55,16 @@ PROFILE_COLUMNS = [
     "forecast_delta_1h",
     "forecast_delta_6h",
     "forecast_volatility",
+    "forecast_model_count",
+    "model_disagreement",
+    "forecast_bias_error_f",
+    "city_temperature_bias_edge",
+    "bucket_distance_from_normal",
+    "official_station_bucket_distance",
+    "official_station_inside_bucket_now",
+    "official_station_target_bucket_edge",
+    "official_station_basis",
+    "temperature_bucket_ladder_mispricing",
 ]
 
 

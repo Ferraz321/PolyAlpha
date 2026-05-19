@@ -145,6 +145,26 @@ Latest validation note:
   observations before each fill are available; using final official high would
   leak the settlement answer into the entry signal.
 
+## Research Iteration 2026-05-19: Factor Mining Follow-Up
+
+The next factor-mining pass promoted three blocked ideas into executable,
+offline-only research columns:
+
+- `model_disagreement`: aggregates multiple forecast sources at the same
+  city/timestamp and records the temperature range across models.
+- `city_temperature_bias_edge`: measures realized-minus-forecast bias and the
+  city-level mean absolute bias. This is an ex-post research label, not a live
+  entry signal.
+- `official_station_target_bucket_edge`: uses only official station
+  `official_high_to_date_f` observed before the fill, plus entry price and
+  ladder mispricing. It intentionally excludes final official high from the
+  entry signal to avoid settlement leakage.
+
+Synthetic profiler smoke confirmed the new columns are produced correctly when
+multi-model forecasts and intraday station high-to-date observations are
+present. Real promotion still requires larger historical multi-model forecast
+and official intraday station datasets.
+
 Updated behavioral read:
 
 - The account is a temperature-bucket specialist, not a hurricane-path or
@@ -165,7 +185,9 @@ Updated behavioral read:
 - News timeline is missing, so pre-news information-edge claims are not tested.
 - Settlement-grade realized PnL by city and weather category still needs a
   stronger closed-loop/settlement model.
-- Multi-model weather disagreement is still a candidate factor.
+- Multi-model weather disagreement is implemented as an active-unvalidated
+  research factor; it still needs real multi-model forecast coverage for
+  promotion.
 
 ## Next Research Tasks
 

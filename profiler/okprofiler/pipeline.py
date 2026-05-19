@@ -239,14 +239,35 @@ def attach_weather_forecasts(joined: pl.DataFrame, forecast_path: Path | None) -
     )
     if not {"city", "timestamp", "forecast_temp_f"}.issubset(set(forecasts.columns)):
         return joined
-    hourly = forecasts.select(
-        [
-            pl.col("city").str.to_lowercase().alias("forecast_city"),
-            pl.col("timestamp").dt.replace_time_zone("UTC").alias("forecast_timestamp"),
-            pl.col("forecast_temp_f").cast(pl.Float64),
-            pl.col("source").cast(pl.Utf8).alias("forecast_source"),
-        ]
-    ).sort(["forecast_city", "forecast_timestamp"])
+    source_expr = (
+        pl.col("source").cast(pl.Utf8)
+        if "source" in forecasts.columns
+        else pl.lit("unknown").cast(pl.Utf8)
+    )
+    hourly = (
+        forecasts.select(
+            [
+                pl.col("city").str.to_lowercase().alias("forecast_city"),
+                pl.col("timestamp").dt.replace_time_zone("UTC").alias("forecast_timestamp"),
+                pl.col("forecast_temp_f").cast(pl.Float64),
+                source_expr.alias("forecast_source"),
+            ]
+        )
+        .group_by(["forecast_city", "forecast_timestamp"])
+        .agg(
+            [
+                pl.col("forecast_temp_f").mean().alias("forecast_temp_f"),
+                pl.col("forecast_temp_f").min().alias("forecast_min_temp_f"),
+                pl.col("forecast_temp_f").max().alias("forecast_max_temp_f"),
+                pl.col("forecast_temp_f").std().fill_null(0.0).alias("forecast_model_std_f"),
+                pl.col("forecast_source").n_unique().alias("forecast_model_count"),
+            ]
+        )
+        .with_columns(
+            (pl.col("forecast_max_temp_f") - pl.col("forecast_min_temp_f")).alias("forecast_model_range_f")
+        )
+        .sort(["forecast_city", "forecast_timestamp"])
+    )
     return joined.sort(["weather_city", "timestamp"]).join_asof(
         hourly,
         left_on="timestamp",
@@ -328,7 +349,31 @@ def attach_official_weather(joined: pl.DataFrame, official_weather_path: Path | 
             pl.col("official_high_temp_f").cast(pl.Float64),
         ]
     ).unique(["official_station_id", "weather_event_date"])
-    return joined.join(daily, on=["official_station_id", "weather_event_date"], how="left")
+    out = joined.join(daily, on=["official_station_id", "weather_event_date"], how="left")
+    if not {"observed_at", "official_high_to_date_f", "timestamp"}.issubset(set(official.columns) | set(out.columns)):
+        return out
+    intraday = official.select(
+        [
+            (pl.col("official_station_id") + "|" + pl.col("event_date")).alias("__official_weather_key"),
+            pl.col("observed_at").dt.replace_time_zone("UTC").alias("official_observed_at"),
+            pl.col("official_high_to_date_f").cast(pl.Float64),
+        ]
+    ).sort(["__official_weather_key", "official_observed_at"])
+    keyed = out.with_columns(
+        (pl.col("official_station_id") + "|" + pl.col("weather_event_date")).alias("__official_weather_key")
+    )
+    return (
+        keyed.sort(["__official_weather_key", "timestamp"])
+        .join_asof(
+            intraday,
+            left_on="timestamp",
+            right_on="official_observed_at",
+            by="__official_weather_key",
+            strategy="backward",
+            check_sortedness=False,
+        )
+        .drop("__official_weather_key")
+    )
 
 
 def build_factor_table(joined: pl.DataFrame) -> pl.DataFrame:

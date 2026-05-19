@@ -16,7 +16,7 @@
     },
     {
       "factor": "model_disagreement",
-      "status": "candidate",
+      "status": "active_unvalidated",
       "priority": 2,
       "required_data": "external_weather_forecast",
       "market_categories": [
@@ -25,11 +25,17 @@
       "wallets": [
         "0x331bf91c132af9d921e1908ca0979363fc47193f"
       ],
-      "reason": "needed by weather temperature specialist to test whether the observed specialization is a reusable edge"
+      "reason": "needed by weather temperature specialist to test whether the observed specialization is a reusable edge",
+      "implementation_status": "implemented",
+      "implementation_columns": [
+        "forecast_model_count",
+        "model_disagreement"
+      ],
+      "latest_validation": "Implemented as aligned forecast-source temperature range. Synthetic profiler smoke confirms multi-source forecasts aggregate to forecast_model_count and model_disagreement. Needs real multi-model forecast history before alpha promotion."
     },
     {
       "factor": "bucket_distance_from_normal",
-      "status": "candidate",
+      "status": "active_unvalidated",
       "priority": 3,
       "required_data": "external_weather_forecast",
       "market_categories": [
@@ -38,7 +44,13 @@
       "wallets": [
         "0x331bf91c132af9d921e1908ca0979363fc47193f"
       ],
-      "reason": "needed by weather temperature specialist to test whether the observed specialization is a reusable edge"
+      "reason": "needed by weather temperature specialist to test whether the observed specialization is a reusable edge",
+      "implementation_status": "implemented",
+      "implementation_columns": [
+        "city_forecast_normal_f",
+        "bucket_distance_from_normal"
+      ],
+      "latest_validation": "Implemented as traded bucket midpoint distance from the city-level forecast median/normal in the aligned sample. This is an offline research proxy until a climatology source is added."
     },
     {
       "factor": "weather_low_price_bucket_value",
@@ -122,7 +134,7 @@
     },
     {
       "factor": "city_temperature_bias_edge",
-      "status": "candidate",
+      "status": "active_unvalidated",
       "priority": 2,
       "required_data": "official_weather_observations_and_forecast_history",
       "market_categories": [
@@ -132,8 +144,14 @@
         "0x331bf91c132af9d921e1908ca0979363fc47193f"
       ],
       "reason": "wallet concentrates across repeat cities; test whether edge is city-specific forecast bias against official station highs",
-      "validation_status": "blocked",
-      "latest_proxy_validation": "Blocked for alpha validation: city concentration is visible in fills (NYC 894, Seattle 395, Atlanta 372, Dallas 326, Chicago 186, Miami 181), but official station actuals and city-level forecast error history are required."
+      "implementation_status": "implemented",
+      "implementation_columns": [
+        "forecast_bias_error_f",
+        "city_forecast_bias_f",
+        "city_temperature_bias_edge"
+      ],
+      "validation_status": "active_unvalidated",
+      "latest_proxy_validation": "Implemented as realized-minus-forecast bias and city-level mean absolute bias. It remains offline-only because realized temperatures are ex-post labels; use it to discover persistent city/model error, not as a live entry signal."
     },
     {
       "factor": "temperature_bucket_ladder_mispricing",
@@ -251,7 +269,7 @@
     },
     {
       "factor": "official_station_target_bucket_edge",
-      "status": "candidate",
+      "status": "active_unvalidated",
       "priority": 1,
       "required_data": "intraday_official_station_observations_and_historical_sibling_prices",
       "market_categories": [
@@ -261,8 +279,14 @@
         "0x331bf91c132af9d921e1908ca0979363fc47193f"
       ],
       "reason": "combined entry factor suggested by validation: use official station nowcast/high-to-date, target bucket distance/exclusion, and sibling ladder prices at fill time to explain Yes/No entries",
-      "validation_status": "blocked",
-      "latest_validation": "Not implemented as an active column because final official_high_temp_f would leak future settlement. Required next data: official station intraday observations available before each fill plus sibling bucket prices at each fill timestamp. Current evidence: official station settlement on 109 rows is profitable (+$225.12, 11.78% ROI), and CLOB sibling price history is obtainable, but neither official_station_basis nor simple ladder alignment is a standalone confirmed entry trigger."
+      "implementation_status": "implemented",
+      "implementation_columns": [
+        "official_station_bucket_distance",
+        "official_station_inside_bucket_now",
+        "official_station_target_bucket_edge"
+      ],
+      "validation_status": "active_unvalidated",
+      "latest_validation": "Implemented as a non-leaking proxy that requires official_high_to_date_f observed before each fill. It combines station high-to-date bucket proximity, entry price, and ladder mispricing. Final official_high_temp_f is deliberately excluded from this entry factor to avoid settlement leakage."
     }
   ]
 }

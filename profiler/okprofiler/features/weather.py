@@ -90,7 +90,61 @@ def _add_weather_event_context_factors(df: pl.DataFrame) -> pl.DataFrame:
         )
     elif "temperature_bucket_ladder_mispricing" not in out.columns:
         out = out.with_columns(pl.lit(None).cast(pl.Float64).alias("temperature_bucket_ladder_mispricing"))
-    return out
+    return _add_official_station_target_factors(out)
+
+
+def _add_official_station_target_factors(df: pl.DataFrame) -> pl.DataFrame:
+    required = {"official_high_to_date_f", "temperature_low_f", "temperature_high_f", "price"}
+    if not required.issubset(set(df.columns)):
+        if "official_station_target_bucket_edge" not in df.columns:
+            return df.with_columns(
+                [
+                    pl.lit(None).cast(pl.Float64).alias("official_station_bucket_distance"),
+                    pl.lit(None).cast(pl.Float64).alias("official_station_inside_bucket_now"),
+                    pl.lit(None).cast(pl.Float64).alias("official_station_target_bucket_edge"),
+                ]
+            )
+        return df
+    low = pl.col("temperature_low_f").cast(pl.Float64)
+    high = pl.col("temperature_high_f").cast(pl.Float64)
+    now_high = pl.col("official_high_to_date_f").cast(pl.Float64)
+    price = pl.col("price").cast(pl.Float64)
+    missing = now_high.is_null() | (low.is_null() & high.is_null())
+    distance = (
+        pl.when(missing)
+        .then(None)
+        .when(low.is_null())
+        .then(pl.max_horizontal(now_high - high, pl.lit(0.0)))
+        .when(high.is_null())
+        .then(pl.max_horizontal(low - now_high, pl.lit(0.0)))
+        .when(now_high < low)
+        .then(low - now_high)
+        .when(now_high > high)
+        .then(now_high - high)
+        .otherwise(0.0)
+    )
+    inside = (
+        pl.when(missing)
+        .then(None)
+        .when(low.is_null())
+        .then((now_high <= high).cast(pl.Float64))
+        .when(high.is_null())
+        .then((now_high >= low).cast(pl.Float64))
+        .otherwise(((now_high >= low) & (now_high <= high)).cast(pl.Float64))
+    )
+    ladder_component = (
+        pl.col("temperature_bucket_ladder_mispricing").cast(pl.Float64).fill_null(0.0)
+        if "temperature_bucket_ladder_mispricing" in df.columns
+        else pl.lit(0.0)
+    )
+    edge = (1.0 / (1.0 + distance.fill_null(999.0))) * (1.0 - price) + ladder_component
+    return df.with_columns(
+        [
+            distance.alias("official_station_bucket_distance"),
+            inside.alias("official_station_inside_bucket_now"),
+            edge.alias("official_station_target_bucket_edge"),
+        ]
+    )
 
 
 def _parse_row(row: dict) -> dict:
