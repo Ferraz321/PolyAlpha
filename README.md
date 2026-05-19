@@ -520,8 +520,20 @@ Add a new Python factor in four places:
 
 1. Implement extraction in `profiler/okprofiler/features/*.py`.
 2. Wire it through `profiler/okprofiler/features/derived.py`.
-3. Register the column, label, direction, quantile, and source requirements in `profiler/okprofiler/features/registry.py`.
-4. Document it in `docs/factors.md`.
+3. Add one source-of-truth entry in `profiler/okprofiler/features/catalog.py`
+   with category, calculation, implementation function, and source
+   requirements.
+4. `profiler/okprofiler/features/registry.py` derives the executable registry
+   from that catalog.
+5. Document it in `docs/factors.md`.
+
+Inspect every factor, its category, and its calculation formula:
+
+```bash
+python profiler/profile_wallets.py list-factors
+python profiler/profile_wallets.py list-factors --category microstructure
+python profiler/profile_wallets.py list-factors --category settlement_timing --json
+```
 
 Per-run evidence is written to `factor_summary.md`, `factor_research_log.md`,
 and `rules.json`. A factor should only be promoted when it has non-null rows,

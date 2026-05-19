@@ -1,8 +1,15 @@
 # OKTRADER Factor Catalog
 
-This catalog is the human-maintained factor map. The executable registry lives
-in `profiler/okprofiler/features/registry.py`; keep both aligned when promoting
-a research idea into production.
+This document is the human-facing factor map. The code source of truth lives in
+`profiler/okprofiler/features/catalog.py`; the executable registry in
+`profiler/okprofiler/features/registry.py` is generated from that catalog.
+
+To inspect the live catalog:
+
+```bash
+python profiler/profile_wallets.py list-factors
+python profiler/profile_wallets.py list-factors --category sector
+```
 
 ## Active Factors
 

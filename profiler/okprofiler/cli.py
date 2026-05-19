@@ -12,6 +12,7 @@ from .data_sources import (
     fetch_user_trades,
     resolve_polymarket_user,
 )
+from .features import factor_catalog_rows
 from .pipeline import ProfilerConfig, run_profiler
 from .validation_summary import render_summary, summarize_validations
 from .weather_sources import fetch_open_meteo_archive
@@ -105,6 +106,13 @@ def main() -> None:
             print(json.dumps(summary, indent=2))
         else:
             print(render_summary(summary), end="")
+        return
+    if args.command == "list-factors":
+        rows = factor_catalog_rows(args.category)
+        if args.json:
+            print(json.dumps(rows, indent=2))
+        else:
+            print(_render_factor_catalog(rows), end="")
         return
     if args.command == "profile":
         profile(args)
@@ -296,11 +304,38 @@ def parse_args():
     summary_parser.add_argument("--validations", default="data/profiler/factor_validations.json")
     summary_parser.add_argument("--candidates", default="docs/candidate_factors.json")
     summary_parser.add_argument("--json", action="store_true")
+    catalog_parser = subparsers.add_parser("list-factors")
+    catalog_parser.add_argument("--category")
+    catalog_parser.add_argument("--json", action="store_true")
     _add_profile_args(parser)
     args = parser.parse_args()
     if args.command is None:
         args.command = "profile"
     return args
+
+
+def _render_factor_catalog(rows: list[dict]) -> str:
+    lines = [
+        "| Factor | Category | Direction | Requires | Calculation | Implemented By |",
+        "| --- | --- | --- | --- | --- | --- |",
+    ]
+    for row in rows:
+        requires = ", ".join(row.get("requires", [])) or "-"
+        lines.append(
+            "| {column} | {category} | {direction} | {requires} | {calculation} | {implemented_by} |".format(
+                column=row["column"],
+                category=row["category"],
+                direction=row["direction"],
+                requires=requires,
+                calculation=_escape_table(row["calculation"]),
+                implemented_by=row["implemented_by"],
+            )
+        )
+    return "\n".join(lines) + "\n"
+
+
+def _escape_table(value: str) -> str:
+    return value.replace("|", "\\|").replace("\n", " ")
 
 
 def _add_profile_args(parser):
