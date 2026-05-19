@@ -527,6 +527,20 @@ Per-run evidence is written to `factor_summary.md`, `factor_research_log.md`,
 and `rules.json`. A factor should only be promoted when it has non-null rows,
 an interpretable rule, and a clear note on whether Rust can evaluate it live.
 
+The profiler now runs a ReAct-style factor loop on every profile:
+
+```text
+discover factor -> validate factor -> observe verdict -> choose next action
+```
+
+The loop discovers factors from diagnostics coverage, mined wallet rules, and
+market-category candidates that are already present in `factor_table.parquet`.
+Each discovered factor is immediately validated with walk-forward,
+negative-control, negative-set, replication, slippage, capacity, and stability
+checks. The trace is written into `rules.json` as `factor_react_loop` and is
+summarized in `report.md`, `factor_summary.md`, `factor_research_log.md`, and
+Agent research reports.
+
 Market-specific playbooks live under `docs/market_categories/`. The first
 production playbook is `docs/market_categories/weather.md`; profiler runs
 automatically attach it when a wallet's `weather_market_ratio` indicates a

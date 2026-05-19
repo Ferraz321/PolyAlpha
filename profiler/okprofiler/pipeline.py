@@ -7,16 +7,12 @@ from .clustering import cluster_wallets, persist_clusters, write_clusters
 from .diagnostics import build_diagnostics, write_diagnostics
 from .factor_reporting import write_factor_outputs
 from .features import add_derived_factors, extract_clob_features
+from .react import run_factor_react_loop
 from .report import write_reports
 from .research_matrix import run_research_matrix
 from .rules import infer_wallet_rules
 from .strategy import strategy_config_from_rules
-from .validation import (
-    approved_live_features,
-    persist_validations,
-    validate_factor_table,
-    write_validations,
-)
+from .validation import approved_live_features, persist_validations, write_validations
 
 
 @dataclass(frozen=True)
@@ -87,7 +83,9 @@ def run_profiler(config: ProfilerConfig) -> dict:
         write_clusters(clusters, config.clusters_out)
     if config.clusters_db is not None:
         rules["wallet_clusters_persisted"] = persist_clusters(config.clusters_db, clusters)
-    validations = validate_factor_table(factor_table)
+    react_loop = run_factor_react_loop(factor_table, rules, diagnostics)
+    rules["factor_react_loop"] = react_loop
+    validations = react_loop["validations"]
     rules["factor_validations"] = validations
     if config.validation_out is not None:
         write_validations(validations, config.validation_out)

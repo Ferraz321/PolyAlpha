@@ -85,6 +85,7 @@
     "A factor must have a named owner module under profiler/okprofiler/features.",
     "A factor must list required data sources in FACTOR_SPECS.",
     "A factor must be non-null in factor_table.parquet for at least one studied wallet.",
+    "A factor must appear in factor_react_loop with a validation verdict and next action.",
     "A factor must appear in factor_summary.md and research_report.md.",
     "A factor must be marked offline-only or live-ready before Rust monitor usage.",
     "A market-category factor must have a playbook under docs/market_categories."

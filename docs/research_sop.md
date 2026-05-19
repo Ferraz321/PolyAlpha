@@ -205,6 +205,8 @@ Promotion checklist:
 - Add it to `docs/factors.md`.
 - Add or update the market playbook under `docs/market_categories/`.
 - Re-run the target profile and confirm non-null factor coverage.
+- Confirm the factor appears in `factor_react_loop` with a validation verdict
+  and next action.
 - Mark whether the factor is offline-only or live-ready.
 
 ## Stage 8: Evidence Expansion

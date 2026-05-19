@@ -56,7 +56,7 @@ def run_agent(config: AgentConfig) -> dict:
         _rerun_profile(config)
     rules = _read_json(config.rules_path)
     diagnostics = _read_json(config.diagnostics_path)
-    candidates = _candidate_factors(rules)
+    candidates = _merge_candidate_validations(_candidate_factors(rules), rules.get("factor_react_loop", {}))
     db_state = _db_state(config.db)
     lifecycle_actions = _lifecycle_actions(db_state, diagnostics, candidates)
     commands = next_commands(config.profile_dir, config.db, diagnostics, candidates, db_state)
@@ -68,6 +68,7 @@ def run_agent(config: AgentConfig) -> dict:
         "tool_result": tool_result,
         "wallets": _wallet_summaries(rules),
         "candidates": candidates,
+        "factor_react_loop": rules.get("factor_react_loop", {}),
         "db_state": db_state,
         "lifecycle_actions": lifecycle_actions,
         "next_commands": commands,
@@ -100,11 +101,11 @@ def _rerun_profile(config: AgentConfig) -> None:
             fills_path=config.profile_dir / "fills.csv",
             clob_path=config.profile_dir / "clob_events.csv",
             news_path=_optional(config.profile_dir / "news.csv"),
-                markets_path=_optional(config.profile_dir / "markets.csv"),
-                weather_path=_optional(config.profile_dir / "weather_observations.csv"),
-                forecast_path=_optional(config.profile_dir / "forecast_history.csv"),
-                weather_events_path=_optional(config.profile_dir / "weather_event_contexts.csv"),
-                official_weather_path=_optional(config.profile_dir / "official_weather_observations.csv"),
+            markets_path=_optional(config.profile_dir / "markets.csv"),
+            weather_path=_optional(config.profile_dir / "weather_observations.csv"),
+            forecast_path=_optional(config.profile_dir / "forecast_history.csv"),
+            weather_events_path=_optional(config.profile_dir / "weather_event_contexts.csv"),
+            official_weather_path=_optional(config.profile_dir / "official_weather_observations.csv"),
             factor_out=config.profile_dir / "factor_table.parquet",
             strategy_out=config.profile_dir / "strategy_config.json",
             report_out=config.profile_dir / "report.md",
@@ -170,6 +171,31 @@ def _candidate_factors(rules: dict) -> list[dict]:
         }
         for item in sorted(candidates.values(), key=lambda row: (row["priority"], row["factor"]))
     ]
+
+
+def _merge_candidate_validations(candidates: list[dict], react_loop: dict) -> list[dict]:
+    if not react_loop:
+        return candidates
+    by_factor = {
+        validation.get("factor_id"): validation
+        for validation in react_loop.get("validations", [])
+        if validation.get("factor_id")
+    }
+    out = []
+    for candidate in candidates:
+        validation = by_factor.get(candidate.get("factor"))
+        if validation is None:
+            out.append(candidate)
+            continue
+        out.append(
+            {
+                **candidate,
+                "validation_status": validation.get("verdict"),
+                "latest_validation": validation.get("reason"),
+                "validation_id": validation.get("validation_id"),
+            }
+        )
+    return out
 
 
 def _persist_factor_candidates(db: Path, candidates: list[dict]) -> int:
@@ -241,6 +267,20 @@ def _render_report(result: dict, diagnostics: dict) -> str:
             f"- `{candidate['factor']}` priority={candidate['priority']} "
             f"required_data={candidate['required_data']}: {candidate['reason']}"
         )
+    react = result.get("factor_react_loop", {})
+    if react:
+        lines.extend(["", "## ReAct Factor Validation", ""])
+        lines.append(
+            "- verdicts: "
+            + ", ".join(f"{key}={value}" for key, value in sorted(react.get("summary", {}).items()))
+        )
+        for step in react.get("steps", [])[:20]:
+            observation = step.get("observation", {})
+            lines.append(
+                f"- `{step.get('factor_id')}` source={step.get('source')} "
+                f"verdict={step.get('verdict')} rows={observation.get('rows', 0)} "
+                f"next={step.get('next_action')}"
+            )
     lines.extend(["", "## SOP Status", ""])
     for stage in result.get("sop_status", {}).get("stages", []):
         missing = "; ".join(stage.get("missing", [])) or "-"

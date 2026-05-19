@@ -25,6 +25,7 @@ def render_markdown(rules: dict) -> str:
         f"- wallets: {len(wallets)}",
         f"- approved_live_factors: {_approved_live_factor_count(rules)}",
         f"- wallet_clusters: {len(rules.get('wallet_clusters', []))}",
+        f"- react_validated_factors: {rules.get('factor_react_loop', {}).get('validated_count', 0)}",
         "",
         "## Top Reverse-Engineering Candidates",
         "",
@@ -34,6 +35,7 @@ def render_markdown(rules: dict) -> str:
         return "\n".join(lines) + "\n"
     for wallet in wallets[:20]:
         lines.extend(_wallet_section(wallet))
+    lines.extend(_react_section(rules))
     return "\n".join(lines) + "\n"
 
 
@@ -105,3 +107,23 @@ def _approved_live_factor_count(rules: dict) -> int:
         for validation in rules.get("factor_validations", [])
         if validation.get("verdict") == "approved" and validation.get("live_feature")
     )
+
+
+def _react_section(rules: dict) -> list[str]:
+    react = rules.get("factor_react_loop", {})
+    if not react:
+        return []
+    lines = ["", "## ReAct Factor Validation", ""]
+    summary = react.get("summary", {})
+    lines.append(
+        "- verdicts: "
+        + (", ".join(f"{key}={value}" for key, value in sorted(summary.items())) or "none")
+    )
+    for step in react.get("steps", [])[:20]:
+        observation = step.get("observation", {})
+        lines.append(
+            f"- `{step.get('factor_id')}`: verdict={step.get('verdict')} "
+            f"rows={observation.get('rows', 0)} oos={observation.get('out_of_sample_score', 0):.4f} "
+            f"next={step.get('next_action')}"
+        )
+    return lines

@@ -50,6 +50,20 @@ def render_factor_summary(rules: dict) -> str:
             )
     if not has_category:
         lines.append("- no market-specific playbook matched")
+    react = rules.get("factor_react_loop", {})
+    if react:
+        lines.extend(["", "## ReAct Factor Validation", ""])
+        summary = react.get("summary", {})
+        lines.append(
+            "- verdicts: "
+            + ", ".join(f"{key}={value}" for key, value in sorted(summary.items()))
+        )
+        for step in react.get("steps", [])[:20]:
+            observation = step.get("observation", {})
+            lines.append(
+                f"- `{step.get('factor_id')}` verdict={step.get('verdict')} "
+                f"rows={observation.get('rows', 0)} next={step.get('next_action')}"
+            )
     if diagnostics.get("missing_actions"):
         lines.extend(["", "## Missing Actions", ""])
         for action in diagnostics["missing_actions"]:
@@ -82,4 +96,17 @@ def render_factor_log_entry(rules: dict) -> str:
             )
     for action in diagnostics.get("missing_actions", []):
         lines.append(f"- missing_action: {action}")
+    react = rules.get("factor_react_loop", {})
+    if react:
+        lines.append(
+            "- react_validation: "
+            + ", ".join(
+                f"{key}={value}" for key, value in sorted(react.get("summary", {}).items())
+            )
+        )
+        for step in react.get("steps", [])[:10]:
+            lines.append(
+                f"- react_step factor={step.get('factor_id')} verdict={step.get('verdict')} "
+                f"next={step.get('next_action')}"
+            )
     return "\n".join(lines) + "\n"

@@ -70,6 +70,7 @@ Latest smoke test:
 - Generated: `fills.csv`, `markets.csv`, `factor_table.parquet`, `rules.json`, `research_report.md`, `candidate_factors.json`, `next_commands.json`, `sop_status.json`, and `strategy_config.json`.
 - Newer PolyEdge runs also generate `factor_validations.json` and `wallet_clusters.json` when the profiler has enough factor-table input.
 - Latest local factor smoke passed in `.venv`: reverse-engineering factors produced `entry_forward_edge`, `entry_before_move_secs`, `exit_quality_proxy`, `sector_concentration`, `news_recency_hours`, and repeated motif scores.
+- Latest ReAct factor-loop smoke passed in `.venv`: profiler discovered 43 factors, validated all 43, and wrote `factor_react_loop` into `rules.json`.
 - Finding: wallet classified as `weather_temperature` specialist with `weather_market_ratio >= 0.867881`.
 - Automatic weather expansion: agent fetched 853 actual observation rows and 41,400 forecast-history rows, then populated actual-temperature and forecast factors.
 - Remaining evidence gaps: CLOB snapshots, optional news timeline, model disagreement, and decoded settlement/redemption input for broader audited PnL coverage.
@@ -243,6 +244,7 @@ Partially implemented:
    - [x] Add non-leaking official-station target-bucket edge factor from intraday high-to-date.
    - [x] Add richer factor library: market sector PnL, pre-news lead time, and exit quality.
    - [x] Add richer validation metrics: non-wallet negative-set precision/recall, category replication, slippage, and capacity.
+   - [x] Add ReAct factor loop: discover each available/candidate factor, validate immediately, and record next action.
 
 6. Production storage option
    - Status: deployment contracts implemented; runtime adapters remain optional.

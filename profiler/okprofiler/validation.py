@@ -17,11 +17,37 @@ def validate_factor_table(
 ) -> list[dict]:
     if factor_table.is_empty() or "side" not in factor_table.columns:
         return []
+    return validate_factor_specs(
+        factor_table,
+        available_specs(factor_table),
+        min_rows=min_rows,
+        min_oos_lift=min_oos_lift,
+        min_stability=min_stability,
+    )
+
+
+def validate_factor_specs(
+    factor_table: pl.DataFrame,
+    specs: list[FactorSpec],
+    min_rows: int = 20,
+    min_oos_lift: float = 0.02,
+    min_stability: float = 0.35,
+) -> list[dict]:
     return [
-        _validate_factor(factor_table, spec, min_rows, min_oos_lift, min_stability)
-        for spec in available_specs(factor_table)
-        if len(numeric(factor_table, spec.column)) > 0
+        validate_factor(factor_table, spec, min_rows, min_oos_lift, min_stability)
+        for spec in specs
+        if spec.column in factor_table.columns and len(numeric(factor_table, spec.column)) > 0
     ]
+
+
+def validate_factor(
+    df: pl.DataFrame,
+    spec: FactorSpec,
+    min_rows: int = 20,
+    min_oos_lift: float = 0.02,
+    min_stability: float = 0.35,
+) -> dict:
+    return _validate_factor(df, spec, min_rows, min_oos_lift, min_stability)
 
 
 def write_validations(validations: list[dict], path: Path) -> None:
