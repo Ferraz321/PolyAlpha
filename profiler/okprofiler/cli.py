@@ -14,6 +14,7 @@ from .data_sources import (
 )
 from .features import factor_library_rows
 from .pipeline import ProfilerConfig, run_profiler
+from .research_agenda import build_research_agenda, render_research_agenda
 from .validation_summary import render_summary, summarize_validations
 from .weather_sources import fetch_open_meteo_archive
 from .weather_sources import fetch_open_meteo_forecast_history
@@ -113,6 +114,23 @@ def main() -> None:
             print(json.dumps(rows, indent=2))
         else:
             print(_render_factor_catalog(rows), end="")
+        return
+    if args.command == "research-agenda":
+        agenda = build_research_agenda(
+            candidates_path=Path(args.candidates) if args.candidates else None,
+            validations_path=Path(args.validations) if args.validations else None,
+            diagnostics_path=Path(args.diagnostics) if args.diagnostics else None,
+            profile_dir=Path(args.profile_dir),
+            db=Path(args.db),
+            limit=args.limit,
+        )
+        if args.out:
+            Path(args.out).parent.mkdir(parents=True, exist_ok=True)
+            Path(args.out).write_text(json.dumps(agenda, indent=2), encoding="utf-8")
+        if args.json:
+            print(json.dumps(agenda, indent=2))
+        else:
+            print(render_research_agenda(agenda), end="")
         return
     if args.command == "profile":
         profile(args)
@@ -307,6 +325,15 @@ def parse_args():
     catalog_parser = subparsers.add_parser("list-factors")
     catalog_parser.add_argument("--category")
     catalog_parser.add_argument("--json", action="store_true")
+    agenda_parser = subparsers.add_parser("research-agenda")
+    agenda_parser.add_argument("--profile-dir", default="data/profiler")
+    agenda_parser.add_argument("--db", default="data/polyalpha.db")
+    agenda_parser.add_argument("--candidates", default="docs/candidate_factors.json")
+    agenda_parser.add_argument("--validations", default="data/profiler/factor_validations.json")
+    agenda_parser.add_argument("--diagnostics", default="data/profiler/diagnostics.json")
+    agenda_parser.add_argument("--limit", type=int, default=20)
+    agenda_parser.add_argument("--out")
+    agenda_parser.add_argument("--json", action="store_true")
     _add_profile_args(parser)
     args = parser.parse_args()
     if args.command is None:

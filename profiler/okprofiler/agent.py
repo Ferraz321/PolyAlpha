@@ -7,6 +7,7 @@ import sqlite3
 from .agent_planner import next_commands
 from .agent_tools import AgentToolConfig, run_agent_tools, update_candidate_library
 from .pipeline import ProfilerConfig, run_profiler
+from .research_agenda import build_research_agenda
 from .sop import build_sop_status, write_sop_status
 
 
@@ -60,6 +61,15 @@ def run_agent(config: AgentConfig) -> dict:
     db_state = _db_state(config.db)
     lifecycle_actions = _lifecycle_actions(db_state, diagnostics, candidates)
     commands = next_commands(config.profile_dir, config.db, diagnostics, candidates, db_state)
+    research_agenda = build_research_agenda(
+        candidates_path=config.candidate_library,
+        validations_path=config.profile_dir / "factor_validations.json",
+        diagnostics_path=config.diagnostics_path,
+        profile_dir=config.profile_dir,
+        db=config.db,
+        limit=12,
+        candidate_rows=candidates,
+    )
     result = {
         "version": 1,
         "profile_dir": str(config.profile_dir),
@@ -71,6 +81,7 @@ def run_agent(config: AgentConfig) -> dict:
         "factor_react_loop": rules.get("factor_react_loop", {}),
         "db_state": db_state,
         "lifecycle_actions": lifecycle_actions,
+        "research_agenda": research_agenda,
         "next_commands": commands,
         "sop_status": {},
         "missing_actions": diagnostics.get("missing_actions", []),
@@ -293,6 +304,15 @@ def _render_report(result: dict, diagnostics: dict) -> str:
         lines.extend(["", "## Lifecycle Actions", ""])
         for action in result["lifecycle_actions"]:
             lines.append(f"- {action['status']}: {action['reason']}")
+    if result.get("research_agenda", {}).get("agenda"):
+        lines.extend(["", "## Research Agenda", ""])
+        for row in result["research_agenda"]["agenda"][:10]:
+            missing = ", ".join(row.get("missing_sources", [])) or "-"
+            lines.append(
+                f"- `{row['factor_id']}` category={row['category']} "
+                f"bucket={row['bucket']} score={row['score']} missing={missing}; "
+                f"next={row['next_action']}"
+            )
     lines.extend(["", "## Next Commands", ""])
     for command in result.get("next_commands", []):
         lines.append(f"- {command.get('reason')}: `{' '.join(command.get('command', []))}`")

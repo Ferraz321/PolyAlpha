@@ -201,7 +201,8 @@ Goal: turn a useful research idea into reusable code.
 Promotion checklist:
 
 - Add the factor implementation under `profiler/okprofiler/features/`.
-- Register it in `FACTOR_SPECS`.
+- Add the factor definition to `profiler/okprofiler/features/catalog.py`.
+- Register one `FactorImplementation` in `profiler/okprofiler/features/library.py`.
 - Add it to `docs/factors.md`.
 - Add or update the market playbook under `docs/market_categories/`.
 - Re-run the target profile and confirm non-null factor coverage.
