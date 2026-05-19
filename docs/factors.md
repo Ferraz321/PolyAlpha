@@ -3,6 +3,8 @@
 This document is the human-facing factor map. The code source of truth lives in
 `profiler/okprofiler/features/catalog.py`; the executable registry in
 `profiler/okprofiler/features/registry.py` is generated from that catalog.
+`profiler/okprofiler/features/library.py` contains one `FactorImplementation`
+per factor and is the execution library used by `add_derived_factors`.
 
 To inspect the live catalog:
 

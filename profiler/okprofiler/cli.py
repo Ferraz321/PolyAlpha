@@ -12,7 +12,7 @@ from .data_sources import (
     fetch_user_trades,
     resolve_polymarket_user,
 )
-from .features import factor_catalog_rows
+from .features import factor_library_rows
 from .pipeline import ProfilerConfig, run_profiler
 from .validation_summary import render_summary, summarize_validations
 from .weather_sources import fetch_open_meteo_archive
@@ -108,7 +108,7 @@ def main() -> None:
             print(render_summary(summary), end="")
         return
     if args.command == "list-factors":
-        rows = factor_catalog_rows(args.category)
+        rows = factor_library_rows(args.category)
         if args.json:
             print(json.dumps(rows, indent=2))
         else:
@@ -316,15 +316,16 @@ def parse_args():
 
 def _render_factor_catalog(rows: list[dict]) -> str:
     lines = [
-        "| Factor | Category | Direction | Requires | Calculation | Implemented By |",
-        "| --- | --- | --- | --- | --- | --- |",
+        "| Factor | Category | Stage | Direction | Requires | Calculation | Implemented By |",
+        "| --- | --- | --- | --- | --- | --- | --- |",
     ]
     for row in rows:
         requires = ", ".join(row.get("requires", [])) or "-"
         lines.append(
-            "| {column} | {category} | {direction} | {requires} | {calculation} | {implemented_by} |".format(
+            "| {column} | {category} | {stage} | {direction} | {requires} | {calculation} | {implemented_by} |".format(
                 column=row["column"],
                 category=row["category"],
+                stage=row["stage"],
                 direction=row["direction"],
                 requires=requires,
                 calculation=_escape_table(row["calculation"]),

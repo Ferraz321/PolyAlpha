@@ -1,20 +1,10 @@
 import polars as pl
 
-from .basic import add_basic_factors
-from .behavior import add_behavior_factors
-from .reverse_engineering import add_reverse_engineering_factors
-from .timing import add_timing_factors
-from .weather import add_weather_factors
-from .weather_forecasts import add_weather_forecast_factors
-from .weather_observations import add_weather_observation_factors
+from .library import add_factors
 
 
-def add_derived_factors(df: pl.DataFrame) -> pl.DataFrame:
-    out = add_basic_factors(df)
-    out = add_timing_factors(out)
-    out = add_behavior_factors(out)
-    out = add_reverse_engineering_factors(out)
-    out = add_weather_factors(out)
-    out = add_weather_observation_factors(out)
-    out = add_weather_forecast_factors(out)
-    return out
+def add_derived_factors(
+    df: pl.DataFrame,
+    columns: list[str] | tuple[str, ...] | set[str] | None = None,
+) -> pl.DataFrame:
+    return add_factors(df, columns)

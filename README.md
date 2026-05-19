@@ -519,11 +519,13 @@ profiler/okprofiler/research_matrix.py  professional research-engine matrix
 Add a new Python factor in four places:
 
 1. Implement extraction in `profiler/okprofiler/features/*.py`.
-2. Wire it through `profiler/okprofiler/features/derived.py`.
-3. Add one source-of-truth entry in `profiler/okprofiler/features/catalog.py`
+2. Add one source-of-truth entry in `profiler/okprofiler/features/catalog.py`
    with category, calculation, implementation function, and source
    requirements.
-4. `profiler/okprofiler/features/registry.py` derives the executable registry
+3. Register one `FactorImplementation` in
+   `profiler/okprofiler/features/library.py` with `add_factor`; the library
+   applies stages in order and keeps one implementation record per factor.
+4. `profiler/okprofiler/features/registry.py` derives the validation/mining registry
    from that catalog.
 5. Document it in `docs/factors.md`.
 
