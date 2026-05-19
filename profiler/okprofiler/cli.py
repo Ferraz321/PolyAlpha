@@ -13,6 +13,7 @@ from .data_sources import (
     resolve_polymarket_user,
 )
 from .pipeline import ProfilerConfig, run_profiler
+from .validation_summary import render_summary, summarize_validations
 from .weather_sources import fetch_open_meteo_archive
 from .weather_sources import fetch_open_meteo_forecast_history
 
@@ -94,6 +95,16 @@ def main() -> None:
         return
     if args.command == "agent":
         agent(args)
+        return
+    if args.command == "summarize-validations":
+        summary = summarize_validations(
+            validations_path=Path(args.validations) if args.validations else None,
+            candidates_path=Path(args.candidates) if args.candidates else None,
+        )
+        if args.json:
+            print(json.dumps(summary, indent=2))
+        else:
+            print(render_summary(summary), end="")
         return
     if args.command == "profile":
         profile(args)
@@ -281,6 +292,10 @@ def parse_args():
         default="core,alphalens,shap,stumpy,agent",
         help="comma-separated engines used when --rerun-profile is set",
     )
+    summary_parser = subparsers.add_parser("summarize-validations")
+    summary_parser.add_argument("--validations", default="data/profiler/factor_validations.json")
+    summary_parser.add_argument("--candidates", default="docs/candidate_factors.json")
+    summary_parser.add_argument("--json", action="store_true")
     _add_profile_args(parser)
     args = parser.parse_args()
     if args.command is None:

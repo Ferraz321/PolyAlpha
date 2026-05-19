@@ -541,6 +541,14 @@ checks. The trace is written into `rules.json` as `factor_react_loop` and is
 summarized in `report.md`, `factor_summary.md`, `factor_research_log.md`, and
 Agent research reports.
 
+Summarize current factor effectiveness from a profile or the candidate backlog:
+
+```bash
+python profiler/profile_wallets.py summarize-validations \
+  --validations data/profiler/factor_validations.json \
+  --candidates docs/candidate_factors.json
+```
+
 Market-specific playbooks live under `docs/market_categories/`. The first
 production playbook is `docs/market_categories/weather.md`; profiler runs
 automatically attach it when a wallet's `weather_market_ratio` indicates a
