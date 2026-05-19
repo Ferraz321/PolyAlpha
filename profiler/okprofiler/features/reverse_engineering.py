@@ -7,6 +7,7 @@ def add_reverse_engineering_factors(df: pl.DataFrame) -> pl.DataFrame:
     out = _add_sector_factors(out)
     out = _add_lead_time_factors(out)
     out = _add_repeated_motif_factors(out)
+    out = _add_cross_category_edge_factors(out)
     return out
 
 
@@ -107,6 +108,82 @@ def _add_sector_factors(df: pl.DataFrame) -> pl.DataFrame:
             signed_notional.sum().over(["account", "sector"]).alias("sector_pnl_proxy")
         )
     return out
+
+
+def _add_cross_category_edge_factors(df: pl.DataFrame) -> pl.DataFrame:
+    out = df
+    columns = set(out.columns)
+    if "entry_forward_edge" not in columns:
+        return out
+    positive_edge = pl.max_horizontal(
+        pl.col("entry_forward_edge").cast(pl.Float64).fill_null(0.0),
+        pl.lit(0.0),
+    )
+    expressions = []
+    if {"account", "sector"}.issubset(columns):
+        expressions.extend(
+            [
+                pl.col("entry_forward_edge")
+                .cast(pl.Float64)
+                .mean()
+                .over(["account", "sector"])
+                .alias("sector_entry_edge"),
+                (
+                    pl.col("sector_concentration").cast(pl.Float64).fill_null(0.0)
+                    * positive_edge
+                ).alias("sector_repeat_edge_score")
+                if "sector_concentration" in columns
+                else pl.lit(None).cast(pl.Float64).alias("sector_repeat_edge_score"),
+                (
+                    1.0
+                    - pl.col("sector_concentration").cast(pl.Float64).fill_null(0.0)
+                )
+                .clip(0.0, 1.0)
+                .alias("cross_sector_breadth")
+                if "sector_concentration" in columns
+                else pl.lit(None).cast(pl.Float64).alias("cross_sector_breadth"),
+            ]
+        )
+    if "news_reaction_window" in columns:
+        expressions.append(
+            (
+                pl.col("news_reaction_window").cast(pl.Float64).fill_null(0.0)
+                * positive_edge
+            ).alias("news_lead_entry_edge")
+        )
+    if "is_last_24h" in columns:
+        expressions.append(
+            (
+                pl.col("is_last_24h").cast(pl.Float64).fill_null(0.0)
+                * positive_edge
+            ).alias("settlement_window_edge")
+        )
+    microstructure_columns = {
+        "ofi_filled",
+        "depth_imbalance_filled",
+        "price_momentum",
+        "spread_filled",
+    }
+    if microstructure_columns.intersection(columns):
+        signal = pl.lit(0.0)
+        if "ofi_filled" in columns:
+            signal = signal + pl.col("ofi_filled").cast(pl.Float64).fill_null(0.0)
+        if "depth_imbalance_filled" in columns:
+            signal = signal + pl.col("depth_imbalance_filled").cast(pl.Float64).fill_null(0.0)
+        if "price_momentum" in columns:
+            signal = signal + pl.col("price_momentum").cast(pl.Float64).fill_null(0.0)
+        if "spread_filled" in columns:
+            signal = signal - pl.col("spread_filled").cast(pl.Float64).fill_null(0.0)
+        expressions.append((positive_edge * signal).alias("microstructure_entry_edge"))
+    if {"repeat_hour_motif_score", "repeat_entry_motif_count"}.issubset(columns):
+        expressions.append(
+            (
+                pl.col("repeat_hour_motif_score").cast(pl.Float64).fill_null(0.0)
+                * pl.col("repeat_entry_motif_count").cast(pl.Float64).fill_null(0.0)
+                * positive_edge
+            ).alias("event_motif_recurrence")
+        )
+    return out.with_columns(expressions) if expressions else out
 
 
 def _add_lead_time_factors(df: pl.DataFrame) -> pl.DataFrame:

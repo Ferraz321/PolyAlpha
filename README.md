@@ -549,10 +549,12 @@ python profiler/profile_wallets.py summarize-validations \
   --candidates docs/candidate_factors.json
 ```
 
-Market-specific playbooks live under `docs/market_categories/`. The first
-production playbook is `docs/market_categories/weather.md`; profiler runs
-automatically attach it when a wallet's `weather_market_ratio` indicates a
-weather-temperature specialist.
+Market-specific playbooks live under `docs/market_categories/`. Current
+playbooks cover weather temperature, sector information edge, event/news
+information edge, microstructure/liquidity timing, and settlement timing.
+Profiler runs automatically attach matching playbooks and push their candidate
+factors into the ReAct validation loop when the columns exist in the factor
+table.
 
 `rules.json` keeps both `best_rule` for offline explanation and
 `best_live_rule` for monitor-compatible alerts. This matters because some

@@ -33,12 +33,19 @@ a research idea into production.
 | `sector_concentration` | markets | Share of wallet activity concentrated in the same sector. | No | active |
 | `sector_trade_count` | markets | Number of wallet fills in the same sector. | No | active |
 | `sector_pnl_proxy` | markets | Signed notional proxy aggregated by wallet and sector. | No | active |
+| `sector_entry_edge` | markets + fills | Mean direction-adjusted next-fill edge for the same wallet and sector. | No | active-unvalidated |
+| `sector_repeat_edge_score` | markets + fills | Sector concentration multiplied by positive entry-forward edge. | No | active-unvalidated |
+| `cross_sector_breadth` | markets | One minus sector concentration; identifies broad scanners instead of narrow specialists. | No | active-unvalidated |
 | `resolution_lead_time_hours` | markets | Hours from fill to market resolution/end. | No | active |
+| `settlement_window_edge` | markets + fills | Positive entry-forward edge gated to final-24h settlement-window entries. | No | active-unvalidated |
 | `news_recency_hours` | news | Hours between latest news item and wallet fill. | No | experimental |
 | `news_reaction_window` | news | Whether fill occurred within six hours after latest news. | No | experimental |
+| `news_lead_entry_edge` | news + fills | Positive entry-forward edge gated to post-news reaction windows. | No | active-unvalidated |
+| `microstructure_entry_edge` | CLOB + fills | Entry-forward edge weighted by order-flow, depth, momentum, and spread context. | No | active-unvalidated |
 | `repeat_hour_motif_score` | fills | Share of wallet activity recurring in the same UTC entry hour. | No | active |
 | `repeat_entry_motif_count` | fills | Count of repeated account/market/side/hour motifs. | No | active |
 | `repeat_market_add_rate` | fills | Same-market re-entry count normalized by wallet activity. | No | active |
+| `event_motif_recurrence` | fills | Repeated hour/market/side motif strength weighted by positive entry-forward edge. | No | active-unvalidated |
 | `is_weather_market` | fills | Whether event slug matches weather temperature market grammar. | No | active |
 | `weather_market_ratio` | fills | Share of wallet fills in weather markets. | No | active |
 | `weather_city_concentration` | fills | Share of wallet fills concentrated in the same weather city. | No | active |
@@ -84,6 +91,10 @@ a research idea into production.
 | `bbo_exit_quality` | CLOB BBO | Measures whether unwind exits near favorable BBO, beyond the fill-only proxy. |
 | `exit_fillability` | CLOB BBO + fills | Measures whether the position could realistically be sold at/near observed exit prices and size. |
 | `strategy_capacity_usd` | CLOB depth + fills | Estimates maximum repeatable notional before spread/slippage consumes expected edge. |
+| `sector_entry_edge` | fills + market sectors | Tests whether a wallet repeatedly enters one sector before favorable price movement. |
+| `news_lead_entry_edge` | fills + news timeline | Tests whether a wallet consistently enters soon after external information before market repricing. |
+| `settlement_window_edge` | fills + market resolution time | Tests whether late entries before resolution have repeatable positive edge. |
+| `microstructure_entry_edge` | fills + CLOB state | Tests whether CLOB pressure explains profitable timing beyond wallet identity. |
 
 ## Promotion Rule
 

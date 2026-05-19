@@ -287,6 +287,96 @@
       ],
       "validation_status": "active_unvalidated",
       "latest_validation": "Implemented as a non-leaking proxy that requires official_high_to_date_f observed before each fill. It combines station high-to-date bucket proximity, entry price, and ladder mispricing. Final official_high_temp_f is deliberately excluded from this entry factor to avoid settlement leakage."
+    },
+    {
+      "factor": "sector_entry_edge",
+      "status": "active_unvalidated",
+      "priority": 1,
+      "required_data": "fills_and_market_sectors",
+      "market_categories": [
+        "sector_information_edge",
+        "cross_sector_scanner"
+      ],
+      "wallets": [],
+      "reason": "tests whether a wallet repeatedly enters one sector before favorable price movement rather than merely trading a sector often",
+      "implementation_status": "implemented",
+      "implementation_columns": [
+        "sector_entry_edge",
+        "sector_repeat_edge_score",
+        "cross_sector_breadth"
+      ],
+      "validation_status": "active_unvalidated",
+      "latest_validation": "Implemented in the reverse-engineering feature layer and automatically sent through the ReAct validation loop when present in a factor table."
+    },
+    {
+      "factor": "news_lead_entry_edge",
+      "status": "active_unvalidated",
+      "priority": 1,
+      "required_data": "fills_and_news_timeline",
+      "market_categories": [
+        "event_news_information_edge"
+      ],
+      "wallets": [],
+      "reason": "tests whether entries inside a news reaction window happen before favorable repricing",
+      "implementation_status": "implemented",
+      "implementation_columns": [
+        "news_lead_entry_edge"
+      ],
+      "validation_status": "active_unvalidated",
+      "latest_validation": "Implemented as a non-leaking combination of news reaction timing and next observed market repricing; ReAct validates it whenever news coverage exists."
+    },
+    {
+      "factor": "settlement_window_edge",
+      "status": "active_unvalidated",
+      "priority": 1,
+      "required_data": "fills_and_market_resolution_times",
+      "market_categories": [
+        "settlement_timing"
+      ],
+      "wallets": [],
+      "reason": "tests whether late entries before resolution have repeatable edge after separating them from generic market timing",
+      "implementation_status": "implemented",
+      "implementation_columns": [
+        "settlement_window_edge"
+      ],
+      "validation_status": "active_unvalidated",
+      "latest_validation": "Implemented as positive entry-forward edge gated to the final 24h resolution window and automatically validated by ReAct."
+    },
+    {
+      "factor": "microstructure_entry_edge",
+      "status": "active_unvalidated",
+      "priority": 1,
+      "required_data": "fills_and_clob_features",
+      "market_categories": [
+        "microstructure_liquidity_timing"
+      ],
+      "wallets": [],
+      "reason": "tests whether order-flow imbalance, depth, spread, and short-horizon momentum explain profitable timing",
+      "implementation_status": "implemented",
+      "implementation_columns": [
+        "microstructure_entry_edge"
+      ],
+      "validation_status": "active_unvalidated",
+      "latest_validation": "Implemented in the reverse-engineering feature layer and wired into market-category discovery plus ReAct validation."
+    },
+    {
+      "factor": "event_motif_recurrence",
+      "status": "active_unvalidated",
+      "priority": 2,
+      "required_data": "fills",
+      "market_categories": [
+        "sector_information_edge",
+        "event_news_information_edge",
+        "cross_sector_scanner"
+      ],
+      "wallets": [],
+      "reason": "tests whether repeated account/market/side/hour motifs remain useful after requiring favorable follow-through",
+      "implementation_status": "implemented",
+      "implementation_columns": [
+        "event_motif_recurrence"
+      ],
+      "validation_status": "active_unvalidated",
+      "latest_validation": "Implemented as repeated motif strength weighted by positive entry-forward edge and included as a candidate in non-weather playbooks."
     }
   ]
 }

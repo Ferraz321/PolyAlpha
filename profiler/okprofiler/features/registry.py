@@ -72,12 +72,19 @@ FACTOR_SPECS = [
     FactorSpec("sector_concentration", "sector concentration", "high", 0.75, None, ("markets",)),
     FactorSpec("sector_trade_count", "sector trade count", "high", 0.75, None, ("markets",)),
     FactorSpec("sector_pnl_proxy", "sector PnL proxy", "high", 0.75, None, ("markets",)),
+    FactorSpec("sector_entry_edge", "sector entry edge", "high", 0.75, None, ("markets", "fills")),
+    FactorSpec("sector_repeat_edge_score", "sector repeat edge score", "high", 0.75, None, ("markets", "fills")),
+    FactorSpec("cross_sector_breadth", "cross-sector breadth", "high", 0.50, None, ("markets",)),
     FactorSpec("resolution_lead_time_hours", "resolution lead time hours", "high", 0.50, None, ("markets",)),
+    FactorSpec("settlement_window_edge", "settlement window edge", "high", 0.75, None, ("markets", "fills")),
     FactorSpec("news_recency_hours", "news recency hours", "low", 0.25, None, ("news",)),
     FactorSpec("news_reaction_window", "news reaction window", "high", 0.50, None, ("news",)),
+    FactorSpec("news_lead_entry_edge", "news lead-entry edge", "high", 0.75, None, ("news", "fills")),
+    FactorSpec("microstructure_entry_edge", "microstructure entry edge", "high", 0.75, None, ("clob_features", "fills")),
     FactorSpec("repeat_hour_motif_score", "repeat hour motif score", "high", 0.75, None, ("fills",)),
     FactorSpec("repeat_entry_motif_count", "repeat entry motif count", "high", 0.75, None, ("fills",)),
     FactorSpec("repeat_market_add_rate", "repeat market add rate", "high", 0.75, None, ("fills",)),
+    FactorSpec("event_motif_recurrence", "event motif recurrence", "high", 0.75, None, ("fills",)),
 ]
 
 
