@@ -41,7 +41,56 @@ def add_weather_factors(df: pl.DataFrame) -> pl.DataFrame:
     parsed = parsed.with_columns(pl.Series("__row_nr", range(parsed.height)))
     base = df.with_row_index("__row_nr")
     out = base.join(parsed, on="__row_nr", how="left").drop("__row_nr")
+    if "price" in out.columns:
+        out = out.with_columns(
+            (
+                (pl.col("is_weather_market") == 1.0)
+                & (pl.col("price").cast(pl.Float64) < 0.20)
+                & pl.col("temperature_bucket_type").is_not_null()
+            )
+            .cast(pl.Float64)
+            .alias("weather_low_price_bucket_value")
+        )
+    out = _add_weather_event_context_factors(out)
     return _add_account_weather_factors(out)
+
+
+def _add_weather_event_context_factors(df: pl.DataFrame) -> pl.DataFrame:
+    out = df
+    if "official_station_id" in out.columns:
+        out = out.with_columns(
+            pl.when(pl.col("resolution_source").is_not_null() | pl.col("official_station_id").is_not_null())
+            .then(
+                (
+                    (pl.col("is_weather_market") == 1.0)
+                    & pl.col("official_station_id").is_not_null()
+                ).cast(pl.Float64)
+            )
+            .otherwise(None)
+            .alias("official_station_source_available")
+        )
+    if {"official_high_temp_f", "actual_high_temp_f"}.issubset(set(out.columns)):
+        out = out.with_columns(
+            (pl.col("official_high_temp_f").cast(pl.Float64) - pl.col("actual_high_temp_f").cast(pl.Float64)).alias(
+                "official_station_basis"
+            )
+        )
+    elif "official_station_basis" not in out.columns:
+        out = out.with_columns(pl.lit(None).cast(pl.Float64).alias("official_station_basis"))
+    if {"price", "ladder_yes_price"}.issubset(set(out.columns)):
+        open_market = (
+            pl.col("ladder_market_closed").is_null()
+            | (pl.col("ladder_market_closed").cast(pl.Utf8).str.to_lowercase() != "true")
+        )
+        out = out.with_columns(
+            pl.when(open_market)
+            .then((pl.col("price").cast(pl.Float64) - pl.col("ladder_yes_price").cast(pl.Float64)).abs())
+            .otherwise(None)
+            .alias("temperature_bucket_ladder_mispricing")
+        )
+    elif "temperature_bucket_ladder_mispricing" not in out.columns:
+        out = out.with_columns(pl.lit(None).cast(pl.Float64).alias("temperature_bucket_ladder_mispricing"))
+    return out
 
 
 def _parse_row(row: dict) -> dict:

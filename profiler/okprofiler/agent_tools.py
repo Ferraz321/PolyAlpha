@@ -4,7 +4,13 @@ import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from .data_sources import assets_from_fills, fetch_gamma_markets, fetch_user_trades
+from .data_sources import (
+    assets_from_fills,
+    fetch_gamma_markets,
+    fetch_official_weather_observations,
+    fetch_user_trades,
+    fetch_weather_event_contexts,
+)
 from .pipeline import ProfilerConfig, run_profiler
 from .agent_weather import fetch_weather_context, has_weather_category
 
@@ -68,7 +74,33 @@ def run_agent_tools(config: AgentToolConfig) -> dict:
             weather_runs = fetch_weather_context(config.profile_dir, config.weather_locations_csv, rules)
             for run in weather_runs:
                 runs.append(ToolRun(run.name, ["python", run.name], "ok", stdout=f"rows={run.rows}"))
-            if weather_runs:
+            event_rows = fetch_weather_event_contexts(
+                fills=config.profile_dir / "fills.csv",
+                out=config.profile_dir / "weather_event_contexts.csv",
+                max_events=50,
+            )
+            runs.append(
+                ToolRun(
+                    "fetch-weather-event-contexts",
+                    ["python", "fetch-weather-event-contexts"],
+                    "ok",
+                    stdout=f"rows={event_rows}",
+                )
+            )
+            official_rows = fetch_official_weather_observations(
+                contexts=config.profile_dir / "weather_event_contexts.csv",
+                out=config.profile_dir / "official_weather_observations.csv",
+                max_rows=50,
+            )
+            runs.append(
+                ToolRun(
+                    "fetch-official-weather-observations",
+                    ["python", "fetch-official-weather-observations"],
+                    "ok",
+                    stdout=f"rows={official_rows}",
+                )
+            )
+            if weather_runs or event_rows or official_rows:
                 rules = _run_profile(config)
                 runs.append(ToolRun("python-profile-after-weather", ["python", "profile"], "ok"))
     asset_rows = assets_from_fills(
@@ -96,6 +128,8 @@ def _run_profile(config: AgentToolConfig) -> dict:
             markets_path=_optional(config.profile_dir / "markets.csv"),
             weather_path=_optional(config.profile_dir / "weather_observations.csv"),
             forecast_path=_optional(config.profile_dir / "forecast_history.csv"),
+            weather_events_path=_optional(config.profile_dir / "weather_event_contexts.csv"),
+            official_weather_path=_optional(config.profile_dir / "official_weather_observations.csv"),
             factor_out=config.profile_dir / "factor_table.parquet",
             strategy_out=config.profile_dir / "strategy_config.json",
             report_out=config.profile_dir / "report.md",

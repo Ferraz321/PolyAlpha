@@ -15,6 +15,8 @@ def build_diagnostics(
     markets_path: Path | None,
     weather_path: Path | None,
     forecast_path: Path | None = None,
+    weather_events_path: Path | None = None,
+    official_weather_path: Path | None = None,
 ) -> dict:
     sources = {
         "fills": _source_status(fills, ["account", "market_id", "timestamp", "side", "price", "shares"]),
@@ -24,6 +26,14 @@ def build_diagnostics(
         "markets": _file_status(markets_path, ["asset_id", "resolution_time"]),
         "weather_observations": _file_status(weather_path, ["city", "event_date", "actual_high_temp_f"]),
         "weather_forecasts": _file_status(forecast_path, ["city", "timestamp", "forecast_temp_f"]),
+        "weather_events": _file_status(
+            weather_events_path,
+            ["event_slug", "market_slug", "resolution_source", "official_station_id"],
+        ),
+        "official_weather": _file_status(
+            official_weather_path,
+            ["official_station_id", "event_date", "official_high_temp_f"],
+        ),
     }
     factors = [_factor_status(spec, factor_table, sources) for spec in FACTOR_SPECS]
     return {
@@ -86,6 +96,10 @@ def _missing_actions(sources: dict, factors: list[dict]) -> list[str]:
         actions.append("run fetch-weather-open-meteo for weather actual-temperature factors")
     if not sources["weather_forecasts"]["ready"]:
         actions.append("run fetch-weather-forecast-history for weather forecast-error factors")
+    if not sources["weather_events"]["ready"]:
+        actions.append("run fetch-weather-event-contexts for official-station and ladder factors")
+    if not sources["official_weather"]["ready"]:
+        actions.append("run fetch-official-weather-observations for official-station basis factors")
     if not any(row["available"] for row in factors):
         actions.append("factor table has no usable factors; collect richer CLOB/metadata inputs")
     return actions

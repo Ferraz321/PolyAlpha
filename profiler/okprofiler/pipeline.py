@@ -27,6 +27,8 @@ class ProfilerConfig:
     markets_path: Path | None
     weather_path: Path | None
     forecast_path: Path | None
+    weather_events_path: Path | None
+    official_weather_path: Path | None
     factor_out: Path | None
     strategy_out: Path | None
     report_out: Path | None
@@ -55,6 +57,8 @@ def run_profiler(config: ProfilerConfig) -> dict:
     factor_table = add_derived_factors(build_factor_table(joined))
     factor_table = attach_weather_observations(factor_table, config.weather_path)
     factor_table = attach_weather_forecasts(factor_table, config.forecast_path)
+    factor_table = attach_weather_events(factor_table, config.weather_events_path)
+    factor_table = attach_official_weather(factor_table, config.official_weather_path)
     factor_table = add_derived_factors(factor_table)
     if config.factor_out is not None:
         config.factor_out.parent.mkdir(parents=True, exist_ok=True)
@@ -68,6 +72,8 @@ def run_profiler(config: ProfilerConfig) -> dict:
         markets_path=config.markets_path,
         weather_path=config.weather_path,
         forecast_path=config.forecast_path,
+        weather_events_path=config.weather_events_path,
+        official_weather_path=config.official_weather_path,
     )
     if config.diagnostics_out is not None:
         write_diagnostics(diagnostics, config.diagnostics_out)
@@ -251,6 +257,78 @@ def attach_weather_forecasts(joined: pl.DataFrame, forecast_path: Path | None) -
         tolerance="6h",
         check_sortedness=False,
     )
+
+
+def attach_weather_events(joined: pl.DataFrame, weather_events_path: Path | None) -> pl.DataFrame:
+    required = {"market_slug", "event_slug"}
+    if (
+        weather_events_path is None
+        or not weather_events_path.exists()
+        or not required.issubset(set(joined.columns))
+    ):
+        return joined
+    events = pl.read_csv(
+        weather_events_path,
+        schema_overrides={
+            "event_slug": pl.Utf8,
+            "market_slug": pl.Utf8,
+            "official_station_id": pl.Utf8,
+            "resolution_source": pl.Utf8,
+        },
+    )
+    expected = {
+        "event_slug",
+        "market_slug",
+        "official_station_id",
+        "resolution_source",
+        "ladder_yes_price",
+        "ladder_bucket_count",
+        "ladder_price_sum",
+        "ladder_price_rank",
+    }
+    if not expected.issubset(set(events.columns)):
+        return joined
+    columns = [
+        "event_slug",
+        "market_slug",
+        "official_station_id",
+        "resolution_source",
+        "ladder_yes_price",
+        "ladder_best_bid",
+        "ladder_best_ask",
+        "ladder_last_trade_price",
+        "ladder_market_closed",
+        "ladder_bucket_count",
+        "ladder_price_sum",
+        "ladder_price_rank",
+    ]
+    return joined.join(events.select([column for column in columns if column in events.columns]), on=["event_slug", "market_slug"], how="left")
+
+
+def attach_official_weather(joined: pl.DataFrame, official_weather_path: Path | None) -> pl.DataFrame:
+    required = {"official_station_id", "weather_event_date"}
+    if (
+        official_weather_path is None
+        or not official_weather_path.exists()
+        or not required.issubset(set(joined.columns))
+    ):
+        return joined
+    official = pl.read_csv(
+        official_weather_path,
+        try_parse_dates=True,
+        schema_overrides={"official_station_id": pl.Utf8, "event_date": pl.Utf8},
+    )
+    expected = {"official_station_id", "event_date", "official_high_temp_f"}
+    if not expected.issubset(set(official.columns)):
+        return joined
+    daily = official.select(
+        [
+            pl.col("official_station_id"),
+            pl.col("event_date").alias("weather_event_date"),
+            pl.col("official_high_temp_f").cast(pl.Float64),
+        ]
+    ).unique(["official_station_id", "weather_event_date"])
+    return joined.join(daily, on=["official_station_id", "weather_event_date"], how="left")
 
 
 def build_factor_table(joined: pl.DataFrame) -> pl.DataFrame:

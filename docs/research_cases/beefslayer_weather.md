@@ -96,6 +96,68 @@ Likely strategy family:
 - cross-city systematic coverage
 - repeated same-market entry rather than one-shot betting
 
+## Research Iteration 2026-05-19: New Factors
+
+This pass discovered reusable candidate factors and recorded their definitions
+in the central factor library:
+
+- `weather_low_price_bucket_value`
+- `nwp_node_lag_secs`
+- `late_day_temperature_nowcast_edge`
+- `official_station_basis`
+- `city_temperature_bias_edge`
+- `temperature_bucket_ladder_mispricing`
+
+Validation update after implementation and profiler rerun:
+
+- `weather_low_price_bucket_value`: implemented, but rejected by walk-forward
+  behavior validation. It should not be treated as a confirmed standalone
+  strategy factor.
+- `late_day_temperature_nowcast_edge`: implemented, but rejected by
+  walk-forward behavior validation. Time clustering exists, but the factor
+  alone does not explain the wallet.
+- `nwp_node_lag_secs`: implemented and kept as `researching`; it is useful as a
+  timing diagnostic but does not confirm immediate model-release sniping.
+- `official_station_basis`: partially implemented through Gamma event-context
+  metadata. The first 25 weather events produced 275 ladder rows and parsed
+  station IDs such as `KLGA`, `KHOU`, `KSEA`, `RKSI`, `KATL`, and `KORD`.
+  The actual basis value is still blocked until official station observed highs
+  are ingested.
+- `temperature_bucket_ladder_mispricing`: partially implemented through Gamma
+  ladder metadata. The first 25 weather events all produced valid ladder rows,
+  but the sampled markets are closed, so final ladder prices cannot prove
+  at-entry mispricing. Historical or live sibling prices are still required.
+
+Latest validation note:
+
+- Official station observations were fetched for 25 station/date rows. For the
+  successfully fetched US stations, official-settlement PnL on 109
+  bucket-bounded rows was +$225.12, 11.78% ROI, with 81.13% win rate. This
+  confirms official station data is required for correct settlement/PnL, but
+  `official_station_basis` alone was rejected as a standalone entry trigger.
+- Historical sibling prices from CLOB `prices-history` were tested on 3 events
+  and 47 fills. The sample was profitable (+$24.05, 5.8% ROI), but a simple
+  ladder alignment split did not isolate the edge. The next hypothesis is a
+  combined factor: official-station nowcast plus target-bucket/adjacent-bucket
+  exclusion, not ladder shape alone.
+- New candidate `official_station_target_bucket_edge` records that combined
+  hypothesis. It is intentionally blocked until intraday official station
+  observations before each fill are available; using final official high would
+  leak the settlement answer into the entry signal.
+
+Updated behavioral read:
+
+- The account is a temperature-bucket specialist, not a hurricane-path or
+  extreme-weather-days specialist.
+- Its public sample is dominated by taker fills, so the observed behavior is
+  active execution rather than passive market making.
+- The timing profile does not look like a clean "new GRIB file arrives, trade
+  within seconds" bot. It is more consistent with monitoring late-day city
+  temperature paths and finding bucket-ladder mispricings.
+- The highest-priority missing source is official settlement-grade station data,
+  because 1°F bucket markets are too sensitive for generic actual-weather
+  proxies.
+
 ## Remaining Evidence Gaps
 
 - CLOB snapshots are missing, so OFI/spread/depth/momentum claims are not yet
@@ -107,10 +169,12 @@ Likely strategy family:
 
 ## Next Research Tasks
 
-1. Record CLOB for `clob_assets.txt` to test entry-before-move and liquidity
-   timing.
-2. Add `model_disagreement` using another weather model or provider.
-3. Add city-specific realized PnL and win-rate factors.
-4. Split the sample by time to verify that forecast thresholds are stable.
-5. Add negative controls from non-wallet weather fills for real precision and
-   recall.
+1. Build `official_station_basis`: map each city market to the official station
+   or source used by settlement, then compare it with Open-Meteo/grid actuals.
+2. Build `temperature_bucket_ladder_mispricing`: reconstruct all sibling bucket
+   prices for the same city-day at each fill timestamp.
+3. Build `late_day_temperature_nowcast_edge`: align fills with hourly official
+   station observations and local city time.
+4. Keep `nwp_node_lag_secs` as a negative/diagnostic factor: use it to reject or
+   confirm model-release-sniping rather than assuming it.
+5. Add negative controls from non-wallet weather fills for precision/recall.

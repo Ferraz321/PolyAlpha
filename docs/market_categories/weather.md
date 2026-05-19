@@ -47,11 +47,39 @@ This playbook is the required reverse-engineering checklist for wallets whose
 - `forecast_delta_1h`: one-hour forecast revision.
 - `forecast_delta_6h`: six-hour forecast revision.
 - `forecast_volatility`: recent forecast instability.
+- `nwp_node_lag_secs`: seconds since the latest 00Z/06Z/12Z/18Z model-run node.
+
+### Weather Execution Hypotheses
+
+- `weather_low_price_bucket_value`: low-probability temperature-bucket value entry.
+- `late_day_temperature_nowcast_edge`: same-day temperature-monitoring time window.
+- `official_station_source_available`: parsed official station/source exists for the market.
+- `official_station_basis`: official station high minus generic/grid high.
+- `temperature_bucket_ladder_mispricing`: entry price gap versus same-bucket ladder reference price when sibling prices are available.
 
 ## Candidate External Weather Factors
 
 - `model_disagreement`: spread between forecast providers/models.
 - `bucket_distance_from_normal`: distance from city seasonal normal.
+- `official_station_basis`: difference between a generic/grid weather source and the official settlement station/source for the market.
+- `official_station_target_bucket_edge`: official station high-to-date and remaining path versus the target bucket, combined with sibling ladder prices at fill time.
+- `city_temperature_bias_edge`: repeatable city-specific forecast error versus official observed high.
+- `temperature_bucket_ladder_mispricing`: mispricing across adjacent buckets for the same city-day ladder.
+
+## Event Context Data
+
+Weather event context is fetched from Gamma event metadata with
+`fetch-weather-event-contexts`. It extracts:
+
+- `resolution_source`, e.g. a Wunderground station URL.
+- `official_station_id`, e.g. `KLGA`, `KSEA`, `KATL`.
+- sibling ladder rows with `ladder_yes_price`, `ladder_price_sum`, and
+  `ladder_bucket_count`.
+
+This data proves where settlement is supposed to come from, but it is not enough
+to validate alpha by itself. `official_station_basis` still needs official
+observed highs, and `temperature_bucket_ladder_mispricing` needs live/open or
+historical sibling prices at the wallet's fill time.
 
 ## Interpretation
 

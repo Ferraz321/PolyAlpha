@@ -41,6 +41,124 @@
       "reason": "needed by weather temperature specialist to test whether the observed specialization is a reusable edge"
     },
     {
+      "factor": "weather_low_price_bucket_value",
+      "status": "active_unvalidated",
+      "priority": 1,
+      "required_data": "fills_and_settlement",
+      "market_categories": [
+        "weather_temperature"
+      ],
+      "wallets": [
+        "0x331bf91c132af9d921e1908ca0979363fc47193f"
+      ],
+      "reason": "2026-05-19 research found many sub-0.20 buy entries in narrow temperature buckets; test whether low-price bucket buys are positive expectancy",
+      "implementation_status": "implemented",
+      "implementation_columns": [
+        "weather_low_price_bucket_value"
+      ],
+      "promotion_blocker": "needs settlement-grade official source validation before alpha approval",
+      "validation_status": "rejected",
+      "latest_validation": "Implemented and rerun on data/profiler_beefslayer. Coverage: 3020 rows, mean flag rate 31.79%. Walk-forward behavior validation rejected it: oos_lift=0.0000, negative_lift=0.0966, stability=1.0000, replication=0.0000. Earlier Open-Meteo/grid substitute outcome check showed price < 0.20 bucket proxy ROI +15.38%, but that is not settlement-grade and does not override the behavior-validation rejection."
+    },
+    {
+      "factor": "official_station_basis",
+      "status": "active_unvalidated",
+      "priority": 1,
+      "required_data": "market_rules_and_official_weather_station_observations",
+      "market_categories": [
+        "weather_temperature"
+      ],
+      "wallets": [
+        "0x331bf91c132af9d921e1908ca0979363fc47193f"
+      ],
+      "reason": "1F bucket outcomes can flip when generic weather grids differ from the exact Polymarket settlement station/source",
+      "implementation_status": "partial",
+      "implementation_columns": [
+        "official_station_source_available",
+        "official_station_basis"
+      ],
+      "validation_status": "blocked",
+      "latest_validation": "Official Weather.com historical observation adapter implemented. Small sample from data/profiler_beefslayer: 25 station/date rows fetched, 22 ok and 3 non-US RKSI HTTP errors. Joined factor table has 118 official_high_temp_f rows. Using official station settlement on 109 bucket-bounded rows gives +$225.12 PnL, 11.78% ROI, 81.13% win rate. However, official_station_basis as a standalone walk-forward behavior factor is rejected: oos_lift=0.0169, stability=0.0000. Conclusion: official station data is essential for correct settlement/PnL, but basis alone is not yet a confirmed entry trigger."
+    },
+    {
+      "factor": "late_day_temperature_nowcast_edge",
+      "status": "active_unvalidated",
+      "priority": 2,
+      "required_data": "intraday_official_weather_observations",
+      "market_categories": [
+        "weather_temperature"
+      ],
+      "wallets": [
+        "0x331bf91c132af9d921e1908ca0979363fc47193f"
+      ],
+      "reason": "fills cluster around 18Z-22Z, suggesting same-day temperature path monitoring rather than pure daily forecast selection",
+      "implementation_status": "implemented",
+      "implementation_columns": [
+        "late_day_temperature_nowcast_edge"
+      ],
+      "promotion_blocker": "needs intraday official station observations to validate alpha, not just timing behavior",
+      "validation_status": "rejected",
+      "latest_validation": "Implemented and rerun on data/profiler_beefslayer. Coverage: 3020 rows, mean flag rate 53.61%. Walk-forward behavior validation rejected it: oos_lift=0.0000, negative_lift=0.0178, stability=1.0000, replication=0.0000. Timing concentration exists, but this factor alone does not explain buy behavior or alpha."
+    },
+    {
+      "factor": "nwp_node_lag_secs",
+      "status": "active_unvalidated",
+      "priority": 2,
+      "required_data": "fills_and_forecast_model_run_calendar",
+      "market_categories": [
+        "weather_temperature"
+      ],
+      "wallets": [
+        "0x331bf91c132af9d921e1908ca0979363fc47193f"
+      ],
+      "reason": "2026-05-19 research found weak concentration immediately after 00Z/06Z/12Z/18Z; keep as a diagnostic to confirm or reject model-release sniping",
+      "implementation_status": "implemented",
+      "implementation_columns": [
+        "nwp_node_lag_secs"
+      ],
+      "promotion_blocker": "diagnostic factor; needs model-run issue/availability timestamps for precise release-latency validation",
+      "validation_status": "researching",
+      "latest_validation": "Implemented and rerun on data/profiler_beefslayer. Coverage: 3020 rows; min=27s, max=21599s, mean=11058.09s. Walk-forward behavior validation is researching: oos_lift=0.0151, negative_lift=0.0000, stability=0.6511, replication=0.0000. It does not support a simple immediate model-release-sniping thesis, but remains useful as a diagnostic timing factor."
+    },
+    {
+      "factor": "city_temperature_bias_edge",
+      "status": "candidate",
+      "priority": 2,
+      "required_data": "official_weather_observations_and_forecast_history",
+      "market_categories": [
+        "weather_temperature"
+      ],
+      "wallets": [
+        "0x331bf91c132af9d921e1908ca0979363fc47193f"
+      ],
+      "reason": "wallet concentrates across repeat cities; test whether edge is city-specific forecast bias against official station highs",
+      "validation_status": "blocked",
+      "latest_proxy_validation": "Blocked for alpha validation: city concentration is visible in fills (NYC 894, Seattle 395, Atlanta 372, Dallas 326, Chicago 186, Miami 181), but official station actuals and city-level forecast error history are required."
+    },
+    {
+      "factor": "temperature_bucket_ladder_mispricing",
+      "status": "active_unvalidated",
+      "priority": 2,
+      "required_data": "sibling_weather_market_prices",
+      "market_categories": [
+        "weather_temperature"
+      ],
+      "wallets": [
+        "0x331bf91c132af9d921e1908ca0979363fc47193f"
+      ],
+      "reason": "same city-day markets form adjacent temperature ladders; edge may come from incoherent probability mass across buckets",
+      "implementation_status": "partial",
+      "implementation_columns": [
+        "temperature_bucket_ladder_mispricing",
+        "ladder_yes_price",
+        "ladder_price_sum",
+        "ladder_bucket_count",
+        "ladder_price_rank"
+      ],
+      "validation_status": "blocked",
+      "latest_validation": "CLOB prices-history endpoint tested for sibling bucket prices at wallet fill time. Small sample: 3 events, 47 fills, 33 token history calls. Official-settlement PnL on this sample: +$24.05, 5.8% ROI, 95.7% win rate. A simple ladder direction alignment split did not prove standalone edge: aligned n=14 ROI 7.93%, not_aligned n=33 ROI 5.32%. Conclusion: historical sibling prices are obtainable, but simple ladder mispricing is not yet confirmed; next version must combine ladder state with official-station nowcast/target-bucket exclusion."
+    },
+    {
       "factor": "city_specific_pnl",
       "status": "candidate",
       "priority": 3,
@@ -104,6 +222,47 @@
         "0x331bf91c132af9d921e1908ca0979363fc47193f"
       ],
       "reason": "needed by weather temperature specialist to test whether the observed specialization is a reusable edge"
+    },
+    {
+      "factor": "exit_fillability",
+      "status": "candidate",
+      "priority": 2,
+      "required_data": "clob_bbo_and_fills",
+      "market_categories": [
+        "all"
+      ],
+      "wallets": [],
+      "reason": "after an entry factor is validated, test whether positions can be sold near observed exit prices and size instead of being trapped",
+      "validation_status": "blocked",
+      "latest_validation": "Blocked until CLOB BBO/depth snapshots are available around wallet exits."
+    },
+    {
+      "factor": "strategy_capacity_usd",
+      "status": "candidate",
+      "priority": 2,
+      "required_data": "clob_depth_and_fills",
+      "market_categories": [
+        "all"
+      ],
+      "wallets": [],
+      "reason": "after an entry factor is validated, estimate maximum repeatable notional before spread or slippage consumes expected edge",
+      "validation_status": "blocked",
+      "latest_validation": "Blocked until CLOB depth snapshots are available around entries and exits."
+    },
+    {
+      "factor": "official_station_target_bucket_edge",
+      "status": "candidate",
+      "priority": 1,
+      "required_data": "intraday_official_station_observations_and_historical_sibling_prices",
+      "market_categories": [
+        "weather_temperature"
+      ],
+      "wallets": [
+        "0x331bf91c132af9d921e1908ca0979363fc47193f"
+      ],
+      "reason": "combined entry factor suggested by validation: use official station nowcast/high-to-date, target bucket distance/exclusion, and sibling ladder prices at fill time to explain Yes/No entries",
+      "validation_status": "blocked",
+      "latest_validation": "Not implemented as an active column because final official_high_temp_f would leak future settlement. Required next data: official station intraday observations available before each fill plus sibling bucket prices at each fill timestamp. Current evidence: official station settlement on 109 rows is profitable (+$225.12, 11.78% ROI), and CLOB sibling price history is obtainable, but neither official_station_basis nor simple ladder alignment is a standalone confirmed entry trigger."
     }
   ]
 }

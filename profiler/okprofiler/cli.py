@@ -6,6 +6,8 @@ from .agent import AgentConfig, run_agent
 from .data_sources import (
     assets_from_fills,
     fetch_gamma_markets,
+    fetch_weather_event_contexts,
+    fetch_official_weather_observations,
     fetch_news_rss,
     fetch_user_trades,
     resolve_polymarket_user,
@@ -25,6 +27,23 @@ def main() -> None:
             max_offset=args.max_offset,
         )
         print(json.dumps({"markets_rows": rows, "out": args.out}, indent=2))
+        return
+    if args.command == "fetch-weather-event-contexts":
+        rows = fetch_weather_event_contexts(
+            fills=Path(args.fills),
+            out=Path(args.out),
+            base_url=args.gamma_base_url,
+            max_events=args.max_events,
+        )
+        print(json.dumps({"weather_event_rows": rows, "out": args.out}, indent=2))
+        return
+    if args.command == "fetch-official-weather-observations":
+        rows = fetch_official_weather_observations(
+            contexts=Path(args.contexts),
+            out=Path(args.out),
+            max_rows=args.max_rows,
+        )
+        print(json.dumps({"official_weather_rows": rows, "out": args.out}, indent=2))
         return
     if args.command == "fetch-news-rss":
         rows = fetch_news_rss(out=Path(args.out), url=args.url)
@@ -89,6 +108,8 @@ def profile(args) -> None:
             markets_path=Path(args.markets) if args.markets else None,
             weather_path=Path(args.weather) if args.weather else None,
             forecast_path=Path(args.forecast) if args.forecast else None,
+            weather_events_path=Path(args.weather_events) if args.weather_events else None,
+            official_weather_path=Path(args.official_weather) if args.official_weather else None,
             factor_out=Path(args.factor_out) if args.factor_out else None,
             strategy_out=Path(args.strategy_out) if args.strategy_out else None,
             report_out=Path(args.report_out) if args.report_out else None,
@@ -184,6 +205,15 @@ def parse_args():
     fetch.add_argument("--gamma-base-url", default="https://gamma-api.polymarket.com/")
     fetch.add_argument("--limit", type=int, default=500)
     fetch.add_argument("--max-offset", type=int, default=5000)
+    event_context = subparsers.add_parser("fetch-weather-event-contexts")
+    event_context.add_argument("--fills", default="data/profiler/fills.csv")
+    event_context.add_argument("--out", default="data/profiler/weather_event_contexts.csv")
+    event_context.add_argument("--gamma-base-url", default="https://gamma-api.polymarket.com/")
+    event_context.add_argument("--max-events", type=int)
+    official_weather = subparsers.add_parser("fetch-official-weather-observations")
+    official_weather.add_argument("--contexts", default="data/profiler/weather_event_contexts.csv")
+    official_weather.add_argument("--out", default="data/profiler/official_weather_observations.csv")
+    official_weather.add_argument("--max-rows", type=int)
     news = subparsers.add_parser("fetch-news-rss")
     news.add_argument("--url", required=True)
     news.add_argument("--out", default="data/profiler/news.csv")
@@ -265,6 +295,8 @@ def _add_profile_args(parser):
     parser.add_argument("--markets")
     parser.add_argument("--weather")
     parser.add_argument("--forecast")
+    parser.add_argument("--weather-events")
+    parser.add_argument("--official-weather")
     parser.add_argument("--out", default="data/profiler/rules.json")
     parser.add_argument("--factor-out", default="data/profiler/factor_table.parquet")
     parser.add_argument("--strategy-out", default="data/profiler/strategy_config.json")
