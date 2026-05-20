@@ -477,6 +477,18 @@ python profiler/profile_wallets.py fetch-user-trades \
   --wallet 0xYourWallet \
   --out data/profiler/fills.csv
 
+python profiler/profile_wallets.py fetch-marketbridge-context \
+  --base-url http://127.0.0.1:8080 \
+  --symbol BTCUSDT \
+  --symbol ETHUSDT \
+  --exchange binance \
+  --exchange okx \
+  --market perp \
+  --interval 1m \
+  --limit 500 \
+  --include-snapshots \
+  --out data/profiler/marketbridge_context.csv
+
 python profiler/profile_wallets.py resolve-user @beefslayer
 
 python profiler/profile_wallets.py research-user @beefslayer \
@@ -491,6 +503,7 @@ python profiler/profile_wallets.py profile \
   --fills data/profiler/fills.csv \
   --clob data/profiler/clob_events.csv \
   --markets data/profiler/markets.csv \
+  --marketbridge-context data/profiler/marketbridge_context.csv \
   --diagnostics-out data/profiler/diagnostics.json
 ```
 
@@ -575,6 +588,21 @@ Use `--all-playbooks` to run every built-in board playbook in one pass.
 Treat `confirmed_effective` synthetic factors as promotion candidates: add the
 formula to the central catalog and implementation library before using them as
 durable live features.
+
+MarketBridge context rows use a long-table schema:
+`timestamp,feature,value,source`. During profiling, PolyAlpha pivots these rows
+into `mb_*` columns and joins the latest value before each fill. The discovery
+engine treats `mb_*` columns as `marketbridge` board candidates, so crypto
+returns, basis, funding, order-flow, macro, and sentiment context can be tested
+alongside wallet-specific Polymarket features:
+
+```bash
+python profiler/profile_wallets.py discover-factors \
+  --factor-table data/profiler/factor_table.parquet \
+  --category marketbridge \
+  --max-base-factors 24 \
+  --max-interactions 80
+```
 
 Evaluate whether a wallet is worth following before building a live bot:
 

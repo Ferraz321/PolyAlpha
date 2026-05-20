@@ -7,6 +7,7 @@ from .clustering import cluster_wallets, persist_clusters, write_clusters
 from .diagnostics import build_diagnostics, write_diagnostics
 from .factor_reporting import write_factor_outputs
 from .features import add_derived_factors, extract_clob_features
+from .marketbridge_context import attach_marketbridge_context
 from .react import run_factor_react_loop
 from .report import write_reports
 from .research_matrix import run_research_matrix
@@ -25,6 +26,7 @@ class ProfilerConfig:
     forecast_path: Path | None
     weather_events_path: Path | None
     official_weather_path: Path | None
+    marketbridge_context_path: Path | None
     factor_out: Path | None
     strategy_out: Path | None
     report_out: Path | None
@@ -55,6 +57,7 @@ def run_profiler(config: ProfilerConfig) -> dict:
     factor_table = attach_weather_forecasts(factor_table, config.forecast_path)
     factor_table = attach_weather_events(factor_table, config.weather_events_path)
     factor_table = attach_official_weather(factor_table, config.official_weather_path)
+    factor_table = attach_marketbridge_context(factor_table, config.marketbridge_context_path)
     factor_table = add_derived_factors(factor_table)
     if config.factor_out is not None:
         config.factor_out.parent.mkdir(parents=True, exist_ok=True)
@@ -70,6 +73,7 @@ def run_profiler(config: ProfilerConfig) -> dict:
         forecast_path=config.forecast_path,
         weather_events_path=config.weather_events_path,
         official_weather_path=config.official_weather_path,
+        marketbridge_context_path=config.marketbridge_context_path,
     )
     if config.diagnostics_out is not None:
         write_diagnostics(diagnostics, config.diagnostics_out)

@@ -16,10 +16,11 @@ from .features import factor_library_rows
 from .factor_discovery import (
     discover_factor_boards,
     discover_factors,
-    render_factor_discovery,
     write_factor_discovery,
 )
+from .factor_discovery_render import render_factor_discovery
 from .follow_eval import evaluate_followability, render_followability, write_followability
+from .marketbridge import fetch_marketbridge_context
 from .pipeline import ProfilerConfig, run_profiler
 from .research_agenda import build_research_agenda, render_research_agenda
 from .validation_summary import render_summary, summarize_validations
@@ -107,6 +108,19 @@ def main() -> None:
             out=Path(args.out),
         )
         print(json.dumps({"forecast_rows": rows, "out": args.out}, indent=2))
+        return
+    if args.command == "fetch-marketbridge-context":
+        rows = fetch_marketbridge_context(
+            base_url=args.base_url,
+            out=Path(args.out),
+            symbols=_parse_csv_list(args.symbol) or ["BTCUSDT", "ETHUSDT"],
+            exchanges=_parse_csv_list(args.exchange) or ["binance", "okx"],
+            market=args.market,
+            interval=args.interval,
+            limit=args.limit,
+            include_snapshots=args.include_snapshots,
+        )
+        print(json.dumps({"marketbridge_rows": rows, "out": args.out}, indent=2))
         return
     if args.command == "agent":
         agent(args)
@@ -240,6 +254,7 @@ def profile(args) -> None:
             forecast_path=Path(args.forecast) if args.forecast else None,
             weather_events_path=Path(args.weather_events) if args.weather_events else None,
             official_weather_path=Path(args.official_weather) if args.official_weather else None,
+            marketbridge_context_path=Path(args.marketbridge_context) if args.marketbridge_context else None,
             factor_out=Path(args.factor_out) if args.factor_out else None,
             strategy_out=Path(args.strategy_out) if args.strategy_out else None,
             report_out=Path(args.report_out) if args.report_out else None,
@@ -384,6 +399,15 @@ def parse_args():
     forecast.add_argument("--profile-dir", default="data/profiler")
     forecast.add_argument("--locations-csv", default="config/weather_locations.csv")
     forecast.add_argument("--out", default="data/profiler/forecast_history.csv")
+    marketbridge = subparsers.add_parser("fetch-marketbridge-context")
+    marketbridge.add_argument("--base-url", default="http://127.0.0.1:8080")
+    marketbridge.add_argument("--symbol", action="append")
+    marketbridge.add_argument("--exchange", action="append")
+    marketbridge.add_argument("--market", default="perp")
+    marketbridge.add_argument("--interval", default="1m")
+    marketbridge.add_argument("--limit", type=int, default=500)
+    marketbridge.add_argument("--include-snapshots", action="store_true")
+    marketbridge.add_argument("--out", default="data/profiler/marketbridge_context.csv")
     agent_parser = subparsers.add_parser("agent")
     agent_parser.add_argument("--profile-dir", default="data/profiler")
     agent_parser.add_argument("--db", default="data/oktrader.sqlite")
@@ -501,6 +525,7 @@ def _add_profile_args(parser):
     parser.add_argument("--markets")
     parser.add_argument("--weather")
     parser.add_argument("--forecast")
+    parser.add_argument("--marketbridge-context")
     parser.add_argument("--weather-events")
     parser.add_argument("--official-weather")
     parser.add_argument("--out", default="data/profiler/rules.json")
@@ -535,6 +560,15 @@ def _parse_factor_list(raw: list[str] | None) -> list[str] | None:
     for item in raw:
         factors.extend(part.strip() for part in item.split(",") if part.strip())
     return factors
+
+
+def _parse_csv_list(raw: list[str] | None) -> list[str]:
+    if not raw:
+        return []
+    values = []
+    for item in raw:
+        values.extend(part.strip() for part in item.split(",") if part.strip())
+    return list(dict.fromkeys(values))
 
 
 def _parse_int_list(raw: list[str] | None) -> list[int]:

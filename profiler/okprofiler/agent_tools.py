@@ -130,6 +130,7 @@ def _run_profile(config: AgentToolConfig) -> dict:
             forecast_path=_optional(config.profile_dir / "forecast_history.csv"),
             weather_events_path=_optional(config.profile_dir / "weather_event_contexts.csv"),
             official_weather_path=_optional(config.profile_dir / "official_weather_observations.csv"),
+            marketbridge_context_path=_optional(config.profile_dir / "marketbridge_context.csv"),
             factor_out=config.profile_dir / "factor_table.parquet",
             strategy_out=config.profile_dir / "strategy_config.json",
             report_out=config.profile_dir / "report.md",

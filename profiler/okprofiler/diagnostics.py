@@ -17,6 +17,7 @@ def build_diagnostics(
     forecast_path: Path | None = None,
     weather_events_path: Path | None = None,
     official_weather_path: Path | None = None,
+    marketbridge_context_path: Path | None = None,
 ) -> dict:
     sources = {
         "fills": _source_status(fills, ["account", "market_id", "timestamp", "side", "price", "shares"]),
@@ -33,6 +34,10 @@ def build_diagnostics(
         "official_weather": _file_status(
             official_weather_path,
             ["official_station_id", "event_date", "official_high_temp_f"],
+        ),
+        "marketbridge_context": _file_status(
+            marketbridge_context_path,
+            ["timestamp", "feature", "value"],
         ),
     }
     factors = [_factor_status(spec, factor_table, sources) for spec in FACTOR_SPECS]
@@ -100,6 +105,8 @@ def _missing_actions(sources: dict, factors: list[dict]) -> list[str]:
         actions.append("run fetch-weather-event-contexts for official-station and ladder factors")
     if not sources["official_weather"]["ready"]:
         actions.append("run fetch-official-weather-observations for official-station basis factors")
+    if not sources["marketbridge_context"]["ready"]:
+        actions.append("run fetch-marketbridge-context to add crypto/macro/sentiment context factors")
     if not any(row["available"] for row in factors):
         actions.append("factor table has no usable factors; collect richer CLOB/metadata inputs")
     return actions
