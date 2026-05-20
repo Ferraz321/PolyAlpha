@@ -14,6 +14,7 @@ library.py     one FactorImplementation per factor; applies stages in order
 clob.py        raw CLOB event feature extraction
 timing.py      clock, news, and resolution-window factors
 weather.py     weather-temperature market semantic factors
+interactions.py causal cross-family factors, for example prior behavior x timing
 registry.py    executable validation/mining registry generated from catalog.py
 derived.py     thin compatibility wrapper over library.py
 ```
@@ -29,6 +30,8 @@ entry records:
 - implementation function,
 - data dependencies,
 - live feature mapping when a Rust live signal can consume it.
+- validation role: `candidate` factors may be promoted, while `target` and
+  `diagnostic` factors are kept out of alpha approval to prevent leakage.
 
 The CLI can render this catalog:
 

@@ -15,7 +15,7 @@ def validate_factor_table(
     min_oos_lift: float = 0.02,
     min_stability: float = 0.35,
 ) -> list[dict]:
-    if factor_table.is_empty() or "side" not in factor_table.columns:
+    if factor_table.is_empty() or _target_mode(factor_table) is None:
         return []
     return validate_factor_specs(
         factor_table,
@@ -146,6 +146,17 @@ def _validate_factor(
     min_oos_lift: float,
     min_stability: float,
 ) -> dict:
+    if spec.validation_role != "candidate":
+        sample_start, sample_end = _sample_window(df)
+        return _result(
+            spec,
+            df,
+            sample_start,
+            sample_end,
+            verdict="blocked",
+            reason=f"validation_role={spec.validation_role}; not eligible for alpha approval",
+            target=_target_mode(df) or "none",
+        )
     clean = _clean_factor_rows(df, spec.column)
     sample_start, sample_end = _sample_window(clean)
     if clean.height < min_rows:
@@ -156,6 +167,7 @@ def _validate_factor(
             sample_end,
             verdict="insufficient_data",
             reason=f"rows {clean.height} < {min_rows}",
+            target=_target_mode(df) or "none",
         )
 
     train, test = _time_split(clean)
@@ -197,16 +209,26 @@ def _validate_factor(
         decay_score=decay_score,
         recent_lift=recent_lift,
         reason=_reason(verdict, out_of_sample, max(negative, negative_set), stability, replication),
+        target=_target_mode(df) or "none",
     )
 
 
 def _clean_factor_rows(df: pl.DataFrame, column: str) -> pl.DataFrame:
-    columns = [column, "side"]
+    target = _target_mode(df)
+    if target is None:
+        return pl.DataFrame()
+    columns = [column]
+    if target == "directional_success":
+        columns.append("entry_forward_edge")
+    else:
+        columns.append("side")
     for optional in [
         "timestamp",
         "account",
         "market_id",
+        "condition_id",
         "sector",
+        "weather_city",
         "price",
         "shares",
         "trade_notional",
@@ -214,7 +236,8 @@ def _clean_factor_rows(df: pl.DataFrame, column: str) -> pl.DataFrame:
     ]:
         if optional != column and optional in df.columns:
             columns.append(optional)
-    return df.select(columns).drop_nulls([column, "side"]).sort(
+    required = [column, "entry_forward_edge"] if target == "directional_success" else [column, "side"]
+    return df.select(columns).drop_nulls(required).sort(
         "timestamp" if "timestamp" in df.columns else column
     )
 
@@ -240,8 +263,8 @@ def _precision_lift(df: pl.DataFrame, spec: FactorSpec, threshold: float) -> flo
     hits = df.filter(_hit_expr(spec, threshold))
     if hits.is_empty():
         return 0.0
-    base_rate = _buy_rate(df)
-    hit_rate = _buy_rate(hits)
+    base_rate = _target_rate(df)
+    hit_rate = _target_rate(hits)
     return max(0.0, hit_rate - base_rate)
 
 
@@ -251,7 +274,7 @@ def _negative_control_lift(df: pl.DataFrame, spec: FactorSpec, threshold: float)
     hits = df.filter(~_hit_expr(spec, threshold))
     if hits.is_empty():
         return 0.0
-    return max(0.0, _buy_rate(hits) - _buy_rate(df))
+    return max(0.0, _target_rate(hits) - _target_rate(df))
 
 
 def _negative_set_lift(df: pl.DataFrame, spec: FactorSpec, threshold: float) -> float:
@@ -268,19 +291,22 @@ def _negative_set_lift(df: pl.DataFrame, spec: FactorSpec, threshold: float) -> 
 
 
 def _replication_score(df: pl.DataFrame, spec: FactorSpec, threshold: float) -> float:
-    group_column = "sector" if "sector" in df.columns else "market_id" if "market_id" in df.columns else None
-    if group_column is None or df.height < 10:
+    if df.height < 10:
         return 0.0
-    groups = []
-    for value in df.get_column(group_column).drop_nulls().unique().to_list():
-        group = df.filter(pl.col(group_column) == value)
-        if group.height < 5:
+    best = 0.0
+    for group_column in ["sector", "weather_city", "market_id", "condition_id"]:
+        if group_column not in df.columns:
             continue
-        groups.append(_precision_lift(group, spec, threshold))
-    if not groups:
-        return 0.0
-    positive = sum(1 for score in groups if score > 0.0)
-    return positive / len(groups)
+        groups = []
+        for value in df.get_column(group_column).drop_nulls().unique().to_list():
+            group = df.filter(pl.col(group_column) == value)
+            if group.height < 10:
+                continue
+            groups.append(_precision_lift(group, spec, threshold))
+        if groups:
+            positive = sum(1 for score in groups if score > 0.0)
+            best = max(best, positive / len(groups))
+    return best
 
 
 def _slippage_bps(df: pl.DataFrame) -> float | None:
@@ -319,12 +345,20 @@ def _hit_expr(spec: FactorSpec, threshold: float) -> pl.Expr:
     return column <= threshold
 
 
-def _buy_rate(df: pl.DataFrame) -> float:
+def _target_rate(df: pl.DataFrame) -> float:
     if df.is_empty():
         return 0.0
-    return (
-        df.filter(pl.col("side").str.to_lowercase() == "buy").height / df.height
-    )
+    if "entry_forward_edge" in df.columns:
+        return df.filter(pl.col("entry_forward_edge").cast(pl.Float64) > 0.0).height / df.height
+    return df.filter(pl.col("side").str.to_lowercase() == "buy").height / df.height
+
+
+def _target_mode(df: pl.DataFrame) -> str | None:
+    if "entry_forward_edge" in df.columns:
+        return "directional_success"
+    if "side" in df.columns:
+        return "side_buy_rate"
+    return None
 
 
 def _stability(train: pl.DataFrame, test: pl.DataFrame, spec: FactorSpec) -> float:
@@ -380,13 +414,16 @@ def _result(
     stability_score: float = 0.0,
     decay_score: float = 0.0,
     recent_lift: float = 0.0,
+    target: str = "unknown",
 ) -> dict:
     return {
-        "validation_id": f"{spec.column}:walk_forward:v1",
+        "validation_id": f"{spec.column}:walk_forward:{target}:v2",
         "factor_id": spec.column,
         "label": spec.label,
         "live_feature": spec.live_feature,
-        "method": "walk_forward_negative_control",
+        "validation_role": spec.validation_role,
+        "target": target,
+        "method": "walk_forward_directional_success",
         "verdict": verdict,
         "reason": reason,
         "rows": df.height,

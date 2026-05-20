@@ -41,6 +41,8 @@ def run_validation_cycles(
                     "min_oos_lift": cycle["min_oos_lift"],
                     "min_stability": cycle["min_stability"],
                     "verdict": validation.get("verdict"),
+                    "target": validation.get("target"),
+                    "validation_role": validation.get("validation_role"),
                     "rows": validation.get("rows", 0),
                     "out_of_sample_score": validation.get("out_of_sample_score", 0.0),
                     "negative_control_score": validation.get("negative_control_score", 0.0),

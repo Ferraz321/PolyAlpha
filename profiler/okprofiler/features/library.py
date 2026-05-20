@@ -7,6 +7,7 @@ import polars as pl
 from .basic import add_basic_factors
 from .behavior import add_behavior_factors
 from .catalog import FACTOR_DEFINITIONS, FACTOR_DEFINITIONS_BY_COLUMN, FactorDefinition
+from .interactions import add_interaction_factors
 from .reverse_engineering import add_reverse_engineering_factors
 from .timing import add_timing_factors
 from .weather import add_weather_factors
@@ -132,6 +133,7 @@ FACTOR_LIBRARY = FactorLibrary(
         "weather",
         "weather_observations",
         "weather_forecasts",
+        "interactions",
     ]
 )
 
@@ -199,7 +201,19 @@ _register_stage(
     add_timing_factors,
     "timing",
 )
-_register_stage(["same_market_reentry_count", "buy_ratio"], add_behavior_factors, "behavior")
+_register_stage(
+    [
+        "same_market_reentry_count",
+        "buy_ratio",
+        "prior_same_market_trade_count",
+        "prior_market_reentry_rate",
+        "prior_repeat_entry_motif_count",
+        "prior_repeat_hour_motif_score",
+        "prior_buy_ratio",
+    ],
+    add_behavior_factors,
+    "behavior",
+)
 _register_stage(
     [
         "microstructure_entry_edge",
@@ -279,6 +293,16 @@ _register_stage(
     ],
     add_weather_forecast_factors,
     "weather_forecasts",
+)
+_register_stage(
+    [
+        "hour_motif_timing_edge",
+        "temperature_motif_edge",
+        "prior_reentry_hour_motif_edge",
+        "prior_reentry_buy_bias_edge",
+    ],
+    add_interaction_factors,
+    "interactions",
 )
 
 

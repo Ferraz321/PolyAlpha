@@ -13,6 +13,7 @@ class FactorSpec:
     quantile: float
     live_feature: str | None = None
     requires: tuple[str, ...] = ()
+    validation_role: str = "candidate"
 
 
 FACTOR_SPECS = [
@@ -23,6 +24,7 @@ FACTOR_SPECS = [
         definition.quantile,
         definition.live_feature,
         definition.requires,
+        definition.validation_role,
     )
     for definition in FACTOR_DEFINITIONS
 ]
