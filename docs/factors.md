@@ -33,6 +33,15 @@ python profiler/profile_wallets.py list-factors --category sector
 | `is_last_6h` | markets | Whether fill is inside the final 6 hours before resolution. | No | active |
 | `same_market_reentry_count` | fills | Number of fills by the wallet in the same market. | No | active |
 | `buy_ratio` | fills | Wallet-level buy-side fill ratio. | No | active |
+| `prior_same_market_trade_count` | fills | Causal count of prior fills by the wallet in the same market before current fill. | No | active |
+| `prior_market_reentry_rate` | fills | Prior same-market count normalized by prior account activity. | No | active |
+| `prior_repeat_entry_motif_count` | fills | Causal count of prior account/market/side/hour motifs. | No | active |
+| `prior_repeat_hour_motif_score` | fills | Prior share of wallet activity recurring in the same UTC entry hour. | No | active |
+| `prior_buy_ratio` | fills | Buy-side ratio using only prior fills. | No | active |
+| `hour_motif_timing_edge` | fills | UTC entry hour weighted by prior repeat-hour behavior. | No | confirmed-effective on beefslayer profile |
+| `temperature_motif_edge` | fills + weather semantics | Temperature bucket midpoint weighted by prior repeat-hour behavior. | No | confirmed-effective on beefslayer profile |
+| `prior_reentry_hour_motif_edge` | fills | Prior same-market activity weighted by prior repeat-hour behavior. | No | confirmed-effective on beefslayer profile |
+| `prior_reentry_buy_bias_edge` | fills | Prior same-market activity weighted by prior buy-side bias. | No | confirmed-effective on beefslayer profile |
 | `forward_price_move` | fills | Next observed market fill price move after this fill. | No | active |
 | `entry_forward_edge` | fills | Direction-adjusted next-fill move after wallet entry. | No | active |
 | `entry_before_move_secs` | fills | Seconds from entry to next favorable observed market move. | No | active |
@@ -68,27 +77,27 @@ python profiler/profile_wallets.py list-factors --category sector
 | `temperature_mid_f` | fills | Parsed midpoint of temperature bucket in Fahrenheit. | No | active |
 | `temperature_bucket_width_f` | fills | Parsed temperature bucket width. | No | active |
 | `is_low_temp_bucket` | fills | Whether bucket midpoint is at or below 40°F. | No | active |
-| `is_high_temp_bucket` | fills | Whether bucket midpoint is at or above 75°F. | No | active |
+| `is_high_temp_bucket` | fills | Whether bucket midpoint is at or above 75°F. | No | confirmed-effective on beefslayer profile |
 | `is_extreme_temperature_bucket` | fills | Whether bucket midpoint is at or below 32°F or at or above 90°F. | No | active |
-| `actual_temp_distance_to_bucket` | weather observations | Actual daily high distance from the traded bucket. | No | active |
-| `actual_temp_inside_bucket` | weather observations | Whether actual daily high landed inside the traded bucket. | No | active |
-| `actual_temp_error_to_mid_f` | weather observations | Actual daily high minus bucket midpoint. | No | active |
+| `actual_temp_distance_to_bucket` | weather observations | Actual daily high distance from the traded bucket. | No | diagnostic, ex-post |
+| `actual_temp_inside_bucket` | weather observations | Whether actual daily high landed inside the traded bucket. | No | diagnostic, ex-post |
+| `actual_temp_error_to_mid_f` | weather observations | Actual daily high minus bucket midpoint. | No | diagnostic, ex-post |
 | `forecast_temp_f` | weather forecast history | Historical forecast temperature aligned before wallet fill. | No | active |
-| `forecast_error_to_bucket` | weather forecast history | Forecast temperature distance from traded bucket. | No | active |
+| `forecast_error_to_bucket` | weather forecast history | Forecast temperature distance from traded bucket. | No | confirmed-effective on beefslayer profile |
 | `forecast_inside_bucket` | weather forecast history | Whether forecast temperature was inside traded bucket. | No | active |
 | `forecast_delta_1h` | weather forecast history | One-hour forecast temperature revision. | No | active |
 | `forecast_delta_6h` | weather forecast history | Six-hour forecast temperature revision. | No | active |
 | `forecast_volatility` | weather forecast history | Short-window forecast temperature volatility. | No | active |
 | `forecast_model_count` | weather forecast history | Number of distinct forecast sources/models available at the aligned forecast timestamp. | No | active |
 | `model_disagreement` | weather forecast history | Temperature range across aligned forecast sources/models. | No | active-unvalidated |
-| `forecast_bias_error_f` | weather forecast + observations | Ex-post realized temperature minus aligned forecast temperature. Used for research validation, not live entry by itself. | No | active-unvalidated |
-| `city_temperature_bias_edge` | weather forecast + observations | Absolute city-level mean forecast bias, used to test repeat city/model error. | No | active-unvalidated |
-| `bucket_distance_from_normal` | weather forecast history | Distance between traded bucket midpoint and city forecast normal/median in the sample. | No | active-unvalidated |
+| `forecast_bias_error_f` | weather forecast + observations | Ex-post realized temperature minus aligned forecast temperature. Used for research validation, not live entry by itself. | No | diagnostic, ex-post |
+| `city_temperature_bias_edge` | weather forecast + observations | Absolute city-level mean forecast bias, used to test repeat city/model error. | No | diagnostic, ex-post |
+| `bucket_distance_from_normal` | weather forecast history | Distance between traded bucket midpoint and city forecast normal/median in the sample. | No | diagnostic until made as-of |
 | `weather_low_price_bucket_value` | fills | Weather temperature bucket fill priced below 20c. Used to test low-probability bucket value behavior. | No | active |
 | `nwp_node_lag_secs` | fills | Seconds since the latest 00Z/06Z/12Z/18Z weather model run node. | No | active |
 | `late_day_temperature_nowcast_edge` | fills | Whether fill occurred in the 18Z-22Z UTC window often relevant for same-day US temperature monitoring. | No | active |
 | `official_station_source_available` | weather event metadata | Whether the market's official station/source was parsed from Gamma event rules. | No | active |
-| `official_station_basis` | weather event metadata + official observations | Difference between official station high and generic/grid actual high. Non-null only when official observed high is available. | No | active-unvalidated |
+| `official_station_basis` | weather event metadata + official observations | Difference between official station high and generic/grid actual high. Non-null only when official observed high is available. | No | diagnostic, ex-post |
 | `official_station_bucket_distance` | intraday official observations | Distance from official station high-to-date at fill time to the traded bucket. | No | active-unvalidated |
 | `official_station_inside_bucket_now` | intraday official observations | Whether official station high-to-date is already inside the traded bucket at fill time. | No | active-unvalidated |
 | `official_station_target_bucket_edge` | intraday official observations + sibling prices | Non-leaking proxy combining station high-to-date proximity, entry price, and ladder state. | No | active-unvalidated |
