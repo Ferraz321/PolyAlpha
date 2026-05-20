@@ -367,6 +367,31 @@ Send alert messages to a webhook:
 cargo run -- alerts --db data/oktrader.sqlite --watchlist --webhook-url "$WEBHOOK_URL"
 ```
 
+Archive and reverse-engineer whale or smart-money wallets from the Python
+research layer. The command scans recent public Data API trades for large-wallet
+candidates, optionally adds seed wallets, fetches each wallet's public history,
+runs profiler/factor discovery, and writes an auditable archive under
+`data/smart_money`:
+
+```bash
+python profiler/profile_wallets.py scan-smart-money \
+  --out-dir data/smart_money \
+  --page-size 500 \
+  --max-offset 1000 \
+  --max-wallets 10 \
+  --min-trade-notional 10000 \
+  --history-limit 500 \
+  --history-max-offset 3000 \
+  --wallet-file data/watchlist_wallets.txt \
+  --markets data/profiler/markets.csv \
+  --marketbridge-context data/profiler/marketbridge_context.csv
+```
+
+Use `--wallet 0x...` for a known Polymarket address. A wallet is archived as
+`research_ready` only after history is fetched, profiling succeeds, and
+multi-board factor discovery finds confirmed effective factors. One-shot whales
+remain watchlist/rejected until repeatable factors survive validation.
+
 ## VPS Overnight Run
 
 For a real overnight run, use the release binary and background scripts:

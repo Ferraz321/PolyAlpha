@@ -23,6 +23,8 @@ from .follow_eval import evaluate_followability, render_followability, write_fol
 from .marketbridge import fetch_marketbridge_context
 from .pipeline import ProfilerConfig, run_profiler
 from .research_agenda import build_research_agenda, render_research_agenda
+from .smart_money import SmartMoneyScanConfig, scan_smart_money
+from .smart_money_render import render_smart_money_archive
 from .validation_summary import render_summary, summarize_validations
 from .validation_cycles import (
     load_factor_table,
@@ -121,6 +123,34 @@ def main() -> None:
             include_snapshots=args.include_snapshots,
         )
         print(json.dumps({"marketbridge_rows": rows, "out": args.out}, indent=2))
+        return
+    if args.command == "scan-smart-money":
+        result = scan_smart_money(
+            SmartMoneyScanConfig(
+                base_url=args.base_url,
+                out_dir=Path(args.out_dir),
+                page_size=args.page_size,
+                max_offset=args.max_offset,
+                max_wallets=args.max_wallets,
+                min_trade_notional=args.min_trade_notional,
+                history_limit=args.history_limit,
+                history_max_offset=args.history_max_offset,
+                min_history_rows=args.min_history_rows,
+                markets_path=Path(args.markets) if args.markets else None,
+                clob_path=Path(args.clob) if args.clob else None,
+                weather_path=Path(args.weather) if args.weather else None,
+                forecast_path=Path(args.forecast) if args.forecast else None,
+                weather_events_path=Path(args.weather_events) if args.weather_events else None,
+                official_weather_path=Path(args.official_weather) if args.official_weather else None,
+                marketbridge_context_path=Path(args.marketbridge_context) if args.marketbridge_context else None,
+                seed_wallets=tuple(_parse_csv_list(args.wallet) + _read_wallet_file(args.wallet_file)),
+                profile_wallets=not args.no_profile,
+            )
+        )
+        if args.json:
+            print(json.dumps(result, indent=2))
+        else:
+            print(render_smart_money_archive(result), end="")
         return
     if args.command == "agent":
         agent(args)
@@ -408,6 +438,27 @@ def parse_args():
     marketbridge.add_argument("--limit", type=int, default=500)
     marketbridge.add_argument("--include-snapshots", action="store_true")
     marketbridge.add_argument("--out", default="data/profiler/marketbridge_context.csv")
+    smart_money = subparsers.add_parser("scan-smart-money")
+    smart_money.add_argument("--base-url", default="https://data-api.polymarket.com/")
+    smart_money.add_argument("--out-dir", default="data/smart_money")
+    smart_money.add_argument("--page-size", type=int, default=500)
+    smart_money.add_argument("--max-offset", type=int, default=1000)
+    smart_money.add_argument("--max-wallets", type=int, default=10)
+    smart_money.add_argument("--min-trade-notional", type=float, default=10_000.0)
+    smart_money.add_argument("--history-limit", type=int, default=500)
+    smart_money.add_argument("--history-max-offset", type=int, default=2000)
+    smart_money.add_argument("--min-history-rows", type=int, default=50)
+    smart_money.add_argument("--wallet", action="append")
+    smart_money.add_argument("--wallet-file")
+    smart_money.add_argument("--markets")
+    smart_money.add_argument("--clob")
+    smart_money.add_argument("--weather")
+    smart_money.add_argument("--forecast")
+    smart_money.add_argument("--weather-events")
+    smart_money.add_argument("--official-weather")
+    smart_money.add_argument("--marketbridge-context")
+    smart_money.add_argument("--no-profile", action="store_true")
+    smart_money.add_argument("--json", action="store_true")
     agent_parser = subparsers.add_parser("agent")
     agent_parser.add_argument("--profile-dir", default="data/profiler")
     agent_parser.add_argument("--db", default="data/oktrader.sqlite")
@@ -569,6 +620,20 @@ def _parse_csv_list(raw: list[str] | None) -> list[str]:
     for item in raw:
         values.extend(part.strip() for part in item.split(",") if part.strip())
     return list(dict.fromkeys(values))
+
+
+def _read_wallet_file(path: str | None) -> list[str]:
+    if not path:
+        return []
+    wallet_path = Path(path)
+    if not wallet_path.exists():
+        return []
+    values = []
+    for line in wallet_path.read_text(encoding="utf-8").splitlines():
+        wallet = line.strip().split(",", 1)[0]
+        if wallet:
+            values.append(wallet)
+    return values
 
 
 def _parse_int_list(raw: list[str] | None) -> list[int]:
