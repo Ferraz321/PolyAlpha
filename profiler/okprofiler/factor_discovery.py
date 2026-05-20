@@ -57,12 +57,38 @@ def discover_factors(
     }
 
 
+def discover_factor_boards(
+    factor_table: pl.DataFrame,
+    categories: list[str | None],
+    max_base_factors: int = 24,
+    max_interactions: int = 120,
+) -> dict:
+    boards = [
+        discover_factors(
+            factor_table,
+            category=category,
+            max_base_factors=max_base_factors,
+            max_interactions=max_interactions,
+        )
+        for category in categories
+    ]
+    return {
+        "version": 1,
+        "board_count": len(boards),
+        "rows": factor_table.height,
+        "summary": _board_summary(boards),
+        "boards": boards,
+    }
+
+
 def write_factor_discovery(result: dict, path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(_json_safe(result), indent=2), encoding="utf-8")
 
 
 def render_factor_discovery(result: dict, top: int = 20) -> str:
+    if "boards" in result:
+        return _render_board_discovery(result, top)
     summary = ", ".join(
         f"{key}={value}" for key, value in sorted(result.get("summary", {}).items())
     )
@@ -111,6 +137,8 @@ def _registered_specs(factor_table: pl.DataFrame, category: str | None) -> list[
             and _is_numeric_candidate(factor_table, spec.column)
         ):
             specs.append(spec)
+    if category is None or category == "marketbridge":
+        specs.extend(_marketbridge_specs(factor_table))
     return specs
 
 
@@ -260,6 +288,33 @@ def _summary(results: list[dict]) -> dict:
     return dict(sorted(Counter(row["consensus"] for row in results).items()))
 
 
+def _board_summary(boards: list[dict]) -> dict:
+    totals = Counter()
+    for board in boards:
+        for key, value in board.get("summary", {}).items():
+            totals[key] += int(value)
+    return dict(sorted(totals.items()))
+
+
+def _marketbridge_specs(factor_table: pl.DataFrame) -> list[FactorSpec]:
+    specs = []
+    catalog_columns = {spec.column for spec in FACTOR_SPECS}
+    for column in factor_table.columns:
+        if not column.startswith("mb_") or column in catalog_columns:
+            continue
+        if _is_numeric_candidate(factor_table, column):
+            specs.append(
+                FactorSpec(
+                    column=column,
+                    label=column.replace("mb_", "MarketBridge ").replace("_", " "),
+                    direction="high",
+                    quantile=0.75,
+                    validation_role="candidate",
+                )
+            )
+    return specs
+
+
 def _rank_key(row: dict) -> tuple:
     return (
         row["consensus"] == "confirmed_effective",
@@ -328,6 +383,43 @@ def _render_section(title: str, rows: list[dict], top: int) -> list[str]:
         )
     lines.append("")
     return lines
+
+
+def _render_board_discovery(result: dict, top: int) -> str:
+    summary = ", ".join(
+        f"{key}={value}" for key, value in sorted(result.get("summary", {}).items())
+    )
+    lines = [
+        "# Multi-Board Factor Discovery Report",
+        "",
+        f"- source_factor_table: {result.get('source_factor_table') or '-'}",
+        f"- board_count: {result.get('board_count', 0)}",
+        f"- rows: {result.get('rows', 0)}",
+        f"- summary: {summary or '-'}",
+        "",
+        "| Board | Effective | Promising | Rejected | Top Effective Factor |",
+        "| --- | ---: | ---: | ---: | --- |",
+    ]
+    for board in result.get("boards", []):
+        board_summary = board.get("summary", {})
+        top_effective = "-"
+        if board.get("confirmed_effective"):
+            top_effective = f"`{board['confirmed_effective'][0]['factor_id']}`"
+        lines.append(
+            "| {category} | {effective} | {promising} | {rejected} | {top} |".format(
+                category=board.get("category") or "all",
+                effective=board_summary.get("confirmed_effective", 0),
+                promising=board_summary.get("confirmed_promising", 0),
+                rejected=board_summary.get("confirmed_rejected", 0),
+                top=top_effective,
+            )
+        )
+    lines.append("")
+    for board in result.get("boards", []):
+        lines.append(f"## Board: {board.get('category') or 'all'}")
+        lines.append("")
+        lines.extend(_render_section("Confirmed Effective", board.get("confirmed_effective", []), top))
+    return "\n".join(lines) + "\n"
 
 
 def _escape_table(value: str) -> str:

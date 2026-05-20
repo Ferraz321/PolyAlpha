@@ -563,11 +563,14 @@ walk-forward cycles, and writes both JSON evidence and a Markdown report:
 python profiler/profile_wallets.py discover-factors \
   --factor-table data/profiler/factor_table.parquet \
   --category weather_temperature \
+  --category sector_information_edge \
   --max-base-factors 18 \
   --max-interactions 80 \
   --out data/profiler/factor_discovery.json \
   --report-out data/profiler/factor_discovery.md
 ```
+
+Use `--all-playbooks` to run every built-in board playbook in one pass.
 
 Treat `confirmed_effective` synthetic factors as promotion candidates: add the
 formula to the central catalog and implementation library before using them as

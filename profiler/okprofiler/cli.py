@@ -14,6 +14,7 @@ from .data_sources import (
 )
 from .features import factor_library_rows
 from .factor_discovery import (
+    discover_factor_boards,
     discover_factors,
     render_factor_discovery,
     write_factor_discovery,
@@ -158,11 +159,32 @@ def main() -> None:
         return
     if args.command == "discover-factors":
         factor_table_path = Path(args.factor_table)
-        result = discover_factors(
-            load_factor_table(factor_table_path),
-            category=args.category,
-            max_base_factors=args.max_base_factors,
-            max_interactions=args.max_interactions,
+        factor_table = load_factor_table(factor_table_path)
+        categories = _parse_factor_list(args.category)
+        if args.all_playbooks:
+            categories = [
+                "weather_temperature",
+                "sector_information_edge",
+                "event_news_information_edge",
+                "microstructure_liquidity_timing",
+                "settlement_timing",
+                "cross_sector_scanner",
+                "marketbridge",
+            ]
+        result = (
+            discover_factor_boards(
+                factor_table,
+                categories,
+                max_base_factors=args.max_base_factors,
+                max_interactions=args.max_interactions,
+            )
+            if categories and len(categories) > 1
+            else discover_factors(
+                factor_table,
+                category=categories[0] if categories else None,
+                max_base_factors=args.max_base_factors,
+                max_interactions=args.max_interactions,
+            )
         )
         result["source_factor_table"] = str(factor_table_path)
         if args.out:
@@ -412,7 +434,12 @@ def parse_args():
     cycles_parser.add_argument("--json", action="store_true")
     discover_parser = subparsers.add_parser("discover-factors")
     discover_parser.add_argument("--factor-table", default="data/profiler/factor_table.parquet")
-    discover_parser.add_argument("--category", help="factor category or playbook, for example weather_temperature")
+    discover_parser.add_argument(
+        "--category",
+        action="append",
+        help="factor category or playbook; repeatable or comma-separated",
+    )
+    discover_parser.add_argument("--all-playbooks", action="store_true")
     discover_parser.add_argument("--max-base-factors", type=int, default=24)
     discover_parser.add_argument("--max-interactions", type=int, default=120)
     discover_parser.add_argument("--top", type=int, default=20)
