@@ -555,6 +555,24 @@ python profiler/profile_wallets.py validation-cycles \
   --factor news_recency_decay_edge
 ```
 
+Run a board-specific discovery pass that filters eligible causal factors,
+generates bounded pair interactions, validates every candidate with the same
+walk-forward cycles, and writes both JSON evidence and a Markdown report:
+
+```bash
+python profiler/profile_wallets.py discover-factors \
+  --factor-table data/profiler/factor_table.parquet \
+  --category weather_temperature \
+  --max-base-factors 18 \
+  --max-interactions 80 \
+  --out data/profiler/factor_discovery.json \
+  --report-out data/profiler/factor_discovery.md
+```
+
+Treat `confirmed_effective` synthetic factors as promotion candidates: add the
+formula to the central catalog and implementation library before using them as
+durable live features.
+
 Evaluate whether a wallet is worth following before building a live bot:
 
 ```bash

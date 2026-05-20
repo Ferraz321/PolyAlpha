@@ -13,6 +13,11 @@ from .data_sources import (
     resolve_polymarket_user,
 )
 from .features import factor_library_rows
+from .factor_discovery import (
+    discover_factors,
+    render_factor_discovery,
+    write_factor_discovery,
+)
 from .follow_eval import evaluate_followability, render_followability, write_followability
 from .pipeline import ProfilerConfig, run_profiler
 from .research_agenda import build_research_agenda, render_research_agenda
@@ -150,6 +155,28 @@ def main() -> None:
             print(json.dumps(result, indent=2))
         else:
             print(render_validation_cycles(result), end="")
+        return
+    if args.command == "discover-factors":
+        factor_table_path = Path(args.factor_table)
+        result = discover_factors(
+            load_factor_table(factor_table_path),
+            category=args.category,
+            max_base_factors=args.max_base_factors,
+            max_interactions=args.max_interactions,
+        )
+        result["source_factor_table"] = str(factor_table_path)
+        if args.out:
+            write_factor_discovery(result, Path(args.out))
+        if args.report_out:
+            Path(args.report_out).parent.mkdir(parents=True, exist_ok=True)
+            Path(args.report_out).write_text(
+                render_factor_discovery(result, top=args.top),
+                encoding="utf-8",
+            )
+        if args.json:
+            print(json.dumps(result, indent=2))
+        else:
+            print(render_factor_discovery(result, top=args.top), end="")
         return
     if args.command == "follow-evaluate":
         result = evaluate_followability(
@@ -383,6 +410,15 @@ def parse_args():
     cycles_parser.add_argument("--factor", action="append", help="factor id to validate; repeatable or comma-separated")
     cycles_parser.add_argument("--out", default="data/profiler/factor_validation_cycles.json")
     cycles_parser.add_argument("--json", action="store_true")
+    discover_parser = subparsers.add_parser("discover-factors")
+    discover_parser.add_argument("--factor-table", default="data/profiler/factor_table.parquet")
+    discover_parser.add_argument("--category", help="factor category or playbook, for example weather_temperature")
+    discover_parser.add_argument("--max-base-factors", type=int, default=24)
+    discover_parser.add_argument("--max-interactions", type=int, default=120)
+    discover_parser.add_argument("--top", type=int, default=20)
+    discover_parser.add_argument("--out", default="data/profiler/factor_discovery.json")
+    discover_parser.add_argument("--report-out", default="data/profiler/factor_discovery.md")
+    discover_parser.add_argument("--json", action="store_true")
     follow_parser = subparsers.add_parser("follow-evaluate")
     follow_parser.add_argument("--profile-dir", default="data/profiler")
     follow_parser.add_argument("--wallet")
