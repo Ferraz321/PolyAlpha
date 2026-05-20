@@ -250,6 +250,7 @@ flowchart LR
 | CLOB websocket recorder and microstructure builder | Implemented for live/recorded data |
 | Python profiler, factor table, reports, rules, strategy config | Implemented |
 | Factor library structure and weather market playbook | Implemented |
+| Strategy hunt loop with wallet archive, factor discovery, and followability gates | Implemented |
 | Agent CLI reading artifacts and writing research outputs | Implemented |
 | Agent CLI orchestrating Rust + Python tools | Implemented |
 | Agent `next_commands.json` planner and candidate factor backlog | Implemented |
@@ -391,6 +392,34 @@ Use `--wallet 0x...` for a known Polymarket address. A wallet is archived as
 `research_ready` only after history is fetched, profiling succeeds, and
 multi-board factor discovery finds confirmed effective factors. One-shot whales
 remain watchlist/rejected until repeatable factors survive validation.
+
+Run the stricter strategy hunt loop when the goal is a followable strategy, not
+just a factor candidate. It scans/archives wallets, reuses the same factor
+discovery pipeline, then requires wallet quality, latency, depth, and paper/live
+edge gates to pass before marking anything `reliable`:
+
+```bash
+python profiler/profile_wallets.py hunt-strategies \
+  --out-dir data/strategy_hunt \
+  --max-rounds 6 \
+  --interval-secs 300 \
+  --page-size 500 \
+  --max-offset 1000 \
+  --max-wallets 10 \
+  --min-trade-notional 10000 \
+  --history-limit 500 \
+  --history-max-offset 3000 \
+  --wallet-file data/watchlist_wallets.txt \
+  --markets data/profiler/markets.csv \
+  --clob data/profiler/clob_events.csv \
+  --marketbridge-context data/profiler/marketbridge_context.csv \
+  --follow-db data/follow.sqlite
+```
+
+Use `--until-found` to keep looping until a reliable strategy appears. Without
+`--follow-db`, the loop can still find research candidates, but it will not
+approve live reliability because historical fills cannot prove reaction latency,
+available book depth, or realized paper-follow edge.
 
 ## VPS Overnight Run
 
@@ -667,6 +696,25 @@ python profiler/profile_wallets.py follow-evaluate \
   --wallet 0x331bf91c132af9d921e1908ca0979363fc47193f \
   --db data/follow.sqlite
 ```
+
+For an end-to-end reliability search, use `hunt-strategies` after the live/paper
+database has enough rows:
+
+```bash
+python profiler/profile_wallets.py hunt-strategies \
+  --out-dir data/strategy_hunt \
+  --wallet-file data/watchlist_wallets.txt \
+  --follow-db data/follow.sqlite \
+  --min-live-events 20 \
+  --min-paper-fills 30 \
+  --until-found
+```
+
+The command writes `strategy_hunt.json`, `strategy_hunt.md`, and per-wallet
+`strategy_reliability.json`. `reliable` means the wallet has confirmed effective
+factors and all four followability gates are approved. `candidate_needs_live_proof`
+means factors exist but live/paper evidence is still incomplete. `not_reliable`
+means at least one gate rejected the strategy.
 
 Per-run evidence is written to `factor_summary.md`, `factor_research_log.md`,
 and `rules.json`. A factor should only be promoted when it has non-null rows,

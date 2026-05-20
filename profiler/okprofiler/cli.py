@@ -25,6 +25,8 @@ from .pipeline import ProfilerConfig, run_profiler
 from .research_agenda import build_research_agenda, render_research_agenda
 from .smart_money import SmartMoneyScanConfig, scan_smart_money
 from .smart_money_render import render_smart_money_archive
+from .strategy_hunt import StrategyHuntConfig, run_strategy_hunt
+from .strategy_hunt_render import render_strategy_hunt
 from .validation_summary import render_summary, summarize_validations
 from .validation_cycles import (
     load_factor_table,
@@ -126,31 +128,34 @@ def main() -> None:
         return
     if args.command == "scan-smart-money":
         result = scan_smart_money(
-            SmartMoneyScanConfig(
-                base_url=args.base_url,
-                out_dir=Path(args.out_dir),
-                page_size=args.page_size,
-                max_offset=args.max_offset,
-                max_wallets=args.max_wallets,
-                min_trade_notional=args.min_trade_notional,
-                history_limit=args.history_limit,
-                history_max_offset=args.history_max_offset,
-                min_history_rows=args.min_history_rows,
-                markets_path=Path(args.markets) if args.markets else None,
-                clob_path=Path(args.clob) if args.clob else None,
-                weather_path=Path(args.weather) if args.weather else None,
-                forecast_path=Path(args.forecast) if args.forecast else None,
-                weather_events_path=Path(args.weather_events) if args.weather_events else None,
-                official_weather_path=Path(args.official_weather) if args.official_weather else None,
-                marketbridge_context_path=Path(args.marketbridge_context) if args.marketbridge_context else None,
-                seed_wallets=tuple(_parse_csv_list(args.wallet) + _read_wallet_file(args.wallet_file)),
-                profile_wallets=not args.no_profile,
-            )
+            _smart_money_config(args, out_dir=Path(args.out_dir), profile_wallets=not args.no_profile)
         )
         if args.json:
             print(json.dumps(result, indent=2))
         else:
             print(render_smart_money_archive(result), end="")
+        return
+    if args.command == "hunt-strategies":
+        result = run_strategy_hunt(
+            StrategyHuntConfig(
+                scan_config=_smart_money_config(args, out_dir=Path(args.out_dir) / "scan_template"),
+                out_dir=Path(args.out_dir),
+                max_rounds=args.max_rounds,
+                interval_secs=args.interval_secs,
+                until_found=args.until_found,
+                follow_db=Path(args.follow_db) if args.follow_db else None,
+                min_effective_factors=args.min_effective_factors,
+                min_proxy_trades=args.min_proxy_trades,
+                max_latency_secs=args.max_latency_secs,
+                min_live_events=args.min_live_events,
+                min_depth_pass_rate=args.min_depth_pass_rate,
+                min_paper_fills=args.min_paper_fills,
+            )
+        )
+        if args.json:
+            print(json.dumps(result, indent=2))
+        else:
+            print(render_strategy_hunt(result), end="")
         return
     if args.command == "agent":
         agent(args)
@@ -459,6 +464,19 @@ def parse_args():
     smart_money.add_argument("--marketbridge-context")
     smart_money.add_argument("--no-profile", action="store_true")
     smart_money.add_argument("--json", action="store_true")
+    strategy_hunt = subparsers.add_parser("hunt-strategies")
+    _add_smart_money_args(strategy_hunt)
+    strategy_hunt.add_argument("--max-rounds", type=int, default=1)
+    strategy_hunt.add_argument("--interval-secs", type=int, default=0)
+    strategy_hunt.add_argument("--until-found", action="store_true")
+    strategy_hunt.add_argument("--follow-db")
+    strategy_hunt.add_argument("--min-effective-factors", type=int, default=1)
+    strategy_hunt.add_argument("--min-proxy-trades", type=int, default=30)
+    strategy_hunt.add_argument("--max-latency-secs", type=int, default=30)
+    strategy_hunt.add_argument("--min-live-events", type=int, default=20)
+    strategy_hunt.add_argument("--min-depth-pass-rate", type=float, default=0.8)
+    strategy_hunt.add_argument("--min-paper-fills", type=int, default=30)
+    strategy_hunt.add_argument("--json", action="store_true")
     agent_parser = subparsers.add_parser("agent")
     agent_parser.add_argument("--profile-dir", default="data/profiler")
     agent_parser.add_argument("--db", default="data/oktrader.sqlite")
@@ -597,6 +615,50 @@ def _add_profile_args(parser):
         "--research-engines",
         default="core,alphalens,shap,stumpy,agent",
         help="comma-separated engines: core,alphalens,shap,stumpy,nautilus,agent",
+    )
+
+
+def _add_smart_money_args(parser):
+    parser.add_argument("--base-url", default="https://data-api.polymarket.com/")
+    parser.add_argument("--out-dir", default="data/strategy_hunt")
+    parser.add_argument("--page-size", type=int, default=500)
+    parser.add_argument("--max-offset", type=int, default=1000)
+    parser.add_argument("--max-wallets", type=int, default=10)
+    parser.add_argument("--min-trade-notional", type=float, default=10_000.0)
+    parser.add_argument("--history-limit", type=int, default=500)
+    parser.add_argument("--history-max-offset", type=int, default=2000)
+    parser.add_argument("--min-history-rows", type=int, default=50)
+    parser.add_argument("--wallet", action="append")
+    parser.add_argument("--wallet-file")
+    parser.add_argument("--markets")
+    parser.add_argument("--clob")
+    parser.add_argument("--weather")
+    parser.add_argument("--forecast")
+    parser.add_argument("--weather-events")
+    parser.add_argument("--official-weather")
+    parser.add_argument("--marketbridge-context")
+
+
+def _smart_money_config(args, out_dir: Path, profile_wallets: bool = True) -> SmartMoneyScanConfig:
+    return SmartMoneyScanConfig(
+        base_url=args.base_url,
+        out_dir=out_dir,
+        page_size=args.page_size,
+        max_offset=args.max_offset,
+        max_wallets=args.max_wallets,
+        min_trade_notional=args.min_trade_notional,
+        history_limit=args.history_limit,
+        history_max_offset=args.history_max_offset,
+        min_history_rows=args.min_history_rows,
+        markets_path=Path(args.markets) if args.markets else None,
+        clob_path=Path(args.clob) if args.clob else None,
+        weather_path=Path(args.weather) if args.weather else None,
+        forecast_path=Path(args.forecast) if args.forecast else None,
+        weather_events_path=Path(args.weather_events) if args.weather_events else None,
+        official_weather_path=Path(args.official_weather) if args.official_weather else None,
+        marketbridge_context_path=Path(args.marketbridge_context) if args.marketbridge_context else None,
+        seed_wallets=tuple(_parse_csv_list(args.wallet) + _read_wallet_file(args.wallet_file)),
+        profile_wallets=profile_wallets,
     )
 
 
